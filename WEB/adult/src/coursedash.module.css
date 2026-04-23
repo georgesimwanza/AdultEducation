@@ -1,0 +1,111 @@
+.container {
+  background: #f5f7fa;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.addBtn {
+  background: black;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Search */
+.searchBox {
+  margin-bottom: 15px;
+}
+
+.searchBox input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  border: solid 3px black;
+}
+
+/* Table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  border: solid 3px black;
+ 
+}
+
+.table th {
+  text-align: left;
+  padding: 12px;
+  background: #f1f5f9;
+  font-weight: 600;
+  border: solid 3px black;
+}
+
+.table td {
+  padding: 12px;
+  border-top: 1px solid #eee;
+  border: solid 3px black;
+}
+
+/* Actions */
+.actions span {
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.edit {
+  color: black;
+  border: solid 3px black;
+  padding: 4px;
+  border-radius: 10px;
+  background-color: white;
+}
+
+.delete {
+ color: white;
+  border: solid 3px black;
+  padding: 4px;
+  border-radius: 10px;
+  background-color: red;
+}
+
+.view {
+  color: white;
+  border: solid 3px black;
+  padding: 4px;
+  border-radius: 10px;
+  background-color: black;
+}
+
+/* Pagination */
+.pagination {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pagination span,
+.pagination button {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.active {
+  background: #3b82f6;
+  color: white;
+}
