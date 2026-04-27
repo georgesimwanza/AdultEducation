@@ -62,6 +62,8 @@ public class Course {
    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
    private List<UserContentProgress> userContentProgresses;
 
+   @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+   private List<Content> contents;
    @PreUpdate
    public void preUpdate() {
       this.updatedAt = LocalDateTime.now();

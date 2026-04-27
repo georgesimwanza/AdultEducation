@@ -1,0 +1,205 @@
+/* content.module.css */
+
+.card {
+  background: white;
+  border: 1px solid #1e1e1e;
+  border-radius: 18px;
+  padding: 36px 32px 32px;
+  width: 100%;
+  max-width: 440px;
+  font-family: 'DM Mono', monospace;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 8px 40px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Header */
+.header {
+  margin-bottom: 28px;
+}
+
+.tag {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: black;
+  border: 1px solid black;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  color: black;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+/* Fields */
+.field {
+  margin-bottom: 18px;
+}
+
+.label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #444;
+  margin-bottom: 8px;
+}
+
+.input {
+  width: 100%;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 13px 15px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input::placeholder {
+  color: #2e2e2e;
+}
+
+.input:focus {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+}
+
+/* File Drop Zone */
+.dropZone {
+  border: 1px dashed #2a2a2a;
+  border-radius: 10px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: #ffffff;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.dropZone:hover {
+  border-color: #fff;
+  background: #0c0c0c;
+  color: white;
+}
+
+.dropIcon {
+  font-size: 24px;
+  opacity: 0.25;
+  margin-bottom: 8px;
+}
+
+.dropText {
+  font-size: 12px;
+  color: black;
+}
+
+.dropLink {
+  color: #fff;
+  border-bottom: 1px solid #fff;
+  padding-bottom: 1px;
+}
+
+.dropHint {
+  margin-top: 5px;
+  font-size: 9px;
+  color: #2e2e2e;
+  letter-spacing: 0.06em;
+}
+
+.fileName {
+  margin-top: 10px;
+  font-size: 10px;
+  color: black;
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 7px 12px;
+  word-break: break-all;
+}
+
+.typeRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.typeBtn {
+  background: white;
+  border: 1px solid #222;
+  border-radius: 8px;
+  padding: 10px 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: #3a3a3a;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.typeBtn:hover {
+  border-color: #666;
+  color: #aaa;
+}
+
+.typeBtn.active {
+  background: black;
+  border-color: #fff;
+  color: white;
+  box-shadow: 0 2px 18px rgba(255, 255, 255, 0.12);
+}
+
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #1e1e1e, transparent);
+  margin: 8px 0 24px;
+}
+
+
+.submitBtn {
+  width: 100%;
+  background: black;
+  border: none;
+  border-radius: 10px;
+  padding: 15px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: white;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+  box-shadow: 0 4px 24px rgba(255, 255, 255, 0.12);
+}
+
+.submitBtn::after {
+  content: '→';
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  opacity: 0.4;
+}
+
+.submitBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px rgba(255, 255, 255, 0.2);
+}
+
+.submitBtn:active {
+  transform: translateY(0);
+  background: #d8d8d8;
+}
