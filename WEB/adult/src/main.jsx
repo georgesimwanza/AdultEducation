@@ -6,8 +6,9 @@ import Login from './loginpage.jsx'
 import Register from './Register.jsx'
 import CourseDash from './coursedashboard.jsx'
 import AddCourse from './Addcourse.jsx'
+import AddContent from './addContent.jsx'
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <CourseDash/>
+    <AddContent/>
   </StrictMode>,
 )

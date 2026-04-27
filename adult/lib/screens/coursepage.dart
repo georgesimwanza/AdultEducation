@@ -1,4 +1,8 @@
+import 'package:adult/Model/content.dart';
 import 'package:flutter/material.dart';
+import '../service/contentService.dart';
+
+typedef Content = ContentModel;
 
 class CoursePage extends StatefulWidget {
   const CoursePage({super.key});
@@ -8,18 +12,14 @@ class CoursePage extends StatefulWidget {
 }
 
 class _CoursePageState extends State<CoursePage> {
+  late Future<List<ContentModel>> _coursePageFuture;
   int _selectedTab = 0;
 
-  // ── LESSON DATA ─────────────────────────────────────────
-  final List<Map<String, dynamic>> kLessons = [
-    {"title": "Introduction to React", "duration": "5:20", "completed": true},
-    {"title": "JSX & Components", "duration": "8:10", "completed": true},
-    {"title": "State & Props", "duration": "12:00", "completed": false},
-    {"title": "Hooks Overview", "duration": "10:30", "completed": false},
-  ];
-
-  int get _completedLessons =>
-      kLessons.where((lesson) => lesson["completed"] == true).length;
+  @override
+  void initState() {
+    super.initState();
+    _coursePageFuture = contentService().getContent(1);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,8 +31,6 @@ class _CoursePageState extends State<CoursePage> {
             _buildTopBar(),
             _buildCourseInfo(),
             _buildTabBar(),
-
-            // 🔥 SWITCH CONTENT BASED ON TAB
             Expanded(
               child: _selectedTab == 0
                   ? _buildLessonList()
@@ -83,7 +81,7 @@ class _CoursePageState extends State<CoursePage> {
     );
   }
 
-  // ── COURSE INFO ─────────────────────────────────────────
+
   Widget _buildCourseInfo() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -110,11 +108,7 @@ class _CoursePageState extends State<CoursePage> {
               CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.white,
-                child: Icon(
-                  Icons.person,
-                  size: 18,
-                  color: Color.fromARGB(0, 0, 0, 0),
-                ),
+                child: Icon(Icons.person, size: 18),
               ),
               Text(
                 '105 Videos',
@@ -177,59 +171,112 @@ class _CoursePageState extends State<CoursePage> {
 
   // ── LESSON LIST ─────────────────────────────────────────
   Widget _buildLessonList() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Text(
-                '$_completedLessons of ${kLessons.length} completed',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFAAAAAA),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFE8E8E8)),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: ListView.separated(
-                itemCount: kLessons.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) =>
-                    _buildLessonItem(kLessons[index]),
+    return FutureBuilder<List<ContentModel>>(
+      future: _coursePageFuture,
+      builder: (context, snapshot) {
+        // 1. Loading state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        // 2. Error state
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        // 3. Empty state
+        final lessons = snapshot.data ?? [];
+        if (lessons.isEmpty) {
+          return const Center(child: Text('No lessons available.'));
+        }
+
+        // 4. Data state
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Text(
+                    // Since ContentModel has no "completed" field,
+                    // we show total count. Add a completed field to
+                    // your model/API later to track progress.
+                    '${lessons.length} lessons available',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFAAAAAA),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ),
-      ],
+            const SizedBox(height: 8),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFFE8E8E8)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: ListView.separated(
+                    itemCount: lessons.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) =>
+                        _buildLessonItem(lessons[index]),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildLessonItem(Map<String, dynamic> lesson) {
+  Widget _buildLessonItem(ContentModel lesson) {
+    // Determine icon based on content type (video, pdf, etc.)
+    IconData typeIcon;
+    switch (lesson.type.toLowerCase()) {
+      case 'video':
+        typeIcon = Icons.play_circle_fill;
+        break;
+      case 'pdf':
+        typeIcon = Icons.picture_as_pdf;
+        break;
+      case 'quiz':
+        typeIcon = Icons.quiz;
+        break;
+      default:
+        typeIcon = Icons.article;
+    }
+
     return ListTile(
-      leading: Icon(
-        lesson["completed"] ? Icons.check_circle : Icons.play_circle_fill,
-        color: lesson["completed"] ? Colors.green : Colors.grey,
+      leading: Icon(typeIcon, color: const Color(0xFF111111)),
+      title: Text(
+        lesson.title,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
-      title: Text(lesson["title"]),
-      subtitle: Text(lesson["duration"]),
+      subtitle: Text(
+        lesson.type.toUpperCase(),
+        style: const TextStyle(fontSize: 11, color: Color(0xFFAAAAAA)),
+      ),
       trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+      onTap: () {
+        // TODO: Navigate to lesson detail, passing lesson.fileUrl
+        // Navigator.push(context, MaterialPageRoute(
+        //   builder: (_) => LessonDetailPage(url: lesson.fileUrl),
+        // ));
+      },
     );
   }
-
-  // ── ASSIGNMENTS ─────────────────────────────────────────
   Widget _buildAssignments() {
     return const Center(
       child: Text(
@@ -238,8 +285,6 @@ class _CoursePageState extends State<CoursePage> {
       ),
     );
   }
-
-  // ── BOTTOM NAV ──────────────────────────────────────────
   Widget _buildBottomNav() {
     return Container(
       height: 60,
