@@ -6,11 +6,16 @@ import './screens/dashboard.dart';
 import 'package:adult/screens/login_screen.dart';
 import './screens/subject.dart';
 import './screens/coursepage.dart';
+import './screens/schedule_screen.dart';
+import 'Controller/schedule_controller.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AuthController(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthController()),
+        ChangeNotifierProvider(create: (_) => ScheduleController()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -34,6 +39,8 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => const SubjectPage());
           case '/coursepage':
             return MaterialPageRoute(builder: (_) => const CoursePage());
+          case '/schedule':
+            return MaterialPageRoute(builder: (_) => const ScheduleScreen());
           default:
             return null;
         }

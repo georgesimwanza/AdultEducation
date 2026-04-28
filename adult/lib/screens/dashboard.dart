@@ -3,6 +3,7 @@ import 'package:adult/Controller/auth_controller.dart';
 import 'package:adult/service/dashboard_service.dart';
 import 'package:flutter/material.dart';
 import './subject.dart';
+import 'schedule_screen.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -238,8 +239,7 @@ class DashboardState extends State<Dashboard> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => ChangeNotifierProvider.value(
-                      value: context
-                          .read<AuthController>(), // pass existing instance
+                      value: context.read<AuthController>(),
                       child: SubjectPage(),
                     ),
                   ),
@@ -336,7 +336,20 @@ class DashboardState extends State<Dashboard> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChangeNotifierProvider.value(
+                    value: context
+                        .read<AuthController>(), // pass existing instance
+                    child: title == 'Browse Courses'
+                        ? SubjectPage()
+                        : ScheduleScreen(),
+                  ),
+                ),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2A2A2A),
               foregroundColor: Colors.white,
