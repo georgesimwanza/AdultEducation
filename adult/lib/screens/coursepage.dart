@@ -81,26 +81,11 @@ class _CoursePageState extends State<CoursePage> {
     );
   }
 
-
   Widget _buildCourseInfo() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Column(
         children: [
-          const Text(
-            'React Complete Course',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color.fromARGB(255, 0, 0, 0),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Basic guideline & tips & tricks for how to become\na React Developer easily.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Colors.black),
-          ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -169,7 +154,6 @@ class _CoursePageState extends State<CoursePage> {
     );
   }
 
-  // ── LESSON LIST ─────────────────────────────────────────
   Widget _buildLessonList() {
     return FutureBuilder<List<ContentModel>>(
       future: _coursePageFuture,
@@ -242,7 +226,6 @@ class _CoursePageState extends State<CoursePage> {
   }
 
   Widget _buildLessonItem(ContentModel lesson) {
-    // Determine icon based on content type (video, pdf, etc.)
     IconData typeIcon;
     switch (lesson.type.toLowerCase()) {
       case 'video':
@@ -277,6 +260,7 @@ class _CoursePageState extends State<CoursePage> {
       },
     );
   }
+
   Widget _buildAssignments() {
     return const Center(
       child: Text(
@@ -285,6 +269,7 @@ class _CoursePageState extends State<CoursePage> {
       ),
     );
   }
+
   Widget _buildBottomNav() {
     return Container(
       height: 60,
