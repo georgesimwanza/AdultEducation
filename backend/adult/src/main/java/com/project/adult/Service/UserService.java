@@ -6,7 +6,10 @@ import com.project.adult.Model.Programme;
 import com.project.adult.Model.User;
 import com.project.adult.Repository.ProgrammeRepository;
 import com.project.adult.Repository.UserRepository;
+import com.project.adult.Security.JwtUtils;
+import com.project.adult.Security.UserPrincipal;
 import jakarta.transaction.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,10 +17,17 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ProgrammeRepository programmeRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtils jwtUtils;
 
-    public UserService(UserRepository userRepository, ProgrammeRepository programmeRepository) {
-        this.userRepository = userRepository;
+    public UserService(UserRepository userRepository,
+                       ProgrammeRepository programmeRepository,
+                       PasswordEncoder passwordEncoder,
+                       JwtUtils jwtUtils) {
+        this.userRepository      = userRepository;
         this.programmeRepository = programmeRepository;
+        this.passwordEncoder     = passwordEncoder;
+        this.jwtUtils            = jwtUtils;
     }
 
     @Transactional
@@ -26,9 +36,8 @@ public class UserService {
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
-        user.setPasswordHash(request.getPasswordHash());
+        user.setPasswordHash(passwordEncoder.encode(request.getPasswordHash()));
 
-        // Look up the actual managed Programme entity by ID
         if (request.getSelectedProgramme() != null &&
                 request.getSelectedProgramme().getId() != null) {
             Programme programme = programmeRepository
@@ -51,16 +60,27 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!user.getPasswordHash().equals(password)) {
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new RuntimeException("Invalid password");
+        }
+
+        // Token is generated here — it is never stored on the User entity
+        String token = jwtUtils.generateToken(UserPrincipal.from(user));
+
+        Long programmeId     = null;
+        String programmeName = null;
+        if (user.getSelectedProgramme() != null) {
+            programmeId   = user.getSelectedProgramme().getId();
+            programmeName = user.getSelectedProgramme().getName();
         }
 
         return new UserDTO(
                 user.getFirstName(),
                 user.getLastName(),
                 user.getEmail(),
-                user.getSelectedProgramme().getId(),
-                user.getSelectedProgramme().getName()
+                programmeId,
+                programmeName,
+                token              // generated above, not from user.getToken()
         );
     }
 }

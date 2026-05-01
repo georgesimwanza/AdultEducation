@@ -5,7 +5,6 @@ import '../model/schedule_model.dart';
 class ScheduleService {
   static const String _base = 'http://10.0.2.2:8080/api';
 
-  // POST /schedules — create a new schedule
   Future<ScheduleEntry> createSchedule(ScheduleEntry entry) async {
     final response = await http.post(
       Uri.parse('$_base/schedules'),
@@ -19,7 +18,7 @@ class ScheduleService {
     throw Exception('Failed to save schedule: ${response.statusCode}');
   }
 
-  // GET /schedules?email=user@example.com — fetch all for user
+
   Future<List<ScheduleEntry>> fetchSchedules(String email) async {
     final response = await http.get(
       Uri.parse('$_base/schedules?email=${Uri.encodeComponent(email)}'),

@@ -10,7 +10,7 @@ class AuthService {
     required String lastName,
     required String email,
     required String password,
-    required int programmeId, // ← changed from String course to int
+    required int programmeId, 
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/Register'),

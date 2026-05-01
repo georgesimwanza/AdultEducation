@@ -15,7 +15,7 @@ class Dashboard extends StatefulWidget {
 class DashboardState extends State<Dashboard> {
   int _selectedIndex = 0;
   String _programmeTitle = 'Loading...';
-  bool _titleFetched = false; // prevent duplicate calls
+  bool _titleFetched = false; 
 
   @override
   void didChangeDependencies() {

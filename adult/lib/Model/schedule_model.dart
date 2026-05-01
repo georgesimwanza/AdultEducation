@@ -3,9 +3,8 @@ class ScheduleEntry {
   final String title;
   final String userEmail;
   final DateTime date;
-  final String startTime; // 👈 plain string "09:00" instead of TimeOfDay
-  final String endTime; // 👈 plain string "11:00" instead of TimeOfDay
-
+  final String startTime; 
+  final String endTime; 
   ScheduleEntry({
     this.id,
     required this.title,
