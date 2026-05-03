@@ -1,7 +1,9 @@
 package com.project.adult.Controller;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.project.adult.DTO.SubjectDTO;
+import com.project.adult.Model.Course;
 import com.project.adult.Service.SubjectService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -20,11 +22,18 @@ public class SubjectController {
     public SubjectController(SubjectService subjectService) {
         this.subjectService = subjectService;
     }
-
+    @JsonIgnoreProperties("course")
     @GetMapping("/programme/{programmeId}")
     public ResponseEntity<List<SubjectDTO>> getProgrammeSubjects(
             @PathVariable Long programmeId
     ){
         return ResponseEntity.ok(subjectService.getAlldetailsById(programmeId));
     }
+
+
+    @GetMapping("/allSubjects")
+    @JsonIgnoreProperties("course")
+ public List<Course> getAllsubjects(){
+        return subjectService.getAllSubjects();
+ }
 }

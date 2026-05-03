@@ -183,7 +183,7 @@ class _SubjectPageState extends State<SubjectPage> {
               icon: const Icon(Icons.refresh_rounded, size: 16),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3D7BF5),
+                backgroundColor: const Color.fromARGB(255, 0, 0, 0),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -216,7 +216,7 @@ class _SubjectPageState extends State<SubjectPage> {
     }
 
     return RefreshIndicator(
-      color: const Color(0xFF3D7BF5),
+      color: const Color.fromARGB(255, 0, 0, 0),
       onRefresh: _loadSubjects,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -273,12 +273,12 @@ class _SubjectCardState extends State<_SubjectCard> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3D7BF5).withOpacity(0.1),
+                    color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(
                     Icons.menu_book_rounded,
-                    color: Color(0xFF3D7BF5),
+                    color: Color.fromARGB(255, 0, 0, 0),
                     size: 26,
                   ),
                 ),
@@ -335,7 +335,7 @@ class _SubjectCardState extends State<_SubjectCard> {
                       vertical: 9,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF3D7BF5),
+                      color: const Color.fromARGB(255, 0, 0, 0),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Row(

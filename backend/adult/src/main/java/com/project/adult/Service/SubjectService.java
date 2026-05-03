@@ -1,9 +1,9 @@
 package com.project.adult.Service;
 
 import com.project.adult.DTO.SubjectDTO;
+import com.project.adult.Model.Course;
 import com.project.adult.Repository.subjectRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,5 +22,9 @@ public class SubjectService {
                 .map(p-> new SubjectDTO(p.getCourseCode(),p.getDescription(),p.getName()))
                 .collect(Collectors.toList());
 
+    }
+
+    public List<Course> getAllSubjects(){
+        return subjectRepository.findAll();
     }
 }

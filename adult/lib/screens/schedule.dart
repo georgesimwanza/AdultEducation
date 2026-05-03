@@ -25,86 +25,127 @@ class Calendar extends StatefulWidget {
 class _CalendarState extends State<Calendar> {
   @override
   Widget build(BuildContext context) {
-    return TableCalendar(
-      firstDay: DateTime.utc(2000, 1, 1),
-      lastDay: DateTime.utc(2100, 1, 1),
-      focusedDay: widget.focusedDay,
-      rangeStartDay: widget.selectedStartDate,
-      rangeEndDay: widget.selectedEndDate,
-
-      // ✅ highlights the selected day
-      selectedDayPredicate: (day) => isSameDay(widget.selectedStartDate, day),
-
-      // ✅ fires when user taps a day
-      onDaySelected: (selectedDay, focusedDay) {
-        if (widget.onDaySelected != null) {
-          widget.onDaySelected!(selectedDay);
-        }
-      },
-
-      onRangeSelected: (start, end, _) {
-        if (widget.onRangeSelected != null) {
-          widget.onRangeSelected!(start, end);
-        }
-      },
-
-      // ✅ toggledOff so single taps work
-      rangeSelectionMode: RangeSelectionMode.toggledOff,
-
-      calendarStyle: CalendarStyle(
-        rangeHighlightColor: const Color.fromARGB(
-          255,
-          0,
-          0,
-          0,
-        ).withOpacity(0.3),
-        todayTextStyle: const TextStyle(fontSize: 20, fontFamily: 'Poppins'),
-        todayDecoration: BoxDecoration(
-          border: Border.all(color: Colors.black),
-          shape: BoxShape.circle,
-        ),
-        selectedDecoration: const BoxDecoration(
-          // ✅ shows tapped day in purple
-          color: Colors.purple,
-          shape: BoxShape.circle,
-        ),
-        defaultDecoration: const BoxDecoration(shape: BoxShape.circle),
-        rangeStartDecoration: const BoxDecoration(
-          color: Color.fromARGB(255, 0, 0, 0),
-          shape: BoxShape.circle,
-        ),
-        rangeEndDecoration: const BoxDecoration(
-          color: Color.fromARGB(255, 0, 0, 0),
-          shape: BoxShape.circle,
-        ),
-        cellMargin: EdgeInsets.zero,
-        defaultTextStyle: const TextStyle(fontSize: 20, fontFamily: 'Poppins'),
-        weekendTextStyle: const TextStyle(
-          fontSize: 20,
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.bold,
-        ),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
       ),
-      daysOfWeekStyle: DaysOfWeekStyle(
-        weekdayStyle: const TextStyle(
-          fontSize: 20,
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.bold,
+      child: Container(
+        color: Colors.white,
+        child: TableCalendar(
+          firstDay: DateTime.utc(2000, 1, 1),
+          lastDay: DateTime.utc(2100, 1, 1),
+          focusedDay: widget.focusedDay,
+          rangeStartDay: widget.selectedStartDate,
+          rangeEndDay: widget.selectedEndDate,
+          selectedDayPredicate: (day) =>
+              isSameDay(widget.selectedStartDate, day),
+          onDaySelected: (selectedDay, focusedDay) {
+            widget.onDaySelected?.call(selectedDay);
+          },
+          onRangeSelected: (start, end, _) {
+            widget.onRangeSelected?.call(start, end);
+          },
+          rangeSelectionMode: RangeSelectionMode.toggledOff,
+          calendarStyle: CalendarStyle(
+            rangeHighlightColor: Colors.black.withOpacity(0.15),
+            // Today
+            todayTextStyle: const TextStyle(
+              fontSize: 20,
+              fontFamily: 'Poppins',
+              color: Colors.black,
+            ),
+            todayDecoration: BoxDecoration(
+              border: Border.all(color: Colors.black, width: 1.5),
+              shape: BoxShape.circle,
+            ),
+            // Selected
+            selectedTextStyle: const TextStyle(
+              fontSize: 20,
+              fontFamily: 'Poppins',
+              color: Colors.white,
+            ),
+            selectedDecoration: const BoxDecoration(
+              color: Colors.black,
+              shape: BoxShape.circle,
+            ),
+            // Range start/end
+            rangeStartTextStyle: const TextStyle(
+              fontSize: 20,
+              fontFamily: 'Poppins',
+              color: Colors.white,
+            ),
+            rangeStartDecoration: const BoxDecoration(
+              color: Colors.black,
+              shape: BoxShape.circle,
+            ),
+            rangeEndTextStyle: const TextStyle(
+              fontSize: 20,
+              fontFamily: 'Poppins',
+              color: Colors.white,
+            ),
+            rangeEndDecoration: const BoxDecoration(
+              color: Colors.black,
+              shape: BoxShape.circle,
+            ),
+            // Default days
+            defaultDecoration: const BoxDecoration(shape: BoxShape.circle),
+            defaultTextStyle: const TextStyle(
+              fontSize: 20,
+              fontFamily: 'Poppins',
+              color: Colors.black,
+            ),
+            // Weekend
+            weekendDecoration: const BoxDecoration(shape: BoxShape.circle),
+            weekendTextStyle: const TextStyle(
+              fontSize: 20,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+            // Outside month days
+            outsideTextStyle: const TextStyle(
+              fontSize: 20,
+              fontFamily: 'Poppins',
+              color: Colors.black26,
+            ),
+            disabledTextStyle: const TextStyle(
+              fontSize: 20,
+              fontFamily: 'Poppins',
+              color: Colors.black26,
+            ),
+            cellMargin: EdgeInsets.zero,
+          ),
+          daysOfWeekStyle: DaysOfWeekStyle(
+            weekdayStyle: const TextStyle(
+              fontSize: 20,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+            weekendStyle: const TextStyle(
+              fontSize: 20,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+            dowTextFormatter: (date, locale) {
+              return DateFormat.E(locale).format(date).substring(0, 1);
+            },
+          ),
+          daysOfWeekHeight: 60,
+          headerStyle: const HeaderStyle(
+            titleCentered: true,
+            formatButtonVisible: false,
+            titleTextStyle: TextStyle(
+              fontSize: 20,
+              fontFamily: 'Poppins',
+              color: Colors.black,
+            ),
+            leftChevronIcon: Icon(Icons.chevron_left, color: Colors.black),
+            rightChevronIcon: Icon(Icons.chevron_right, color: Colors.black),
+          ),
         ),
-        weekendStyle: const TextStyle(
-          fontSize: 20,
-          fontFamily: 'Poppins',
-          fontWeight: FontWeight.bold,
-        ),
-        dowTextFormatter: (date, locale) {
-          return DateFormat.E(locale).format(date).substring(0, 1);
-        },
-      ),
-      daysOfWeekHeight: 60,
-      headerStyle: const HeaderStyle(
-        titleCentered: true,
-        formatButtonVisible: false,
-        titleTextStyle: TextStyle(fontSize: 20, fontFamily: 'Poppins'),
       ),
     );
   }
