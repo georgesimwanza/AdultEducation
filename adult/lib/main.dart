@@ -8,6 +8,8 @@ import './screens/subject.dart';
 import './screens/coursepage.dart';
 import './screens/schedule_screen.dart';
 import 'Controller/schedule_controller.dart';
+import './screens/admin/content_screen.dart';
+import './screens/navbar.dart';
 
 void main() {
   runApp(
@@ -28,7 +30,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const LoginPage(),
+      home: LoginPage(),
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/dashboard':

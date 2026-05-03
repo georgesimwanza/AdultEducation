@@ -13,9 +13,8 @@ class Dashboard extends StatefulWidget {
 }
 
 class DashboardState extends State<Dashboard> {
-  int _selectedIndex = 0;
   String _programmeTitle = 'Loading...';
-  bool _titleFetched = false; 
+  bool _titleFetched = false;
 
   @override
   void didChangeDependencies() {
@@ -30,37 +29,41 @@ class DashboardState extends State<Dashboard> {
     try {
       final controller = Provider.of<AuthController>(context, listen: false);
       final programmeId = controller.currentUser?.programmeId;
-
-      print('>>> Dashboard programmeId: $programmeId');
-
       if (programmeId == null) {
         setState(() => _programmeTitle = 'No programme selected');
         return;
       }
-
       final title = await DashboardService().getProgramTitle(programmeId);
       setState(() => _programmeTitle = title);
     } catch (e) {
-      print('>>> Dashboard error: $e');
       setState(() => _programmeTitle = 'Failed to load');
     }
   }
 
+  // ── Shared shadow ──
+  static const List<BoxShadow> _cardShadow = [
+    BoxShadow(
+      color: Color(0x1A000000),
+      blurRadius: 12,
+      spreadRadius: 0,
+      offset: Offset(0, 4),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ──
               const Text(
                 'Dashboard',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.black,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -68,68 +71,31 @@ class DashboardState extends State<Dashboard> {
               const SizedBox(height: 4),
               const Text(
                 'Track your learning journey',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(color: Colors.black54, fontSize: 13),
               ),
               const SizedBox(height: 16),
-
-              // ── Current Program Card ──
               _buildCurrentProgramCard(),
               const SizedBox(height: 16),
-
-              // ── Browse Courses ──
               _buildEntryCard(
                 icon: Icons.menu_book_rounded,
-                iconColor: const Color(0xFF5B6EF5),
+                iconColor: Colors.black,
                 title: 'Browse Courses',
                 subtitle: 'Explore new programs',
               ),
               const SizedBox(height: 12),
-
-              // ── Schedule ──
               _buildEntryCard(
                 icon: Icons.calendar_month_rounded,
-                iconColor: const Color(0xFF3DBE7A),
+                iconColor: Colors.black,
                 title: 'Schedule',
                 subtitle: 'View your timetable',
               ),
               const SizedBox(height: 24),
-
-              // ── Notifications ──
               _buildNotificationsSection(),
               const SizedBox(height: 24),
-
-              // ── Upcoming Classes ──
               _buildUpcomingClassesSection(),
             ],
           ),
         ),
-      ),
-
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
-        backgroundColor: const Color(0xFF1A1A1A),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book_rounded),
-            label: 'Courses',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_rounded),
-            label: 'Menu',
-          ),
-        ],
       ),
     );
   }
@@ -138,8 +104,9 @@ class DashboardState extends State<Dashboard> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: _cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +114,7 @@ class DashboardState extends State<Dashboard> {
           const Text(
             'Current Program',
             style: TextStyle(
-              color: Colors.white,
+              color: Colors.black,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -155,7 +122,7 @@ class DashboardState extends State<Dashboard> {
           const SizedBox(height: 4),
           Text(
             _programmeTitle,
-            style: TextStyle(color: Colors.grey, fontSize: 13),
+            style: const TextStyle(color: Colors.black54, fontSize: 13),
           ),
           const SizedBox(height: 16),
 
@@ -165,9 +132,16 @@ class DashboardState extends State<Dashboard> {
             children: const [
               Text(
                 'Overall Progress',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(color: Colors.black54, fontSize: 13),
               ),
-              Text('68%', style: TextStyle(color: Colors.white, fontSize: 13)),
+              Text(
+                '68%',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -176,10 +150,8 @@ class DashboardState extends State<Dashboard> {
             child: LinearProgressIndicator(
               value: 0.68,
               minHeight: 6,
-              backgroundColor: const Color(0xFF333333),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF5B6EF5),
-              ),
+              backgroundColor: const Color(0xFFE0E0E0),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.black),
             ),
           ),
           const SizedBox(height: 16),
@@ -199,13 +171,13 @@ class DashboardState extends State<Dashboard> {
           // Current Module
           const Text(
             'Current Module',
-            style: TextStyle(color: Colors.grey, fontSize: 12),
+            style: TextStyle(color: Colors.black54, fontSize: 12),
           ),
           const SizedBox(height: 4),
           Text(
             _programmeTitle,
-            style: TextStyle(
-              color: Colors.white,
+            style: const TextStyle(
+              color: Colors.black,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -217,14 +189,14 @@ class DashboardState extends State<Dashboard> {
                 width: 8,
                 height: 8,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF3DBE7A),
+                  color: Colors.black,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 6),
               const Text(
                 'Module 4 of 6 • Due April 25, 2026',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
+                style: TextStyle(color: Colors.black54, fontSize: 12),
               ),
             ],
           ),
@@ -248,7 +220,7 @@ class DashboardState extends State<Dashboard> {
               icon: const Icon(Icons.play_arrow_rounded, size: 18),
               label: const Text('Continue Learning'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2A2A2A),
+                backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -267,24 +239,25 @@ class DashboardState extends State<Dashboard> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2A),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
+          boxShadow: _cardShadow,
         ),
         child: Column(
           children: [
-            Icon(icon, color: Colors.white70, size: 18),
+            Icon(icon, color: Colors.black54, size: 18),
             const SizedBox(height: 6),
             Text(
               value,
               style: const TextStyle(
-                color: Colors.white,
+                color: Colors.black,
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
               label,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
+              style: const TextStyle(color: Colors.black45, fontSize: 11),
             ),
           ],
         ),
@@ -301,8 +274,9 @@ class DashboardState extends State<Dashboard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
+        boxShadow: _cardShadow,
       ),
       child: Row(
         children: [
@@ -310,7 +284,7 @@ class DashboardState extends State<Dashboard> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.15),
+              color: Colors.black.withOpacity(0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: iconColor, size: 20),
@@ -323,14 +297,14 @@ class DashboardState extends State<Dashboard> {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Colors.black,
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  style: const TextStyle(color: Colors.black45, fontSize: 12),
                 ),
               ],
             ),
@@ -341,8 +315,7 @@ class DashboardState extends State<Dashboard> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => ChangeNotifierProvider.value(
-                    value: context
-                        .read<AuthController>(), // pass existing instance
+                    value: context.read<AuthController>(),
                     child: title == 'Browse Courses'
                         ? SubjectPage()
                         : ScheduleScreen(),
@@ -351,7 +324,7 @@ class DashboardState extends State<Dashboard> {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2A2A2A),
+              backgroundColor: Colors.black,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               shape: RoundedRectangleBorder(
@@ -369,21 +342,21 @@ class DashboardState extends State<Dashboard> {
     final notifications = [
       _NotifData(
         icon: Icons.check_circle_rounded,
-        iconColor: const Color(0xFF3DBE7A),
+        iconColor: Colors.black,
         title: 'Assignment Graded',
         subtitle: 'Social Media Campaign – Score: 95/100',
         time: '2 hours ago',
       ),
       _NotifData(
         icon: Icons.warning_amber_rounded,
-        iconColor: const Color(0xFFFFC107),
+        iconColor: Colors.black,
         title: 'Upcoming Deadline',
         subtitle: 'Module 4 quiz due in 3 days',
         time: '5 hours ago',
       ),
       _NotifData(
         icon: Icons.info_rounded,
-        iconColor: const Color(0xFF5B6EF5),
+        iconColor: Colors.black,
         title: 'New Content Available',
         subtitle: 'Video lectures for Module 5 uploaded',
         time: '1 day ago',
@@ -400,7 +373,7 @@ class DashboardState extends State<Dashboard> {
             onPressed: () {},
             child: const Text(
               'View All Notifications',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: Colors.black54),
             ),
           ),
         ),
@@ -413,8 +386,9 @@ class DashboardState extends State<Dashboard> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
+        boxShadow: _cardShadow,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -428,7 +402,7 @@ class DashboardState extends State<Dashboard> {
                 Text(
                   n.title,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Colors.black,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
@@ -436,12 +410,12 @@ class DashboardState extends State<Dashboard> {
                 const SizedBox(height: 2),
                 Text(
                   n.subtitle,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  style: const TextStyle(color: Colors.black54, fontSize: 12),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   n.time,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  style: const TextStyle(color: Colors.black38, fontSize: 11),
                 ),
               ],
             ),
@@ -458,22 +432,23 @@ class DashboardState extends State<Dashboard> {
         const Text(
           'New Content',
           style: TextStyle(
-            color: Colors.white,
+            color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 4),
         const Text(
-          'view the new Content',
-          style: TextStyle(color: Colors.grey, fontSize: 13),
+          'View the new content',
+          style: TextStyle(color: Colors.black54, fontSize: 13),
         ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E1E1E),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(14),
+            boxShadow: _cardShadow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,7 +460,7 @@ class DashboardState extends State<Dashboard> {
                     child: Text(
                       'Wrestlemania watch along',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),
@@ -497,7 +472,7 @@ class DashboardState extends State<Dashboard> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2A2A2A),
+                      color: Colors.black,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
@@ -510,31 +485,35 @@ class DashboardState extends State<Dashboard> {
               const SizedBox(height: 4),
               const Text(
                 'Mr. Simwanza',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(color: Colors.black54, fontSize: 13),
               ),
               const SizedBox(height: 10),
               Row(
                 children: const [
                   Icon(
                     Icons.calendar_today_rounded,
-                    color: Colors.grey,
+                    color: Colors.black45,
                     size: 14,
                   ),
                   SizedBox(width: 6),
                   Text(
                     'April 18, 2026',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                    style: TextStyle(color: Colors.black54, fontSize: 12),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Row(
                 children: const [
-                  Icon(Icons.access_time_rounded, color: Colors.grey, size: 14),
+                  Icon(
+                    Icons.access_time_rounded,
+                    color: Colors.black45,
+                    size: 14,
+                  ),
                   SizedBox(width: 6),
                   Text(
                     '6:00 PM – 8:00 PM EST',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                    style: TextStyle(color: Colors.black54, fontSize: 12),
                   ),
                 ],
               ),

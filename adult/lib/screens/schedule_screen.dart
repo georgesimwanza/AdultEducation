@@ -85,16 +85,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       Expanded(
                         child: OutlinedButton.icon(
                           icon: const Icon(Icons.access_time),
-                          label: Text(
-                            startTime ?? 'Start Time',
-                          ), // ✅ just show string
+                          label: Text(startTime ?? 'Start Time'),
                           onPressed: () async {
                             final picked = await showTimePicker(
                               context: context,
                               initialTime: TimeOfDay.now(),
                             );
                             if (picked != null) {
-                              // ✅ convert TimeOfDay → "HH:mm" string immediately
                               final formatted =
                                   '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
                               setSheetState(() => startTime = formatted);
@@ -106,16 +103,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       Expanded(
                         child: OutlinedButton.icon(
                           icon: const Icon(Icons.access_time_filled),
-                          label: Text(
-                            endTime ?? 'End Time',
-                          ), // ✅ just show string
+                          label: Text(endTime ?? 'End Time'),
                           onPressed: () async {
                             final picked = await showTimePicker(
                               context: context,
                               initialTime: TimeOfDay.now(),
                             );
                             if (picked != null) {
-                              // ✅ convert TimeOfDay → "HH:mm" string immediately
                               final formatted =
                                   '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
                               setSheetState(() => endTime = formatted);
@@ -150,7 +144,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple,
+                            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           onPressed: ctrl.isLoading
@@ -229,7 +223,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // ✅ Calendar widget, not ScheduleScreen (was recursive!)
                 Calendar(
                   focusedDay: _focusedDay,
                   selectedStartDate: _selectedDay,
@@ -276,13 +269,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           return ListTile(
                             leading: const Icon(
                               Icons.event,
-                              color: Colors.purple,
+                              color: Color.fromARGB(255, 0, 0, 0),
                             ),
                             title: Text(
                               entry.title,
                               style: const TextStyle(fontFamily: 'Poppins'),
                             ),
-                            // ✅ already a string, no .format(context) needed
                             subtitle: Text(
                               '${entry.startTime} - ${entry.endTime}',
                               style: const TextStyle(fontFamily: 'Poppins'),
@@ -290,7 +282,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             trailing: IconButton(
                               icon: const Icon(
                                 Icons.delete_outline,
-                                color: Colors.red,
+                                color: Color.fromARGB(255, 0, 0, 0),
                               ),
                               onPressed: () => entry.id != null
                                   ? controller.deleteEntry(entry.id!)
