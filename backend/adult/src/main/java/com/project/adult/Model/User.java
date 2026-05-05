@@ -1,6 +1,7 @@
 package com.project.adult.Model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.project.adult.Security.UserPrincipal;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -35,6 +36,8 @@ public class User {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @Enumerated(EnumType.STRING)
+    private Role role;
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     @JoinColumn(name = "selected_programme_id")
@@ -61,10 +64,13 @@ public class User {
     @PrePersist
     public void prePersist() {
         if (this.uuid == null) this.uuid = java.util.UUID.randomUUID();
-
+        if (this.role == null) this.role= Role.USER;
         if (this.isActive == null) this.isActive = true;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
+    public enum Role{
+        USER,ADMIN,TEACHER
+    }
 }

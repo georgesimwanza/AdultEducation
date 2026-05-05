@@ -6,7 +6,8 @@ class UserModel {
   final bool isActive;
   final int? programmeId;
   final String? programmeName;
-
+  final String? token; // ✅ Add this
+  final String? role;
   UserModel({
     required this.id,
     required this.firstName,
@@ -15,6 +16,8 @@ class UserModel {
     required this.isActive,
     this.programmeId,
     this.programmeName,
+    this.token, // ✅ Add this
+    this.role, // ✅ Add this
   });
 
   String get fullName => '$firstName $lastName'.trim();
@@ -29,6 +32,8 @@ class UserModel {
       isActive: json['isActive'] ?? false,
       programmeId: json['programmeId'],
       programmeName: json['programmeName'] ?? '',
+      token: json['token'], // ✅ Add this
+      role: json['role'], // ✅ Add this
     );
   }
 }

@@ -10,7 +10,7 @@ class AuthService {
     required String lastName,
     required String email,
     required String password,
-    required int programmeId, 
+    required int programmeId,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/Register'),
@@ -28,6 +28,17 @@ class AuthService {
     } else {
       throw Exception('registration failed : ${response.body}');
     }
+  }
+
+  Future<void> saveRole(String role) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_role', role);
+  }
+
+  Future<String?> getRole() async {
+    // ✅ Add this
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_role');
   }
 
   Future<UserModel> login(String email, String password) async {

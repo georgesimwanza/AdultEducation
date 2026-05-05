@@ -1,3 +1,4 @@
+import 'package:adult/Controller/AuthWrapper.dart';
 import 'package:adult/Controller/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,11 +12,18 @@ import 'Controller/schedule_controller.dart';
 import './screens/admin/content_screen.dart';
 import './screens/navbar.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // ✅ Required for async main
+
+  final auth = AuthController();
+  await auth.init(); // ✅ Restore token before first frame
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthController()),
+        ChangeNotifierProvider.value(
+          value: auth,
+        ), // ✅ Use pre-initialized instance
         ChangeNotifierProvider(create: (_) => ScheduleController()),
       ],
       child: const MyApp(),
@@ -30,7 +38,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LoginPage(),
+      home: const AuthWrapper(), // ✅ const added
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/dashboard':
@@ -43,8 +51,12 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => const CoursePage());
           case '/schedule':
             return MaterialPageRoute(builder: (_) => const ScheduleScreen());
+          case '/content': // ✅ Admin route added
+            return MaterialPageRoute(builder: (_) => const ContentScreen());
           default:
-            return null;
+            return MaterialPageRoute(
+              builder: (_) => const LoginPage(),
+            ); // ✅ Safe fallback
         }
       },
     );
