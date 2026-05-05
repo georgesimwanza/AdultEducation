@@ -11,7 +11,7 @@ import com.project.adult.Security.UserPrincipal;
 import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import com.project.adult.Model.User.Role;
 import java.util.List;
 
 @Service
@@ -38,6 +38,7 @@ public class UserService {
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
+        user.setRole(Role.USER);
         user.setPasswordHash(passwordEncoder.encode(request.getPasswordHash()));
 
         if (request.getSelectedProgramme() != null &&
@@ -82,7 +83,9 @@ public class UserService {
                 user.getEmail(),
                 programmeId,
                 programmeName,
-                token              // generated above, not from user.getToken()
+
+                token,
+                user.getRole().name()// generated above, not from user.getToken()
         );
     }
     public List<User> getAllUsers(){

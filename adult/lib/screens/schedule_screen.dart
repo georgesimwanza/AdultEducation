@@ -13,7 +13,7 @@ class ScheduleScreen extends StatefulWidget {
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  DateTime _focusedDay = DateTime.now();
+  final DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
   @override
@@ -34,8 +34,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   void _showAddScheduleSheet(DateTime day) {
     final titleController = TextEditingController();
-    String? startTime; // ✅ plain String, not TimeOfDay
-    String? endTime; // ✅ plain String, not TimeOfDay
+    String? startTime;
+    String? endTime; 
 
     final email = context.read<AuthController>().currentUser?.email ?? '';
 

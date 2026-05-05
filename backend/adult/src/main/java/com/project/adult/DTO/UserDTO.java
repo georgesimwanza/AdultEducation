@@ -7,15 +7,16 @@ public class UserDTO {
     private Long programmeId;
     private String programmeName;
     private String token;
-
+    private String role;
     public UserDTO(String firstName, String lastName, String email,
-                   Long programmeId, String programmeName, String token) {
+                   Long programmeId, String programmeName, String token,String role) {
         this.firstName     = firstName;
         this.lastName      = lastName;
         this.email         = email;
         this.programmeId   = programmeId;
         this.programmeName = programmeName;
         this.token         = token;
+        this.role         = role;
     }
 
     public String getFirstName()     { return firstName; }
@@ -24,4 +25,5 @@ public class UserDTO {
     public Long getProgrammeId()     { return programmeId; }
     public String getProgrammeName() { return programmeName; }
     public String getToken()         { return token; }
+    public String getRole(){return role;}
 }
