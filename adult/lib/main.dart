@@ -13,17 +13,15 @@ import './screens/admin/content_screen.dart';
 import './screens/navbar.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // ✅ Required for async main
+  WidgetsFlutterBinding.ensureInitialized();
 
   final auth = AuthController();
-  await auth.init(); // ✅ Restore token before first frame
+  await auth.init();
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(
-          value: auth,
-        ), // ✅ Use pre-initialized instance
+        ChangeNotifierProvider.value(value: auth),
         ChangeNotifierProvider(create: (_) => ScheduleController()),
       ],
       child: const MyApp(),

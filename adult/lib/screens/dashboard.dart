@@ -28,7 +28,7 @@ class DashboardState extends State<Dashboard> {
   Future<void> _fetchTitle() async {
     try {
       final controller = Provider.of<AuthController>(context, listen: false);
-      final programmeId = controller.currentUser?.programmeId;
+      final programmeId = controller.programmeId;
       if (programmeId == null) {
         setState(() => _programmeTitle = 'No programme selected');
         return;
