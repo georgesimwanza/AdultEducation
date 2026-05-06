@@ -37,7 +37,7 @@ class _SubjectPageState extends State<SubjectPage> {
         _errorMessage = null;
       });
       final controller = Provider.of<AuthController>(context, listen: false);
-      final programmeId = controller.currentUser?.programmeId;
+      final programmeId = controller.programmeId;
 
       print('>>> SubjectPage programmeId: $programmeId');
 

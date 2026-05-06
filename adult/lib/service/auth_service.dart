@@ -36,7 +36,6 @@ class AuthService {
   }
 
   Future<String?> getRole() async {
-    // ✅ Add this
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_role');
   }
@@ -52,6 +51,9 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final user = UserModel.fromJson(jsonDecode(response.body));
+      print('USER ROLE: ${user.role}'); // ✅ add this
+      print('USER TOKEN: ${user.token}');
+      print('🔍 user.programmeId: ${user.programmeId}');
       return user;
     } else {
       throw Exception('Login failed: ${response.body}');
@@ -68,7 +70,16 @@ class AuthService {
     return prefs.getString('auth_token');
   }
 
-  // LOGOUT
+  Future<void> saveProgrammeId(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('programme_id', id);
+  }
+
+  Future<int?> getProgrammeId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('programme_id');
+  }
+
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');

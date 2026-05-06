@@ -9,7 +9,8 @@ class AuthController extends ChangeNotifier {
   String? errorMessage;
   String? _role;
   String? _token;
-
+  int? _programmeId;
+  int? get programmeId => _programmeId;
   String? get token => _token;
   String? get role => _role;
   Future<void> init() async {
@@ -17,7 +18,11 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     _token = await _authService.getToken();
-    _role = await _authService.getRole(); // ✅ Restore role too
+    _role = await _authService.getRole();
+    _programmeId = await _authService.getProgrammeId();
+    print('🔑 Token on restart: $_token'); // ✅ add this
+    print('👤 Role on restart: $_role');
+    print('📚 Programme ID on restart: $_programmeId');
 
     isLoading = false;
     notifyListeners();
@@ -38,9 +43,23 @@ class AuthController extends ChangeNotifier {
       currentUser = await _authService.login(email, password);
       _token = currentUser?.token;
       _role = currentUser?.role;
+      _programmeId = currentUser?.programmeId; // ✅ set in memory
 
       if (_token != null) {
         await _authService.saveToken(_token!);
+      }
+      if (_role != null) {
+        print('💾 Saving role: $_role');
+        await _authService.saveRole(_role!);
+      }
+      if (currentUser?.programmeId != null) {
+        await _authService.saveProgrammeId(currentUser!.programmeId!); // ✅
+      }
+      if (_programmeId != null) {
+        print('💾 Saving programmeId: $_programmeId'); // ✅
+        await _authService.saveProgrammeId(_programmeId!);
+      } else {
+        print('❌ programmeId is null, not saving');
       }
 
       isLoading = false;
