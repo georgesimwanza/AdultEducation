@@ -1,0 +1,12 @@
+
+
+cat >> .gitignore << 'EOF'
+# Flutter build cache
+adult/.dart_tool/
+adult/target/
+adult/build/
+
+# Java compiled output
+backend/adult/target/
+*.class
+EOF
