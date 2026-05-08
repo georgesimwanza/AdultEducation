@@ -49,8 +49,6 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => const CoursePage());
           case '/schedule':
             return MaterialPageRoute(builder: (_) => const ScheduleScreen());
-          case '/content': // ✅ Admin route added
-            return MaterialPageRoute(builder: (_) => const ContentScreen());
           default:
             return MaterialPageRoute(
               builder: (_) => const LoginPage(),

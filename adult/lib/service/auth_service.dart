@@ -51,7 +51,7 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final user = UserModel.fromJson(jsonDecode(response.body));
-      print('USER ROLE: ${user.role}'); // ✅ add this
+      print('USER ROLE: ${user.role}'); 
       print('USER TOKEN: ${user.token}');
       print('🔍 user.programmeId: ${user.programmeId}');
       return user;

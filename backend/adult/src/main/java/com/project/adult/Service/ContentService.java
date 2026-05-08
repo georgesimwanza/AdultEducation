@@ -3,39 +3,46 @@ package com.project.adult.Service;
 
 import com.project.adult.DTO.ContentDTO;
 import com.project.adult.Model.Content;
+import com.project.adult.Model.Course;
 import com.project.adult.Repository.ContentRepository;
+import com.project.adult.Repository.CourseRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
 @Service
 public class ContentService {
     private final ContentRepository contentRepository;
+    private final CourseRepository courseRepository; // ← add this
 
-
-    public ContentService(ContentRepository contentRepository) {
+    // ← update constructor to inject both
+    public ContentService(ContentRepository contentRepository, CourseRepository courseRepository) {
         this.contentRepository = contentRepository;
+        this.courseRepository = courseRepository;
     }
 
-    public ContentDTO addContent(@RequestBody ContentDTO contentDTO) {
+    public ContentDTO addContent(ContentDTO contentDTO) {
+        Course course = courseRepository.findById(contentDTO.getCourseId())
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+
         Content content = new Content();
         content.setTitle(contentDTO.getTitle());
         content.setType(contentDTO.getType());
-        content.setId(contentDTO.getId());
         content.setFileUrl(contentDTO.getFile_Url());
+        content.setCourse(course);
 
-        Content savedContent = contentRepository.save(content);
+        Content saved = contentRepository.save(content);
 
-        ContentDTO responseDTO = new ContentDTO();
-        responseDTO.setId(savedContent.getId());
-        responseDTO.setTitle(savedContent.getTitle());
-        responseDTO.setType(savedContent.getType());
-        responseDTO.setFile_Url(savedContent.getFileUrl());
-
-        return responseDTO;
+        return ContentDTO.builder()
+                .id(saved.getId())
+                .title(saved.getTitle())
+                .type(saved.getType())
+                .file_Url(saved.getFileUrl())
+                .courseId(contentDTO.getCourseId())
+                .build();
     }
+
     public List<ContentDTO> getContentById(Long id) {
         return contentRepository.findContentbySubjectId(id)
                 .stream()

@@ -14,4 +14,5 @@ public class ContentDTO {
     private String type;
     private String title;
     private String file_Url;
+    private String courseId;
 }
