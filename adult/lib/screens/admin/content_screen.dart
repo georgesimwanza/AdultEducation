@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:adult/service/api_service.dart'; // ← import your ApiService
 
 enum ContentType { video, document, image, assignment }
 
@@ -20,6 +21,31 @@ class ContentItem {
     required this.size,
     required this.views,
   });
+
+  static ContentType _parseType(String t) {
+    switch (t.toLowerCase()) {
+      case 'video':
+        return ContentType.video;
+      case 'image':
+        return ContentType.image;
+      case 'assignment':
+        return ContentType.assignment;
+      default:
+        return ContentType.document;
+    }
+  }
+
+  factory ContentItem.fromJson(Map<String, dynamic> json) {
+    return ContentItem(
+      id: json['id'].toString(),
+      title: json['title'] ?? '',
+      type: _parseType(json['type'] ?? ''),
+      subject: 'Course ${json['courseId'] ?? ''}',
+      uploadDate: DateTime.now(),
+      size: '—',
+      views: 0,
+    );
+  }
 }
 
 class ContentScreen extends StatefulWidget {
@@ -32,45 +58,57 @@ class ContentScreen extends StatefulWidget {
 class _ContentScreenState extends State<ContentScreen> {
   String _searchTerm = '';
   String _filterType = 'all';
+  List<ContentItem> _content = [];
+  bool _loading = false;
+  int _activeCourseId = 0;
 
-  List<ContentItem> _content = [
-    ContentItem(
-      id: '1',
-      title: 'Introduction to Algebra',
-      type: ContentType.video,
-      subject: 'Mathematics',
-      uploadDate: DateTime(2026, 4, 15),
-      size: '125 MB',
-      views: 245,
-    ),
-    ContentItem(
-      id: '2',
-      title: 'Physics Chapter 5 Notes',
-      type: ContentType.document,
-      subject: 'Physics',
-      uploadDate: DateTime(2026, 4, 20),
-      size: '2.5 MB',
-      views: 189,
-    ),
-    ContentItem(
-      id: '3',
-      title: 'Cell Structure Diagram',
-      type: ContentType.image,
-      subject: 'Biology',
-      uploadDate: DateTime(2026, 4, 22),
-      size: '1.2 MB',
-      views: 156,
-    ),
-    ContentItem(
-      id: '4',
-      title: 'Essay Assignment',
-      type: ContentType.assignment,
-      subject: 'English',
-      uploadDate: DateTime(2026, 4, 25),
-      size: '850 KB',
-      views: 312,
-    ),
-  ];
+  // ── GET via ApiService ──────────────────────────────────────────────────────
+  Future<void> _fetchContent() async {
+    if (_activeCourseId == 0) return;
+    setState(() => _loading = true);
+    try {
+      final data = await ApiService.getContentByCourseId(_activeCourseId);
+      setState(() {
+        _content = data.map((j) => ContentItem.fromJson(j)).toList();
+      });
+    } catch (e) {
+      _showError(e.toString());
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  // ── POST via ApiService ─────────────────────────────────────────────────────
+  Future<void> _addContent(
+    String title,
+    ContentType type,
+    String subject,
+    String courseIdText,
+  ) async {
+    final courseId = int.tryParse(courseIdText);
+    if (courseId == null) {
+      _showError('Course ID must be a valid number');
+      return;
+    }
+
+    try {
+      await ApiService.addContent(
+        title: title,
+        type: type.name,
+        fileUrl: '',
+        courseId: courseId, // ← from input field
+      );
+      setState(() => _activeCourseId = courseId); // ← save for _fetchContent
+      await _fetchContent();
+    } catch (e) {
+      _showError(e.toString());
+    }
+  }
+
+  void _showError(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
 
   List<ContentItem> get _filtered => _content.where((item) {
     final matchSearch =
@@ -102,13 +140,15 @@ class _ContentScreenState extends State<ContentScreen> {
       case ContentType.image:
         return const Color(0xFF22C55E);
       case ContentType.assignment:
-        return const Color.fromARGB(255, 222, 120, 46);
+        return const Color(0xFFDE782E);
     }
   }
 
+  // ── Add modal ───────────────────────────────────────────────────────────────
   void _showAddModal() {
     final titleCtrl = TextEditingController();
     final subjectCtrl = TextEditingController();
+    final courseIdCtrl = TextEditingController();
     ContentType selectedType = ContentType.document;
 
     showModalBottomSheet(
@@ -116,160 +156,206 @@ class _ContentScreenState extends State<ContentScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
+        builder: (ctx, setModalState) => DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollController) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Add New Content',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close, color: Color(0xFF9CA3AF)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildField(
-                  titleCtrl,
-                  'Content Title',
-                  'Enter content title',
-                  const Color.fromARGB(255, 0, 0, 0),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Content Type',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF374151),
+                Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5E7EB),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 6),
-                DropdownButtonFormField<ContentType>(
-                  value: selectedType,
-                  onChanged: (v) => setModalState(() => selectedType = v!),
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: const Color(0xFFF9FAFB),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    padding: EdgeInsets.only(
+                      left: 24,
+                      right: 24,
+                      bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: Color.fromARGB(255, 0, 0, 0),
-                        width: 2,
-                      ),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 4,
-                    ),
-                  ),
-                  items: ContentType.values
-                      .map(
-                        (t) => DropdownMenuItem(
-                          value: t,
-                          child: Text(
-                            t.name[0].toUpperCase() + t.name.substring(1),
-                          ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Add New Content',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF111827),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              icon: const Icon(
+                                Icons.close,
+                                color: Color(0xFF9CA3AF),
+                              ),
+                            ),
+                          ],
                         ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 12),
-                _buildField(
-                  subjectCtrl,
-                  'Subject',
-                  'e.g., Mathematics, Physics',
-                  const Color.fromARGB(255, 0, 0, 0),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          side: const BorderSide(color: Color(0xFFE5E7EB)),
+                        const SizedBox(height: 16),
+
+                        // Course ID — numeric keyboard
+                        _buildField(
+                          courseIdCtrl,
+                          'Course ID',
+                          'Enter course ID',
+                          keyboardType: TextInputType.number,
                         ),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(color: Color(0xFF374151)),
+                        const SizedBox(height: 12),
+
+                        // Title
+                        _buildField(
+                          titleCtrl,
+                          'Content Title',
+                          'Enter content title',
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (titleCtrl.text.isNotEmpty &&
-                              subjectCtrl.text.isNotEmpty) {
-                            setState(() {
-                              _content.add(
-                                ContentItem(
-                                  id: DateTime.now().millisecondsSinceEpoch
-                                      .toString(),
-                                  title: titleCtrl.text,
-                                  type: selectedType,
-                                  subject: subjectCtrl.text,
-                                  uploadDate: DateTime.now(),
-                                  size: '1.0 MB',
-                                  views: 0,
-                                ),
-                              );
-                            });
-                            Navigator.pop(ctx);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Add Content',
+                        const SizedBox(height: 12),
+
+                        // Type dropdown
+                        const Text(
+                          'Content Type',
                           style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF374151),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        DropdownButtonFormField<ContentType>(
+                          value: selectedType,
+                          onChanged: (v) =>
+                              setModalState(() => selectedType = v!),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color(0xFFF9FAFB),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Colors.black,
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 4,
+                            ),
+                          ),
+                          items: ContentType.values
+                              .map(
+                                (t) => DropdownMenuItem(
+                                  value: t,
+                                  child: Text(
+                                    t.name[0].toUpperCase() +
+                                        t.name.substring(1),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Subject
+                        _buildField(
+                          subjectCtrl,
+                          'Subject',
+                          'e.g., Mathematics, Physics',
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  side: const BorderSide(
+                                    color: Color(0xFFE5E7EB),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Cancel',
+                                  style: TextStyle(color: Color(0xFF374151)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (titleCtrl.text.isEmpty ||
+                                      subjectCtrl.text.isEmpty ||
+                                      courseIdCtrl.text.isEmpty) {
+                                    _showError('Please fill all fields');
+                                    return;
+                                  }
+                                  Navigator.pop(ctx);
+                                  _addContent(
+                                    titleCtrl.text,
+                                    selectedType,
+                                    subjectCtrl.text,
+                                    courseIdCtrl.text, // ← from input
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: const Text(
+                                  'Add Content',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 8),
               ],
             ),
           ),
@@ -281,9 +367,9 @@ class _ContentScreenState extends State<ContentScreen> {
   Widget _buildField(
     TextEditingController ctrl,
     String label,
-    String hint,
-    Color accent,
-  ) {
+    String hint, {
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -298,9 +384,10 @@ class _ContentScreenState extends State<ContentScreen> {
         const SizedBox(height: 6),
         TextField(
           controller: ctrl,
+          keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+            hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
             filled: true,
             fillColor: const Color(0xFFF9FAFB),
             border: OutlineInputBorder(
@@ -313,7 +400,7 @@ class _ContentScreenState extends State<ContentScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: accent, width: 2),
+              borderSide: const BorderSide(color: Colors.black, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
@@ -325,6 +412,7 @@ class _ContentScreenState extends State<ContentScreen> {
     );
   }
 
+  // ── build ───────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final filters = ['all', 'video', 'document', 'image', 'assignment'];
@@ -364,15 +452,8 @@ class _ContentScreenState extends State<ContentScreen> {
                       width: 44,
                       height: 44,
                       decoration: const BoxDecoration(
-                        color: Color.fromARGB(255, 0, 0, 0),
+                        color: Colors.black,
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0x3322C55E),
-                            blurRadius: 12,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
                       ),
                       child: const Icon(
                         Icons.add,
@@ -390,9 +471,7 @@ class _ContentScreenState extends State<ContentScreen> {
                 onChanged: (v) => setState(() => _searchTerm = v),
                 decoration: InputDecoration(
                   hintText: 'Search content...',
-                  hintStyle: const TextStyle(
-                    color: Color.fromARGB(255, 0, 0, 0),
-                  ),
+                  hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
                   prefixIcon: const Icon(
                     Icons.search,
                     color: Color(0xFF9CA3AF),
@@ -409,10 +488,7 @@ class _ContentScreenState extends State<ContentScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Color.fromARGB(255, 0, 0, 0),
-                      width: 2,
-                    ),
+                    borderSide: const BorderSide(color: Colors.black, width: 2),
                   ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -438,13 +514,11 @@ class _ContentScreenState extends State<ContentScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: selected
-                            ? const Color.fromARGB(255, 0, 0, 0)
-                            : Colors.white,
+                        color: selected ? Colors.black : Colors.white,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: selected
-                              ? const Color.fromARGB(255, 0, 0, 0)
+                              ? Colors.black
                               : const Color(0xFFE5E7EB),
                         ),
                       ),
@@ -467,125 +541,125 @@ class _ContentScreenState extends State<ContentScreen> {
             ),
             const SizedBox(height: 10),
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                itemCount: _filtered.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (_, index) {
-                  final item = _filtered[index];
-                  final color = _getColor(item.type);
-                  return Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                      border: Border.all(color: const Color(0xFFF3F4F6)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 46,
-                          height: 46,
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        _activeCourseId == 0
+                            ? 'Add content to get started'
+                            : 'No content found',
+                        style: const TextStyle(color: Color(0xFF6B7280)),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      itemCount: _filtered.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (_, index) {
+                        final item = _filtered[index];
+                        final color = _getColor(item.type);
+                        return Container(
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                            border: Border.all(color: const Color(0xFFF3F4F6)),
                           ),
-                          child: Icon(
-                            _getIcon(item.type),
-                            color: color,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
                             children: [
-                              Text(
-                                item.title,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF111827),
+                              Container(
+                                width: 46,
+                                height: 46,
+                                decoration: BoxDecoration(
+                                  color: color.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  _getIcon(item.type),
+                                  color: color,
+                                  size: 22,
                                 ),
                               ),
-                              Text(
-                                item.subject,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6B7280),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.title,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF111827),
+                                      ),
+                                    ),
+                                    Text(
+                                      item.subject,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF6B7280),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          item.size,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Color(0xFF9CA3AF),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        const Icon(
+                                          Icons.visibility_outlined,
+                                          size: 12,
+                                          color: Color(0xFF9CA3AF),
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          '${item.views}',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Color(0xFF9CA3AF),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Text(
-                                    item.size,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF9CA3AF),
-                                    ),
+                              IconButton(
+                                onPressed: () => setState(
+                                  () => _content.removeWhere(
+                                    (c) => c.id == item.id,
                                   ),
-                                  const SizedBox(width: 10),
-                                  const Icon(
-                                    Icons.visibility_outlined,
-                                    size: 12,
-                                    color: Color(0xFF9CA3AF),
+                                ),
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.black,
+                                  size: 20,
+                                ),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    '${item.views}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF9CA3AF),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(
-                                    '${item.uploadDate.month}/${item.uploadDate.day}/${item.uploadDate.year}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF9CA3AF),
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        IconButton(
-                          onPressed: () => setState(
-                            () => _content.removeWhere((c) => c.id == item.id),
-                          ),
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Color.fromARGB(255, 0, 0, 0),
-                            size: 20,
-                          ),
-                          style: IconButton.styleFrom(
-                            backgroundColor: const Color.fromARGB(
-                              255,
-                              255,
-                              255,
-                              255,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
