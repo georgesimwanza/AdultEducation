@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class ContentDTO {
-    private long id;
+    private Long id;
     private String type;
     private String title;
     private String file_Url;

@@ -84,19 +84,23 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Auth endpoints — anyone can hit these
+                        // Auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/users/login").permitAll()
                         .requestMatchers("/api/users/Register").permitAll()
                         .requestMatchers("/api/users/AllStudents").hasRole("ADMIN")
 
-                        // Public content browsing
+                        // Programmes
                         .requestMatchers(HttpMethod.GET, "/api/programmes/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/Content/**").permitAll()
+
+                        // Content — specific rules BEFORE broad ones
+                        .requestMatchers(HttpMethod.POST, "/api/Content/addContent").permitAll()
+                        .requestMatchers(HttpMethod.GET,  "/api/Content/**").permitAll()
+
+                        // Subject
                         .requestMatchers("/api/subject/programme/**").permitAll()
                         .requestMatchers("/api/subject/allSubjects").hasRole("ADMIN")
                         .requestMatchers("/api/subject/addSubject").hasRole("ADMIN")
-                        .requestMatchers("/api/Content/addContent").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
 
