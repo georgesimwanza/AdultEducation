@@ -46,7 +46,13 @@ class MyApp extends StatelessWidget {
           case '/subject':
             return MaterialPageRoute(builder: (_) => const SubjectPage());
           case '/coursepage':
-            return MaterialPageRoute(builder: (_) => const CoursePage());
+            {
+              final subjectId = settings.arguments as int;
+
+              return MaterialPageRoute(
+                builder: (_) => CoursePage(subjectId: subjectId),
+              );
+            }
           case '/schedule':
             return MaterialPageRoute(builder: (_) => const ScheduleScreen());
           default:

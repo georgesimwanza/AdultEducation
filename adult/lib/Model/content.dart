@@ -13,7 +13,7 @@ class ContentModel {
 
   factory ContentModel.fromJson(Map<String, dynamic> json) {
     return ContentModel(
-      id: json['id'],
+      id: json['id'] ?? 0,
       title: json['title'] ?? 'Untitled',
       type: json['type'] ?? 'unknown',
       fileUrl: json['file_Url'] ?? '', // ✅ matches exactly what the API returns

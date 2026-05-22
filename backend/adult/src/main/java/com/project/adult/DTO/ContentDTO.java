@@ -13,6 +13,6 @@ public class ContentDTO {
     private Long id;
     private String type;
     private String title;
-    private String file_Url;
-    private String courseId;
+    private String fileUrl;
+    private Long courseId;
 }

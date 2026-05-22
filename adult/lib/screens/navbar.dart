@@ -17,8 +17,6 @@ class _MyNavBarState extends State<StudentNavBar> {
 
   final List<Widget> _screens = [
     Dashboard(),
-
-    CoursePage(),
     ScheduleScreen(),
     Message(),
     NotificationPage(),
