@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../Controller/auth_controller.dart';
+import 'package:adult/Controller/auth_controller.dart';
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
-
   @override
   State<NotificationPage> createState() => _NotificationPagestate();
 }
@@ -16,7 +18,11 @@ class _NotificationPagestate extends State<NotificationPage> {
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [_notificationcard(), const SizedBox(height: 10)],
+            children: [
+              _header(context), // ✅ added header
+              _notificationcard(),
+              const SizedBox(height: 10),
+            ],
           ),
         ),
       ),
@@ -24,6 +30,57 @@ class _NotificationPagestate extends State<NotificationPage> {
   }
 }
 
+Widget _header(BuildContext context) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          "Settings",
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        TextButton.icon(
+          onPressed: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text("Logout"),
+                content: const Text("Are you sure you want to logout?"),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text("Cancel"),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text(
+                      "Logout",
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirm == true && context.mounted) {
+              await context.read<AuthController>().logout();
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/login', // ✅ change to your login route
+                (route) => false,
+              );
+            }
+          },
+          icon: const Icon(Icons.logout, color: Colors.red),
+          label: const Text("Logout", style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
+}
+
+// rest of your widgets stay exactly the same...
 Widget _notificationcard() {
   return Container(
     margin: const EdgeInsets.all(16),
@@ -53,9 +110,7 @@ Widget _buildTile(IconData icon, String title) {
     leading: Icon(icon, color: Colors.black54),
     title: Text(title, style: const TextStyle(fontSize: 16)),
     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-    onTap: () {
-      // handle navigation here
-    },
+    onTap: () {},
   );
 }
 

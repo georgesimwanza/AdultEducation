@@ -23,7 +23,7 @@ public class Content {
     @Column(name = "file_url")
     private String fileUrl;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 }

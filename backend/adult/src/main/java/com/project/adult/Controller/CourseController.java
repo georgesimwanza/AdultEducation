@@ -28,7 +28,7 @@ public class CourseController {
 
     // Fix the existing getCourse path variable
     @GetMapping("/getCourse/{Id}")
-    public Course getCourse(@PathVariable String Id) {
+    public Course getCourse(@PathVariable Long Id) {
         return courseService.getCourse(Id);
     }
 

@@ -23,13 +23,13 @@ public class ContentService {
     }
 
     public ContentDTO addContent(ContentDTO contentDTO) {
-        Course course = courseRepository.findById(contentDTO.getCourseId())
+        Course course = courseRepository.findById((contentDTO.getCourseId()))
                 .orElseThrow(() -> new RuntimeException("Course not found"));
 
         Content content = new Content();
         content.setTitle(contentDTO.getTitle());
         content.setType(contentDTO.getType());
-        content.setFileUrl(contentDTO.getFile_Url());
+        content.setFileUrl(contentDTO.getFileUrl());
         content.setCourse(course);
 
         Content saved = contentRepository.save(content);
@@ -38,7 +38,7 @@ public class ContentService {
                 .id(saved.getId())
                 .title(saved.getTitle())
                 .type(saved.getType())
-                .file_Url(saved.getFileUrl())
+                .fileUrl(saved.getFileUrl())
                 .courseId(contentDTO.getCourseId())
                 .build();
     }
@@ -50,7 +50,8 @@ public class ContentService {
                         .id(c.getId())
                         .type(c.getType())
                         .title(c.getTitle())
-                        .file_Url(c.getFileUrl())
+                        .fileUrl(c.getFileUrl())
+                        .courseId(c.getCourse() != null ? c.getCourse().getId() : null)
                         .build())
                 .collect(Collectors.toList());
     }

@@ -317,7 +317,11 @@ class _SubjectCardState extends State<_SubjectCard> {
                 // Enter button
                 GestureDetector(
                   onTap: () {
-                    Navigator.pushNamed(context, '/coursepage');
+                    Navigator.pushNamed(
+                      context,
+                      '/coursepage',
+                      arguments: s.id, // ← pass subject id
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Entering ${s.name}...'),

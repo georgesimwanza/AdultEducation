@@ -103,12 +103,12 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  // ✅ Clears everything on logout
   Future<void> logout() async {
     await _authService.logout();
     currentUser = null;
     _token = null;
     _role = null;
+    _programmeId = null;
     notifyListeners();
   }
 }

@@ -18,7 +18,7 @@ public class CourseService {
     {
         return courseRepository.save(course);
     }
-    public Course getCourse(String Id){
+    public Course getCourse(Long Id){
         return courseRepository.findById(Id).orElseThrow(()-> new RuntimeException("course not found"));
     }
     public List<Course> getAllCourses() {

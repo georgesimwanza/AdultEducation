@@ -5,7 +5,9 @@ import '../service/contentService.dart';
 typedef Content = ContentModel;
 
 class CoursePage extends StatefulWidget {
-  const CoursePage({super.key});
+  final int subjectId;
+
+  const CoursePage({super.key, required this.subjectId});
 
   @override
   State<CoursePage> createState() => _CoursePageState();
@@ -15,10 +17,14 @@ class _CoursePageState extends State<CoursePage> {
   late Future<List<ContentModel>> _coursePageFuture;
   int _selectedTab = 0;
 
+  int get subjectId => widget.subjectId;
+
   @override
   void initState() {
     super.initState();
-    _coursePageFuture = contentService().getContent(1);
+
+    _coursePageFuture = contentService().getContent(subjectId);
+    print('>>> CoursePage subjectId: $subjectId');
   }
 
   @override
@@ -39,18 +45,21 @@ class _CoursePageState extends State<CoursePage> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
-  // ── TOP BAR ─────────────────────────────────────────────
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _iconButton(Icons.arrow_back_ios_new_rounded, onTap: () {}),
+          _iconButton(
+            Icons.arrow_back_ios_new_rounded,
+            onTap: () {
+              Navigator.pop(context);
+            },
+          ),
           const Text(
             'COURSE',
             style: TextStyle(
@@ -82,32 +91,25 @@ class _CoursePageState extends State<CoursePage> {
   }
 
   Widget _buildCourseInfo() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      child: Column(
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.person, size: 18),
-              ),
-              Text(
-                '105 Videos',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-              ),
-            ],
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: Colors.white,
+            child: Icon(Icons.person, size: 18),
           ),
-          const SizedBox(height: 14),
+          Text(
+            '105 Videos',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          ),
         ],
       ),
     );
   }
 
-  // ── TAB BAR ─────────────────────────────────────────────
   Widget _buildTabBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -129,6 +131,7 @@ class _CoursePageState extends State<CoursePage> {
 
   Widget _tabItem(String label, int index) {
     final isSelected = _selectedTab == index;
+
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _selectedTab = index),
@@ -158,12 +161,10 @@ class _CoursePageState extends State<CoursePage> {
     return FutureBuilder<List<ContentModel>>(
       future: _coursePageFuture,
       builder: (context, snapshot) {
-        // 1. Loading state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // 2. Error state
         if (snapshot.hasError) {
           return Center(
             child: Text(
@@ -173,53 +174,19 @@ class _CoursePageState extends State<CoursePage> {
           );
         }
 
-        // 3. Empty state
         final lessons = snapshot.data ?? [];
+
         if (lessons.isEmpty) {
-          return const Center(child: Text('No lessons available.'));
+          return const Center(child: Text('No Content available.'));
         }
 
-        // 4. Data state
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Text(
-                    // Since ContentModel has no "completed" field,
-                    // we show total count. Add a completed field to
-                    // your model/API later to track progress.
-                    '${lessons.length} lessons available',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFAAAAAA),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: const Color(0xFFE8E8E8)),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: ListView.separated(
-                    itemCount: lessons.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) =>
-                        _buildLessonItem(lessons[index]),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        return Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: lessons.length,
+            separatorBuilder: (_, __) => const Divider(),
+            itemBuilder: (context, index) => _buildLessonItem(lessons[index]),
+          ),
         );
       },
     );
@@ -227,6 +194,7 @@ class _CoursePageState extends State<CoursePage> {
 
   Widget _buildLessonItem(ContentModel lesson) {
     IconData typeIcon;
+
     switch (lesson.type.toLowerCase()) {
       case 'video':
         typeIcon = Icons.play_circle_fill;
@@ -242,49 +210,13 @@ class _CoursePageState extends State<CoursePage> {
     }
 
     return ListTile(
-      leading: Icon(typeIcon, color: const Color(0xFF111111)),
-      title: Text(
-        lesson.title,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        lesson.type.toUpperCase(),
-        style: const TextStyle(fontSize: 11, color: Color(0xFFAAAAAA)),
-      ),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-      onTap: () {
-        // TODO: Navigate to lesson detail, passing lesson.fileUrl
-        // Navigator.push(context, MaterialPageRoute(
-        //   builder: (_) => LessonDetailPage(url: lesson.fileUrl),
-        // ));
-      },
+      leading: Icon(typeIcon),
+      title: Text(lesson.title),
+      subtitle: Text(lesson.type),
     );
   }
 
   Widget _buildAssignments() {
-    return const Center(
-      child: Text(
-        "No assignments yet",
-        style: TextStyle(fontSize: 14, color: Colors.grey),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      height: 60,
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: const [
-          Icon(Icons.home_outlined),
-          Icon(Icons.description_outlined),
-          Icon(Icons.favorite_border),
-          Icon(Icons.person_outline),
-        ],
-      ),
-    );
+    return const Center(child: Text("No assignments yet"));
   }
 }
