@@ -92,6 +92,8 @@ public class SecurityConfig {
 
                         // Programmes
                         .requestMatchers(HttpMethod.GET, "/api/programmes/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/Content/**").permitAll()
+                        .requestMatchers("/api/sync/**").permitAll()
 
                         // Content — specific rules BEFORE broad ones
                         .requestMatchers(HttpMethod.POST, "/api/Content/addContent").permitAll()

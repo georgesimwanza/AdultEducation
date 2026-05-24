@@ -1,5 +1,6 @@
 import 'package:adult/Controller/AuthWrapper.dart';
 import 'package:adult/Controller/auth_controller.dart';
+import 'package:adult/Service/sync_service.dart'; // ← add this
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import './screens/register_screen.dart';
@@ -14,15 +15,19 @@ import './screens/navbar.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   final auth = AuthController();
   await auth.init();
+
+  // ← sync on startup
+  final syncService = SyncService(authController: auth);
+  await syncService.syncOnStartup();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: auth),
         ChangeNotifierProvider(create: (_) => ScheduleController()),
+        Provider.value(value: syncService), // ← expose syncService to the app
       ],
       child: const MyApp(),
     ),
@@ -36,7 +41,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const AuthWrapper(), // ✅ const added
+      home: const AuthWrapper(),
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/dashboard':
@@ -48,7 +53,6 @@ class MyApp extends StatelessWidget {
           case '/coursepage':
             {
               final subjectId = settings.arguments as int;
-
               return MaterialPageRoute(
                 builder: (_) => CoursePage(subjectId: subjectId),
               );
@@ -56,9 +60,7 @@ class MyApp extends StatelessWidget {
           case '/schedule':
             return MaterialPageRoute(builder: (_) => const ScheduleScreen());
           default:
-            return MaterialPageRoute(
-              builder: (_) => const LoginPage(),
-            ); // ✅ Safe fallback
+            return MaterialPageRoute(builder: (_) => const LoginPage());
         }
       },
     );

@@ -2,7 +2,6 @@ package com.project.adult.Model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,8 +21,7 @@ public class Course {
    @GeneratedValue(strategy = GenerationType.IDENTITY)
    private Long id;
 
-   @Column(columnDefinition = "uuid DEFAULT uuid_generate_v4()", unique = true, nullable = false,
-           updatable = false)
+   @Column(columnDefinition = "uuid DEFAULT uuid_generate_v4()", unique = true, nullable = false, updatable = false)
    private java.util.UUID uuid;
 
    @Column(name = "course_code", unique = true, nullable = false, length = 50)
@@ -54,24 +52,32 @@ public class Course {
    private Boolean isActive = true;
 
    @Column(name = "created_at", nullable = false, updatable = false)
-   private LocalDateTime createdAt = LocalDateTime.now();
+   private LocalDateTime createdAt;
 
    @Column(name = "updated_at", nullable = false)
-   private LocalDateTime updatedAt = LocalDateTime.now();
+   private LocalDateTime updatedAt;
+
    @JsonBackReference
    @JsonIgnoreProperties("course")
    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
    private List<ProgrammeCourse> programmeCourses;
+
    @JsonIgnoreProperties("course")
    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
    private List<UserContentProgress> userContentProgresses;
+
    @JsonIgnoreProperties("course")
    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
    private List<Content> contents;
 
+   @PrePersist
+   protected void onCreate() {
+      this.createdAt = LocalDateTime.now();
+      this.updatedAt = LocalDateTime.now();
+   }
 
    @PreUpdate
-   public void preUpdate() {
+   protected void onUpdate() {
       this.updatedAt = LocalDateTime.now();
    }
 }
