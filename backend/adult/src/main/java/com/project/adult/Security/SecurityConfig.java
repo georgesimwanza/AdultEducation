@@ -93,6 +93,7 @@ public class SecurityConfig {
                         // Public content browsing
                         .requestMatchers(HttpMethod.GET, "/api/programmes/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/Content/**").permitAll()
+                        .requestMatchers("/api/sync/**").permitAll()
                         .requestMatchers("/api/subject/programme/**").permitAll()
                         .requestMatchers("/api/subject/allSubjects").hasRole("ADMIN")
                         .requestMatchers("/api/subject/addSubject").hasRole("ADMIN")
