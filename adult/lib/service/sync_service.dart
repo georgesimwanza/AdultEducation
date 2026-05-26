@@ -7,7 +7,7 @@ import 'package:adult/Controller/auth_controller.dart'; // ← add this
 class SyncService {
   final AuthController authController;
   final Dio dio = Dio(); // ← add this
-  late Database db;
+  Database? db;
 
   static const String _baseUrl = 'http://10.0.2.2:8080';
 
@@ -102,7 +102,7 @@ class SyncService {
       print('📚 Received ${data.length} subjects from server');
 
       for (var item in data) {
-        await db.insert(
+        await db!.insert(
           'subjects',
           item,
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -130,7 +130,7 @@ class SyncService {
       print('📄 Received ${data.length} content items from server');
 
       for (var item in data) {
-        await db.insert(
+        await db!.insert(
           'content',
           item,
           conflictAlgorithm: ConflictAlgorithm.replace,

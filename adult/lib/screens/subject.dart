@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../Model/subject_model.dart';
-import '../Service/subject_service.dart';
+import '../service/subject_service.dart';
 import 'package:adult/Controller/auth_controller.dart';
+import 'package:adult/service/sync_service.dart';
 
 class SubjectPage extends StatefulWidget {
   const SubjectPage({super.key});
@@ -13,8 +14,7 @@ class SubjectPage extends StatefulWidget {
 
 class _SubjectPageState extends State<SubjectPage> {
   final TextEditingController _searchController = TextEditingController();
-  final subjectService _service = subjectService();
-
+  late subjectService _service;
   String _searchQuery = '';
   List<subjectModel> _subjects = [];
   bool _isLoading = true;
@@ -26,6 +26,7 @@ class _SubjectPageState extends State<SubjectPage> {
     super.didChangeDependencies();
     if (!_loaded) {
       _loaded = true;
+      _service = subjectService(db: context.read<SyncService>().db);
       _loadSubjects();
     }
   }
