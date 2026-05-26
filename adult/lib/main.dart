@@ -1,6 +1,6 @@
 import 'package:adult/Controller/AuthWrapper.dart';
 import 'package:adult/Controller/auth_controller.dart';
-import 'package:adult/Service/sync_service.dart'; // ← add this
+import 'package:adult/service/sync_service.dart'; // ← add this
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import './screens/register_screen.dart';

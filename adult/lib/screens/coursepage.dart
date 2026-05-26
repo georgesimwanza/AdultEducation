@@ -1,6 +1,8 @@
 import 'package:adult/Model/content.dart';
 import 'package:flutter/material.dart';
 import '../service/contentService.dart';
+import 'package:provider/provider.dart';
+import 'package:adult/service/sync_service.dart';
 
 typedef Content = ContentModel;
 
@@ -22,9 +24,14 @@ class _CoursePageState extends State<CoursePage> {
   @override
   void initState() {
     super.initState();
-
-    _coursePageFuture = contentService().getContent(subjectId);
     print('>>> CoursePage subjectId: $subjectId');
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final db = context.read<SyncService>().db;
+    _coursePageFuture = contentService(db: db).getContent(subjectId);
   }
 
   @override
