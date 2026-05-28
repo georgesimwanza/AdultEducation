@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../service/auth_service.dart';
 import '../Model/user_model.dart';
+import 'package:adult/service/sync_service.dart';
 
 class AuthController extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -61,7 +62,8 @@ class AuthController extends ChangeNotifier {
       } else {
         print('❌ programmeId is null, not saving');
       }
-
+      final syncService = SyncService(authController: this);
+      await syncService.syncOnStartup();
       isLoading = false;
       notifyListeners();
       return true;

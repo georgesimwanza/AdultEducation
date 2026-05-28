@@ -4,6 +4,7 @@ import 'package:adult/service/dashboard_service.dart';
 import 'package:flutter/material.dart';
 import './subject.dart';
 import 'schedule_screen.dart';
+import 'package:adult/service/sync_service.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -33,6 +34,24 @@ class DashboardState extends State<Dashboard> {
         setState(() => _programmeTitle = 'No programme selected');
         return;
       }
+
+      // ← try local storage first
+      final db = context.read<SyncService>().db;
+      if (db != null) {
+        final results = await db.query(
+          'programmes',
+          where: 'id = ?',
+          whereArgs: [programmeId],
+        );
+        if (results.isNotEmpty) {
+          print('📦 Loaded programme title from local storage');
+          setState(() => _programmeTitle = results.first['name'] as String);
+          return;
+        }
+      }
+
+      // ← fall back to server if not in local storage
+      print('🌐 Programme not in local storage — fetching from server');
       final title = await DashboardService().getProgramTitle(programmeId);
       setState(() => _programmeTitle = title);
     } catch (e) {

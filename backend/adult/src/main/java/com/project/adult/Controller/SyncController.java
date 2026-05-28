@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/sync")
@@ -28,5 +29,10 @@ public class SyncController {
     public ResponseEntity<List<ContentDTO>> syncContent(
             @RequestParam(required = false) Long since) {
         return ResponseEntity.ok(syncService.getSyncedContent(since));
+    }
+    @GetMapping("/programmes")
+    public ResponseEntity<List<Map<String, Object>>> syncProgrammes(
+            @RequestParam(required = false) Long since) {
+        return ResponseEntity.ok(syncService.getSyncedProgrammes(since));
     }
 }

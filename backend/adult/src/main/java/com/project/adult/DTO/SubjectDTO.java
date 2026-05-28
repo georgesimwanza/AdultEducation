@@ -11,6 +11,7 @@ public class SubjectDTO {
     private String CourseCode;
     private String courseName;
     private String description;
+    private Long programmeId;
 }
 
 
