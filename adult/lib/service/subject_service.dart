@@ -19,8 +19,12 @@ class subjectService {
   }
 
   Future<List<subjectModel>> _getSubjectsOffline(int programmeId) async {
-    final results = await db!.query('subjects');
-    print('📦 Found ${results.length} subjects in local storage');
+    final results = await db!.query(
+      'subjects',
+      where: 'programmeId = ?', // ← filter by programmeId
+      whereArgs: [programmeId],
+    );
+    print('📦 Found ${results.length} subjects for programme $programmeId');
     return results
         .map(
           (row) => subjectModel(

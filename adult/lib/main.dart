@@ -20,7 +20,12 @@ void main() async {
 
   // ← sync on startup
   final syncService = SyncService(authController: auth);
-  await syncService.syncOnStartup();
+  if (auth.token != null) {
+    await syncService.syncOnStartup();
+  } else {
+    // still init the db so offline reads work
+    await syncService.initDb();
+  }
 
   runApp(
     MultiProvider(

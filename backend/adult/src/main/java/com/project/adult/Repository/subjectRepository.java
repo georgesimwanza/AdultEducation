@@ -12,4 +12,8 @@ public interface subjectRepository extends JpaRepository<Course,Long> {
     @Query("SELECT pc.course FROM ProgrammeCourse pc WHERE pc.programme.id = :programmeId")
     List<Course> findCoursesByProgrammeId(@Param("programmeId") Long programmeId);
     List<Course> findByUpdatedAtAfter(LocalDateTime since);
+    @Query("SELECT c FROM Course c LEFT JOIN FETCH c.programmeCourses pc LEFT JOIN FETCH pc.programme WHERE c.updatedAt > :since")
+    List<Course> findByUpdatedAtAfterWithProgramme(@Param("since") LocalDateTime since);
+    @Query("SELECT c FROM Course c LEFT JOIN FETCH c.programmeCourses pc LEFT JOIN FETCH pc.programme")
+    List<Course> findAllWithProgramme();
 }

@@ -2,31 +2,32 @@ import 'package:dio/dio.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart';
-import 'package:adult/Controller/auth_controller.dart'; // ← add this
+import 'package:adult/Controller/auth_controller.dart';
 
 class SyncService {
   final AuthController authController;
-  final Dio dio = Dio(); // ← add this
+  final Dio dio = Dio();
   Database? db;
 
   static const String _baseUrl = 'http://10.0.2.2:8080';
 
-  SyncService({required this.authController}); // ← constructor
+  SyncService({required this.authController});
 
   Future<void> initDb() async {
     print('🗄️ Initializing database...');
     final dbPath = await getDatabasesPath();
     db = await openDatabase(
       join(dbPath, 'app.db'),
-      version: 1,
+      version: 3, // ← bumped to 3
       onCreate: (db, version) async {
         print('🗄️ Creating tables...');
         await db.execute('''
           CREATE TABLE subjects (
             id INTEGER PRIMARY KEY,
-            courseCode TEXT,
+            CourseCode TEXT,
             courseName TEXT,
-            description TEXT
+            description TEXT,
+            programmeId INTEGER
           )
         ''');
         await db.execute('''
@@ -38,7 +39,48 @@ class SyncService {
             courseId INTEGER
           )
         ''');
+        await db.execute('''
+          CREATE TABLE programmes (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            code TEXT,
+            description TEXT
+          )
+        ''');
         print('✅ Tables created successfully');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        print('🔄 Upgrading database from v$oldVersion to v$newVersion...');
+        await db.execute('DROP TABLE IF EXISTS subjects');
+        await db.execute('DROP TABLE IF EXISTS content');
+        await db.execute('DROP TABLE IF EXISTS programmes');
+        await db.execute('''
+          CREATE TABLE subjects (
+            id INTEGER PRIMARY KEY,
+            CourseCode TEXT,
+            courseName TEXT,
+            description TEXT,
+            programmeId INTEGER
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE content (
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            type TEXT,
+            fileUrl TEXT,
+            courseId INTEGER
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE programmes (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            code TEXT,
+            description TEXT
+          )
+        ''');
+        print('✅ Database upgraded successfully');
       },
     );
     print('✅ Database initialized');
@@ -61,10 +103,11 @@ class SyncService {
   Future<void> syncOnStartup() async {
     print('🚀 Starting sync on startup...');
     await initDb();
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('last_sync_timestamp');
     print('🧹 Cleared timestamp — forcing full download');
-    // ← attach token from AuthController
+
     final token = authController.token;
     if (token != null) {
       dio.options.headers['Authorization'] = 'Bearer $token';
@@ -82,7 +125,11 @@ class SyncService {
       print('🔄 Previous sync found — fetching changes since $lastSync');
     }
 
-    await Future.wait([_syncSubjects(lastSync), _syncContent(lastSync)]);
+    await Future.wait([
+      _syncSubjects(lastSync),
+      _syncContent(lastSync),
+      _syncProgrammes(lastSync), // ← added
+    ]);
 
     await saveLastSyncTimestamp();
     print('✅ Sync completed successfully');
@@ -141,6 +188,34 @@ class SyncService {
       print('✅ Content sync done — ${data.length} records saved');
     } catch (e) {
       print('❌ Error syncing content: $e');
+    }
+  }
+
+  Future<void> _syncProgrammes(int? since) async {
+    try {
+      print(
+        '🎓 Fetching programmes${since != null ? ' since $since' : ' (full)'}...',
+      );
+      final res = await dio.get(
+        '$_baseUrl/api/sync/programmes',
+        queryParameters: since != null ? {'since': since} : null,
+      );
+
+      final List data = res.data;
+      print('🎓 Received ${data.length} programmes from server');
+
+      for (var item in data) {
+        await db!.insert(
+          'programmes',
+          item,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+        print('💾 Saved programme: ${item['name']}');
+      }
+
+      print('✅ Programmes sync done — ${data.length} records saved');
+    } catch (e) {
+      print('❌ Error syncing programmes: $e');
     }
   }
 }

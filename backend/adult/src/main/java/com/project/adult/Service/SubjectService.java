@@ -19,7 +19,7 @@ public class SubjectService {
     public List<SubjectDTO> getAlldetailsById(Long programmeId){
         return subjectRepository.findCoursesByProgrammeId(programmeId)
                 .stream()
-                .map(p-> new SubjectDTO(p.getId(),p.getCourseCode(),p.getDescription(),p.getName()))
+                .map(p-> new SubjectDTO(p.getId(),p.getCourseCode(),p.getDescription(),p.getName(),programmeId))
                 .collect(Collectors.toList());
 
     }
