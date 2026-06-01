@@ -18,7 +18,6 @@ class ScheduleService {
     throw Exception('Failed to save schedule: ${response.statusCode}');
   }
 
-
   Future<List<ScheduleEntry>> fetchSchedules(String email) async {
     final response = await http.get(
       Uri.parse('$_base/schedules?email=${Uri.encodeComponent(email)}'),

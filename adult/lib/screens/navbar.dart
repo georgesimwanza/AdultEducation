@@ -7,7 +7,6 @@ import 'schedule_screen.dart';
 
 class StudentNavBar extends StatefulWidget {
   const StudentNavBar({super.key});
-
   @override
   State<StudentNavBar> createState() => _MyNavBarState();
 }
@@ -29,9 +28,9 @@ class _MyNavBarState extends State<StudentNavBar> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (i) => setState(() => _selectedIndex = i),
-        backgroundColor: const Color(0xFF1A1A1A),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.grey,
+        backgroundColor: const Color(0xFFFFFFFF),
+        selectedItemColor: Colors.black,
+        unselectedItemColor: Colors.black,
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
@@ -39,19 +38,15 @@ class _MyNavBarState extends State<StudentNavBar> {
             label: 'Dashboard',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.people_rounded),
-            label: 'Subjects',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book_rounded),
+            icon: Icon(Icons.calendar_month_rounded),
             label: 'Schedule',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.folder_rounded),
+            icon: Icon(Icons.message_rounded),
             label: 'Messages',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.admin_panel_settings_rounded),
+            icon: Icon(Icons.notifications_rounded),
             label: 'Notifications',
           ),
         ],

@@ -155,7 +155,7 @@ class _CoursePageState extends State<CoursePage> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: isSelected ? Colors.white : const Color(0xFF999999),
+                color: isSelected ? Colors.white : const Color(0xFF111111),
               ),
             ),
           ),
@@ -187,13 +187,32 @@ class _CoursePageState extends State<CoursePage> {
           return const Center(child: Text('No Content available.'));
         }
 
-        return Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: lessons.length,
-            separatorBuilder: (_, __) => const Divider(),
-            itemBuilder: (context, index) => _buildLessonItem(lessons[index]),
-          ),
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: lessons.length,
+
+          // 1. SPACING between items — change SizedBox height
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+
+          itemBuilder: (context, index) {
+            return Container(
+              // 2. BORDER & SHAPE — add decoration here
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.black, width: 1),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.10),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              // 3. INNER PADDING — space between border and content
+              child: _buildLessonItem(lessons[index]),
+            );
+          },
         );
       },
     );

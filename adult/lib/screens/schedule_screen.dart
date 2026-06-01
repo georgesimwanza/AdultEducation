@@ -35,13 +35,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   void _showAddScheduleSheet(DateTime day) {
     final titleController = TextEditingController();
     String? startTime;
-    String? endTime; 
+    String? endTime;
 
     final email = context.read<AuthController>().currentUser?.email ?? '';
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -65,6 +66,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       fontFamily: 'Poppins',
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -72,9 +74,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   // Title
                   TextField(
                     controller: titleController,
+                    cursorColor: Colors.black,
+                    style: const TextStyle(color: Colors.black),
                     decoration: const InputDecoration(
                       labelText: 'Title',
+                      labelStyle: TextStyle(color: Colors.black54),
                       border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.black, width: 2),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -84,12 +92,34 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          icon: const Icon(Icons.access_time),
-                          label: Text(startTime ?? 'Start Time'),
+                          icon: const Icon(
+                            Icons.access_time,
+                            color: Colors.black,
+                          ),
+                          label: Text(
+                            startTime ?? 'Start Time',
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            side: const BorderSide(color: Colors.black),
+                          ),
                           onPressed: () async {
                             final picked = await showTimePicker(
                               context: context,
                               initialTime: TimeOfDay.now(),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: ThemeData.light().copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Colors.black,
+                                      onPrimary: Colors.white,
+                                      onSurface: Colors.black,
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
                             );
                             if (picked != null) {
                               final formatted =
@@ -102,12 +132,34 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
-                          icon: const Icon(Icons.access_time_filled),
-                          label: Text(endTime ?? 'End Time'),
+                          icon: const Icon(
+                            Icons.access_time_filled,
+                            color: Colors.black,
+                          ),
+                          label: Text(
+                            endTime ?? 'End Time',
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            side: const BorderSide(color: Colors.black),
+                          ),
                           onPressed: () async {
                             final picked = await showTimePicker(
                               context: context,
                               initialTime: TimeOfDay.now(),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: ThemeData.light().copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Colors.black,
+                                      onPrimary: Colors.white,
+                                      onSurface: Colors.black,
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
                             );
                             if (picked != null) {
                               final formatted =
@@ -144,7 +196,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           onPressed: ctrl.isLoading
@@ -155,8 +208,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                       endTime == null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
+                                        backgroundColor: Colors.black,
                                         content: Text(
                                           'Please fill in all fields',
+                                          style: TextStyle(color: Colors.white),
                                         ),
                                       ),
                                     );
@@ -216,11 +271,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         : [];
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Schedule', style: TextStyle(fontFamily: 'Poppins')),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: const Text(
+          'Schedule',
+          style: TextStyle(fontFamily: 'Poppins', color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: controller.isLoading && controller.entries.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.black))
           : Column(
               children: [
                 Calendar(
@@ -229,7 +291,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   selectedEndDate: null,
                   onDaySelected: _onDayTapped,
                 ),
-                const Divider(),
+                const Divider(color: Colors.black12),
                 if (_selectedDay != null) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -244,6 +306,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           fontFamily: 'Poppins',
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
+                          color: Colors.black,
                         ),
                       ),
                     ),
@@ -269,20 +332,26 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           return ListTile(
                             leading: const Icon(
                               Icons.event,
-                              color: Color.fromARGB(255, 0, 0, 0),
+                              color: Colors.black,
                             ),
                             title: Text(
                               entry.title,
-                              style: const TextStyle(fontFamily: 'Poppins'),
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.black,
+                              ),
                             ),
                             subtitle: Text(
                               '${entry.startTime} - ${entry.endTime}',
-                              style: const TextStyle(fontFamily: 'Poppins'),
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.black54,
+                              ),
                             ),
                             trailing: IconButton(
                               icon: const Icon(
                                 Icons.delete_outline,
-                                color: Color.fromARGB(255, 0, 0, 0),
+                                color: Colors.black,
                               ),
                               onPressed: () => entry.id != null
                                   ? controller.deleteEntry(entry.id!)
