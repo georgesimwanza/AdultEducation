@@ -1,7 +1,8 @@
+import 'package:adult/screens/noticeboard.dart';
 import 'package:flutter/material.dart';
 import 'dashboard.dart';
 import 'coursepage.dart';
-import 'message.dart';
+
 import 'notification.dart';
 import 'schedule_screen.dart';
 
@@ -17,7 +18,7 @@ class _MyNavBarState extends State<StudentNavBar> {
   final List<Widget> _screens = [
     Dashboard(),
     ScheduleScreen(),
-    Message(),
+    NoticeBoardScreen(),
     NotificationPage(),
   ];
 
@@ -43,7 +44,7 @@ class _MyNavBarState extends State<StudentNavBar> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.message_rounded),
-            label: 'Messages',
+            label: 'NoticePage',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications_rounded),
