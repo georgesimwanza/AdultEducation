@@ -1,7 +1,6 @@
 package com.project.adult.Model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.project.adult.Security.UserPrincipal;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -69,6 +68,9 @@ public class User {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
+    @ManyToOne
+    @JoinColumn(name = "institution_id")
+    private Institution institution;
 
     public enum Role{
         USER,ADMIN,TEACHER

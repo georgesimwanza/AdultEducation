@@ -259,7 +259,6 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
 
               const SizedBox(height: 28),
 
-              // ── Save button ─────────────────────────────────────────────
               SizedBox(
                 width: double.infinity,
                 height: 50,

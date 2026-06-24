@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:adult/Model/insititution.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Model/user_model.dart';
@@ -11,6 +12,7 @@ class AuthService {
     required String email,
     required String password,
     required int programmeId,
+    required int institutionId,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/Register'),
@@ -21,6 +23,7 @@ class AuthService {
         'email': email,
         'passwordHash': password,
         'selectedProgramme': {'id': programmeId},
+        'institutionId': institutionId,
       }),
     );
     if (response.statusCode == 200) {
@@ -51,7 +54,7 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final user = UserModel.fromJson(jsonDecode(response.body));
-      print('USER ROLE: ${user.role}'); 
+      print('USER ROLE: ${user.role}');
       print('USER TOKEN: ${user.token}');
       print('🔍 user.programmeId: ${user.programmeId}');
       return user;

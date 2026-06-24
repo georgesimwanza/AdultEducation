@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 import 'dart:convert';
 
 class contentService {
-  final String baseUrl = 'http://10.0.2.2:8080/api/Content/course';
+  final String baseUrl = 'http://10.0.2.2:8080/api/Content';
   final Database? db;
 
   contentService({this.db});
@@ -31,6 +31,7 @@ class contentService {
             id: row['id'] as int,
             title: row['title'] as String? ?? '',
             type: row['type'] as String? ?? '',
+
             fileUrl: row['fileUrl'] as String? ?? '',
           ),
         )
@@ -38,7 +39,17 @@ class contentService {
   }
 
   Future<List<ContentModel>> _getContentOnline(int courseId) async {
-    final response = await http.get(Uri.parse('$baseUrl/$courseId'));
+    final response = await http.get(Uri.parse('$baseUrl/course/$courseId'));
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => ContentModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load content');
+    }
+  }
+
+  Future<List<ContentModel>> getAllContent() async {
+    final response = await http.get(Uri.parse('$baseUrl/getAllContent'));
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((json) => ContentModel.fromJson(json)).toList();

@@ -48,7 +48,7 @@ class _MyNavBarState extends State<StudentNavBar> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications_rounded),
-            label: 'Notifications',
+            label: 'Settings',
           ),
         ],
       ),
