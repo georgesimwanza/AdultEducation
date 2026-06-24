@@ -7,7 +7,6 @@ import com.project.adult.Model.Course;
 import com.project.adult.Repository.ContentRepository;
 import com.project.adult.Repository.CourseRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,5 +53,8 @@ public class ContentService {
                         .courseId(c.getCourse() != null ? c.getCourse().getId() : null)
                         .build())
                 .collect(Collectors.toList());
+    }
+    public List<Content> getAllContent(){
+        return this.contentRepository.findAll();
     }
 }

@@ -81,6 +81,7 @@ class AuthController extends ChangeNotifier {
     required String password,
     required String lastName,
     required int programmeId,
+    required int institutionId,
   }) async {
     isLoading = true;
     errorMessage = null;
@@ -93,6 +94,7 @@ class AuthController extends ChangeNotifier {
         password: password,
         lastName: lastName,
         programmeId: programmeId,
+        institutionId: institutionId,
       );
       isLoading = false;
       notifyListeners();

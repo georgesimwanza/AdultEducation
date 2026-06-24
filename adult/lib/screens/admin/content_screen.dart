@@ -1,52 +1,7 @@
+import 'package:adult/Model/content.dart'; // Ensure ContentModel is imported from here
+import 'package:adult/service/contentService.dart';
 import 'package:flutter/material.dart';
-import 'package:adult/service/api_service.dart'; // ← import your ApiService
-
-enum ContentType { video, document, image, assignment }
-
-class ContentItem {
-  final String id;
-  final String title;
-  final ContentType type;
-  final String subject;
-  final DateTime uploadDate;
-  final String size;
-  final int views;
-
-  ContentItem({
-    required this.id,
-    required this.title,
-    required this.type,
-    required this.subject,
-    required this.uploadDate,
-    required this.size,
-    required this.views,
-  });
-
-  static ContentType _parseType(String t) {
-    switch (t.toLowerCase()) {
-      case 'video':
-        return ContentType.video;
-      case 'image':
-        return ContentType.image;
-      case 'assignment':
-        return ContentType.assignment;
-      default:
-        return ContentType.document;
-    }
-  }
-
-  factory ContentItem.fromJson(Map<String, dynamic> json) {
-    return ContentItem(
-      id: json['id'].toString(),
-      title: json['title'] ?? '',
-      type: _parseType(json['type'] ?? ''),
-      subject: 'Course ${json['courseId'] ?? ''}',
-      uploadDate: DateTime.now(),
-      size: '—',
-      views: 0,
-    );
-  }
-}
+import 'package:adult/service/api_service.dart';
 
 class ContentScreen extends StatefulWidget {
   const ContentScreen({super.key});
@@ -58,21 +13,28 @@ class ContentScreen extends StatefulWidget {
 class _ContentScreenState extends State<ContentScreen> {
   String _searchTerm = '';
   String _filterType = 'all';
-  List<ContentItem> _content = [];
-  bool _loading = false;
-  int _activeCourseId = 0;
 
-  // ── GET via ApiService ──────────────────────────────────────────────────────
-  Future<void> _fetchContent() async {
-    if (_activeCourseId == 0) return;
+  // ✅ Back to tracking ContentModel exclusively
+  List<ContentModel> _content = [];
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAllContent();
+  }
+
+  Future<void> _fetchAllContent() async {
     setState(() => _loading = true);
     try {
-      final data = await ApiService.getContentByCourseId(_activeCourseId);
+      // ✅ Directly consumes what your API service returns
+      final data = await contentService().getAllContent();
+
       setState(() {
-        _content = data.map((j) => ContentItem.fromJson(j)).toList();
+        _content = data;
       });
     } catch (e) {
-      _showError(e.toString());
+      _showError("Could not update library: ${e.toString()}");
     } finally {
       setState(() => _loading = false);
     }
@@ -81,8 +43,7 @@ class _ContentScreenState extends State<ContentScreen> {
   // ── POST via ApiService ─────────────────────────────────────────────────────
   Future<void> _addContent(
     String title,
-    ContentType type,
-    String subject,
+    String type,
     String courseIdText,
   ) async {
     final courseId = int.tryParse(courseIdText);
@@ -94,12 +55,11 @@ class _ContentScreenState extends State<ContentScreen> {
     try {
       await ApiService.addContent(
         title: title,
-        type: type.name,
+        type: type,
         fileUrl: '',
-        courseId: courseId, // ← from input field
+        courseId: courseId,
       );
-      setState(() => _activeCourseId = courseId); // ← save for _fetchContent
-      await _fetchContent();
+      await _fetchAllContent();
     } catch (e) {
       _showError(e.toString());
     }
@@ -110,46 +70,50 @@ class _ContentScreenState extends State<ContentScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  List<ContentItem> get _filtered => _content.where((item) {
+  // ✅ Filtering dynamically using ContentModel fields
+  List<ContentModel> get _filtered => _content.where((item) {
     final matchSearch =
         item.title.toLowerCase().contains(_searchTerm.toLowerCase()) ||
-        item.subject.toLowerCase().contains(_searchTerm.toLowerCase());
-    final matchFilter = _filterType == 'all' || item.type.name == _filterType;
+        item.type.toLowerCase().contains(_searchTerm.toLowerCase());
+    final matchFilter =
+        _filterType == 'all' ||
+        item.type.toLowerCase() == _filterType.toLowerCase();
     return matchSearch && matchFilter;
   }).toList();
 
-  IconData _getIcon(ContentType t) {
-    switch (t) {
-      case ContentType.video:
+  IconData _getIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'video':
         return Icons.play_circle_outline;
-      case ContentType.document:
-        return Icons.description_outlined;
-      case ContentType.image:
+      case 'image':
         return Icons.image_outlined;
-      case ContentType.assignment:
+      case 'assignment':
         return Icons.assignment_outlined;
+      default:
+        return Icons.description_outlined; // Default document icon
     }
   }
 
-  Color _getColor(ContentType t) {
-    switch (t) {
-      case ContentType.video:
+  Color _getColor(String type) {
+    switch (type.toLowerCase()) {
+      case 'video':
         return const Color(0xFFEF4444);
-      case ContentType.document:
-        return const Color(0xFF3B82F6);
-      case ContentType.image:
+      case 'image':
         return const Color(0xFF22C55E);
-      case ContentType.assignment:
+      case 'assignment':
         return const Color(0xFFDE782E);
+      default:
+        return const Color(0xFF3B82F6);
     }
   }
 
   // ── Add modal ───────────────────────────────────────────────────────────────
   void _showAddModal() {
     final titleCtrl = TextEditingController();
-    final subjectCtrl = TextEditingController();
     final courseIdCtrl = TextEditingController();
-    ContentType selectedType = ContentType.document;
+    String selectedType = 'document';
+
+    final contentTypes = ['document', 'video', 'image', 'assignment'];
 
     showModalBottomSheet(
       context: context,
@@ -157,7 +121,7 @@ class _ContentScreenState extends State<ContentScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => DraggableScrollableSheet(
-          initialChildSize: 0.7,
+          initialChildSize: 0.65,
           minChildSize: 0.4,
           maxChildSize: 0.95,
           expand: false,
@@ -210,16 +174,14 @@ class _ContentScreenState extends State<ContentScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Course ID — numeric keyboard
                         _buildField(
                           courseIdCtrl,
                           'Course ID',
-                          'Enter course ID',
+                          'Enter target course ID relationship',
                           keyboardType: TextInputType.number,
                         ),
                         const SizedBox(height: 12),
 
-                        // Title
                         _buildField(
                           titleCtrl,
                           'Content Title',
@@ -227,7 +189,6 @@ class _ContentScreenState extends State<ContentScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Type dropdown
                         const Text(
                           'Content Type',
                           style: TextStyle(
@@ -237,7 +198,7 @@ class _ContentScreenState extends State<ContentScreen> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        DropdownButtonFormField<ContentType>(
+                        DropdownButtonFormField<String>(
                           value: selectedType,
                           onChanged: (v) =>
                               setModalState(() => selectedType = v!),
@@ -268,29 +229,19 @@ class _ContentScreenState extends State<ContentScreen> {
                               vertical: 4,
                             ),
                           ),
-                          items: ContentType.values
+                          items: contentTypes
                               .map(
                                 (t) => DropdownMenuItem(
                                   value: t,
                                   child: Text(
-                                    t.name[0].toUpperCase() +
-                                        t.name.substring(1),
+                                    t[0].toUpperCase() + t.substring(1),
                                   ),
                                 ),
                               )
                               .toList(),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 24),
 
-                        // Subject
-                        _buildField(
-                          subjectCtrl,
-                          'Subject',
-                          'e.g., Mathematics, Physics',
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Buttons
                         Row(
                           children: [
                             Expanded(
@@ -318,7 +269,6 @@ class _ContentScreenState extends State<ContentScreen> {
                               child: ElevatedButton(
                                 onPressed: () {
                                   if (titleCtrl.text.isEmpty ||
-                                      subjectCtrl.text.isEmpty ||
                                       courseIdCtrl.text.isEmpty) {
                                     _showError('Please fill all fields');
                                     return;
@@ -327,8 +277,7 @@ class _ContentScreenState extends State<ContentScreen> {
                                   _addContent(
                                     titleCtrl.text,
                                     selectedType,
-                                    subjectCtrl.text,
-                                    courseIdCtrl.text, // ← from input
+                                    courseIdCtrl.text,
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(
@@ -412,12 +361,12 @@ class _ContentScreenState extends State<ContentScreen> {
     );
   }
 
-  // ── build ───────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final filters = ['all', 'video', 'document', 'image', 'assignment'];
 
     return Scaffold(
+      backgroundColor: Color.fromARGB(255, 255, 255, 255),
       body: SafeArea(
         child: Column(
           children: [
@@ -430,7 +379,7 @@ class _ContentScreenState extends State<ContentScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Content Library',
+                        'Global Content Library',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -438,7 +387,7 @@ class _ContentScreenState extends State<ContentScreen> {
                         ),
                       ),
                       Text(
-                        '${_content.length} items',
+                        '${_filtered.length} visible items',
                         style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xFF6B7280),
@@ -470,7 +419,7 @@ class _ContentScreenState extends State<ContentScreen> {
               child: TextField(
                 onChanged: (v) => setState(() => _searchTerm = v),
                 decoration: InputDecoration(
-                  hintText: 'Search content...',
+                  hintText: 'Search by title or type...',
                   hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
                   prefixIcon: const Icon(
                     Icons.search,
@@ -544,12 +493,10 @@ class _ContentScreenState extends State<ContentScreen> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _filtered.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Text(
-                        _activeCourseId == 0
-                            ? 'Add content to get started'
-                            : 'No content found',
-                        style: const TextStyle(color: Color(0xFF6B7280)),
+                        'No institutional content found matching selection criteria',
+                        style: TextStyle(color: Color(0xFF6B7280)),
                       ),
                     )
                   : ListView.separated(
@@ -602,38 +549,24 @@ class _ContentScreenState extends State<ContentScreen> {
                                       ),
                                     ),
                                     Text(
-                                      item.subject,
+                                      'Type: ${item.type[0].toUpperCase() + item.type.substring(1)}',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Color(0xFF6B7280),
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          item.size,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Color(0xFF9CA3AF),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        const Icon(
-                                          Icons.visibility_outlined,
-                                          size: 12,
+                                    if (item.fileUrl.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        item.fileUrl,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 11,
                                           color: Color(0xFF9CA3AF),
                                         ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          '${item.views}',
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Color(0xFF9CA3AF),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),

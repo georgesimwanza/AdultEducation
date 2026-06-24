@@ -36,4 +36,7 @@ public class Content {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+    @ManyToOne()
+    @JoinColumn(name = "institution")
+    private Institution institution;
 }

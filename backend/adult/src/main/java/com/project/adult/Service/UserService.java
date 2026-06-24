@@ -2,8 +2,10 @@ package com.project.adult.Service;
 
 import com.project.adult.DTO.RegisterRequest;
 import com.project.adult.DTO.UserDTO;
+import com.project.adult.Model.Institution;
 import com.project.adult.Model.Programme;
 import com.project.adult.Model.User;
+import com.project.adult.Repository.InstitutionRepository;
 import com.project.adult.Repository.ProgrammeRepository;
 import com.project.adult.Repository.UserRepository;
 import com.project.adult.Security.JwtUtils;
@@ -21,15 +23,18 @@ public class UserService {
     private final ProgrammeRepository programmeRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final InstitutionRepository institutionRepository;
 
     public UserService(UserRepository userRepository,
                        ProgrammeRepository programmeRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtUtils jwtUtils) {
-        this.userRepository      = userRepository;
-        this.programmeRepository = programmeRepository;
-        this.passwordEncoder     = passwordEncoder;
-        this.jwtUtils            = jwtUtils;
+                       JwtUtils jwtUtils,
+                       InstitutionRepository institutionRepository) {
+        this.userRepository        = userRepository;
+        this.programmeRepository   = programmeRepository;
+        this.passwordEncoder       = passwordEncoder;
+        this.jwtUtils              = jwtUtils;
+        this.institutionRepository = institutionRepository;
     }
 
     @Transactional
@@ -40,6 +45,15 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setRole(Role.USER);
         user.setPasswordHash(passwordEncoder.encode(request.getPasswordHash()));
+
+        if (request.getInstitutionId() != null) {
+            Institution institution = institutionRepository
+                    .findById(request.getInstitutionId())
+                    .orElseThrow(() -> new RuntimeException(
+                            "Institution not found with id: " + request.getInstitutionId()
+                    ));
+            user.setInstitution(institution);
+        }
 
         if (request.getSelectedProgramme() != null &&
                 request.getSelectedProgramme().getId() != null) {
@@ -67,7 +81,6 @@ public class UserService {
             throw new RuntimeException("Invalid password");
         }
 
-        // Token is generated here — it is never stored on the User entity
         String token = jwtUtils.generateToken(UserPrincipal.from(user));
 
         Long programmeId     = null;
@@ -83,13 +96,12 @@ public class UserService {
                 user.getEmail(),
                 programmeId,
                 programmeName,
-
                 token,
-                user.getRole().name()// generated above, not from user.getToken()
+                user.getRole().name()
         );
     }
-    public List<User> getAllUsers(){
+
+    public List<User> getAllUsers() {
         return userRepository.findAll();
     }
-
 }
