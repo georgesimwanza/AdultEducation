@@ -20,7 +20,7 @@ class AuthWrapper extends StatelessWidget {
       return const LoginPage();
     }
 
-    if (auth.role == 'ADMIN') {
+    if (auth.role == 'INSTITUTION') {
       return const AdminNavBar();
     }
 

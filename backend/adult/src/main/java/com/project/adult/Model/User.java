@@ -73,6 +73,6 @@ public class User {
     private Institution institution;
 
     public enum Role{
-        USER,ADMIN,TEACHER
+        USER,ADMIN,INSTITUTION
     }
 }

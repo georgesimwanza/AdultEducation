@@ -59,7 +59,6 @@ class DashboardState extends State<Dashboard> {
     }
   }
 
-  // ── Shared shadow ──
   static const List<BoxShadow> _cardShadow = [
     BoxShadow(
       color: Color(0x1A000000),
