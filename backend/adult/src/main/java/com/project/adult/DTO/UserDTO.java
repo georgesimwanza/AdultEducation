@@ -1,5 +1,9 @@
 package com.project.adult.DTO;
 
+
+import lombok.Data;
+
+@Data
 public class UserDTO {
     private String firstName;
     private String lastName;
@@ -8,8 +12,10 @@ public class UserDTO {
     private String programmeName;
     private String token;
     private String role;
+    private String institutionName;
+    private Long institutionId;
     public UserDTO(String firstName, String lastName, String email,
-                   Long programmeId, String programmeName, String token,String role) {
+                   Long programmeId, String programmeName, String token, String role, Long institutionId, String institutionName) {
         this.firstName     = firstName;
         this.lastName      = lastName;
         this.email         = email;
@@ -17,13 +23,8 @@ public class UserDTO {
         this.programmeName = programmeName;
         this.token         = token;
         this.role         = role;
+        this.institutionId = institutionId;
+        this.institutionName = institutionName;
     }
 
-    public String getFirstName()     { return firstName; }
-    public String getLastName()      { return lastName; }
-    public String getEmail()         { return email; }
-    public Long getProgrammeId()     { return programmeId; }
-    public String getProgrammeName() { return programmeName; }
-    public String getToken()         { return token; }
-    public String getRole(){return role;}
 }
