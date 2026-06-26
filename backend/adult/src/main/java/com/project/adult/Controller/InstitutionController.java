@@ -2,6 +2,8 @@ package com.project.adult.Controller;
 
 
 import com.project.adult.DTO.InstitutionDto;
+import com.project.adult.DTO.InstitutionRegisterRequest;
+import com.project.adult.DTO.UserDTO;
 import com.project.adult.Model.Institution;
 import com.project.adult.Service.institutionService;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +22,9 @@ public class InstitutionController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerInstitution(@RequestBody Institution institution) {
+    public ResponseEntity<?> registerInstitution(@RequestBody InstitutionRegisterRequest request) {
         try {
-            Institution saved = institutionService.registerInstitution(institution);
+            UserDTO saved = institutionService.registerWithAdmin(request);
             return ResponseEntity.status(201).body(saved);
         } catch (RuntimeException e) {
             return ResponseEntity.status(409).body(e.getMessage());

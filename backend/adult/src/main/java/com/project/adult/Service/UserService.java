@@ -97,7 +97,9 @@ public class UserService {
                 programmeId,
                 programmeName,
                 token,
-                user.getRole().name()
+                user.getRole().name(),
+                user.getInstitution() != null ? user.getInstitution().getId() : null,
+                user.getInstitution() != null ? user.getInstitution().getName() : null
         );
     }
 
