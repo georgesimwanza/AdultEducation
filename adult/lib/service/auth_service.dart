@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:adult/Model/insititution.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Model/user_model.dart';
@@ -86,5 +85,15 @@ class AuthService {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
+  }
+
+  Future<void> saveInstitution(int institution) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('institution', institution);
+  }
+
+  Future<int?> getInstitution() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('institution_id');
   }
 }
