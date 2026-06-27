@@ -106,4 +106,12 @@ public class UserService {
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
+
+    public List<User> getUserByInstitution(Long institution){
+        try {
+            return this.userRepository.findByInstitutionId(institution);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

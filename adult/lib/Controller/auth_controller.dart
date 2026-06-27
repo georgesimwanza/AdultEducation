@@ -39,12 +39,11 @@ class AuthController extends ChangeNotifier {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
-
     try {
       currentUser = await _authService.login(email, password);
       _token = currentUser?.token;
       _role = currentUser?.role;
-      _programmeId = currentUser?.programmeId; // ✅ set in memory
+      _programmeId = currentUser?.programmeId;
 
       if (_token != null) {
         await _authService.saveToken(_token!);
@@ -53,15 +52,24 @@ class AuthController extends ChangeNotifier {
         print('💾 Saving role: $_role');
         await _authService.saveRole(_role!);
       }
+      if (currentUser?.institutionId != null) {
+        print('💾 Saving institution: ${currentUser!.institutionId}');
+        await _authService.saveInstitution(
+          currentUser!.institutionId!,
+        ); // 👈 add this
+      } else {
+        print('❌ institution is null, not saving');
+      }
       if (currentUser?.programmeId != null) {
-        await _authService.saveProgrammeId(currentUser!.programmeId!); // ✅
+        await _authService.saveProgrammeId(currentUser!.programmeId!);
       }
       if (_programmeId != null) {
-        print('💾 Saving programmeId: $_programmeId'); // ✅
+        print('💾 Saving programmeId: $_programmeId');
         await _authService.saveProgrammeId(_programmeId!);
       } else {
         print('❌ programmeId is null, not saving');
       }
+
       final syncService = SyncService(authController: this);
       await syncService.syncOnStartup();
       isLoading = false;

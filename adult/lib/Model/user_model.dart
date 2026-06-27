@@ -8,6 +8,7 @@ class UserModel {
   final String? programmeName;
   final String? token; // ✅ Add this
   final String? role;
+  final int? institutionId;
   UserModel({
     required this.id,
     required this.firstName,
@@ -18,6 +19,7 @@ class UserModel {
     this.programmeName,
     this.token, // ✅ Add this
     this.role, // ✅ Add this
+    this.institutionId,
   });
 
   String get fullName => '$firstName $lastName'.trim();
@@ -34,6 +36,7 @@ class UserModel {
       programmeName: json['programmeName'] ?? '',
       token: json['token'], // ✅ Add this
       role: json['role'], // ✅ Add this
+      institutionId: json['institutionId'],
     );
   }
 }

@@ -46,4 +46,9 @@ public UserController(UserService userService){
     public List<User> allStudents(){
     return userService.getAllUsers();
 }
+
+@GetMapping("/institution/{institution}")
+    public List< User> getAllUsersByInstitution(@PathVariable Long institution){
+    return  this.userService.getUserByInstitution(institution);
+}
 }

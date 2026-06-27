@@ -22,7 +22,7 @@ import java.util.Date;
  *
  * The secret must be at least 256 bits (32 chars) for HMAC-SHA256.
  * Use a long random string in production — never commit it to git.
- * Store it as an environment variable or in a secrets manager.
+ * Store it as an environment variable or in a !secrets manager.
  */
 @Component
 public class JwtUtils {

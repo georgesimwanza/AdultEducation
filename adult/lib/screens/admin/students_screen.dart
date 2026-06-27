@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:adult/Model/user_model.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // add this import
+import 'package:adult/Service/user_service.dart';
 
 class StudentsScreen extends StatefulWidget {
   const StudentsScreen({super.key});
@@ -13,46 +11,19 @@ class StudentsScreen extends StatefulWidget {
 
 class _StudentsScreenState extends State<StudentsScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final UserService _userService = UserService();
   String _searchTerm = '';
   late Future<List<UserModel>> _studentsFuture;
 
   @override
   void initState() {
     super.initState();
-    _studentsFuture = fetchStudents();
-  }
-
-  Future<Map<String, String>> _authHeaders() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
-  Future<List<UserModel>> fetchStudents() async {
-    try {
-      final response = await http.get(
-        Uri.parse('http://10.0.2.2:8080/api/users/AllStudents'),
-        headers: await _authHeaders(),
-      );
-      print('Status: ${response.statusCode}');
-      print('Body: ${response.body}');
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => UserModel.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load students: ${response.statusCode}');
-      }
-    } catch (e) {
-      rethrow;
-    }
+    _studentsFuture = _userService.getStudentsByInstitution();
   }
 
   void _refreshStudents() {
     setState(() {
-      _studentsFuture = fetchStudents();
+      _studentsFuture = _userService.getStudentsByInstitution();
     });
   }
 
@@ -133,29 +104,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       onPressed: () async {
                         if (nameCtrl.text.isNotEmpty &&
                             emailCtrl.text.isNotEmpty) {
-                          try {
-                            final parts = nameCtrl.text.trim().split(' ');
-                            final response = await http.post(
-                              Uri.parse(
-                                'http://10.0.2.2:8080/api/users/AllStudents',
-                              ),
-                              headers: {'Content-Type': 'application/json'},
-                              body: jsonEncode({
-                                'firstName': parts.first,
-                                'lastName': parts.length > 1
-                                    ? parts.skip(1).join(' ')
-                                    : '',
-                                'email': emailCtrl.text,
-                              }),
-                            );
-                            if (response.statusCode == 200 ||
-                                response.statusCode == 201) {
-                              Navigator.pop(ctx);
-                              _refreshStudents();
-                            }
-                          } catch (e) {
-                            print('Error adding student: $e');
-                          }
+                          await _userService.addStudent(
+                            nameCtrl.text,
+                            emailCtrl.text,
+                          );
+                          Navigator.pop(ctx);
+                          _refreshStudents();
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -188,11 +142,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 255, 255, 255),
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       body: SafeArea(
         child: Column(
           children: [
-            // ── Header ──────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Row(
@@ -232,13 +185,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       decoration: const BoxDecoration(
                         color: Color.fromARGB(255, 0, 0, 0),
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Color(0x333B82F6),
-                            blurRadius: 12,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
                       ),
                       child: const Icon(
                         Icons.add,
@@ -250,7 +196,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 ],
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.all(16),
               child: TextField(
@@ -284,8 +229,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 ),
               ),
             ),
-
-            // ── Student list ─────────────────────────────────────────
             Expanded(
               child: FutureBuilder<List<UserModel>>(
                 future: _studentsFuture,
@@ -293,7 +236,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-
                   if (snapshot.hasError) {
                     return Center(
                       child: Column(
@@ -319,7 +261,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       ),
                     );
                   }
-
                   final filtered = (snapshot.data ?? []).where((s) {
                     final term = _searchTerm.toLowerCase();
                     return s.fullName.toLowerCase().contains(term) ||
@@ -362,7 +303,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Name + active badge
                                   Row(
                                     children: [
                                       Text(
@@ -401,7 +341,6 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                     ],
                                   ),
                                   const SizedBox(height: 4),
-                                  // Email
                                   Row(
                                     children: [
                                       const Icon(
@@ -422,10 +361,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 2),
-                                  // Programme
                                   if (s.programmeName != null &&
-                                      s.programmeName!.isNotEmpty)
+                                      s.programmeName!.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
                                     Row(
                                       children: [
                                         const Icon(
@@ -446,22 +384,14 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                         ),
                                       ],
                                     ),
+                                  ],
                                 ],
                               ),
                             ),
-                            // Delete
                             IconButton(
                               onPressed: () async {
-                                try {
-                                  await http.delete(
-                                    Uri.parse(
-                                      'http://10.0.2.2:8080/api/users/AllStudents/${s.id}',
-                                    ),
-                                  );
-                                  _refreshStudents();
-                                } catch (e) {
-                                  print('Error deleting student: $e');
-                                }
+                                await _userService.deleteStudent(s.id!);
+                                _refreshStudents();
                               },
                               icon: const Icon(
                                 Icons.delete_outline,
@@ -469,12 +399,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                 size: 20,
                               ),
                               style: IconButton.styleFrom(
-                                backgroundColor: const Color.fromARGB(
-                                  255,
-                                  255,
-                                  255,
-                                  255,
-                                ),
+                                backgroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
