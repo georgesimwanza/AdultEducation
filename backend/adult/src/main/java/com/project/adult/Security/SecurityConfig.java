@@ -91,6 +91,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/AllStudents").hasRole("ADMIN")
                         .requestMatchers("/api/institution/**").permitAll()
                         .requestMatchers("/api/users/institution/**").permitAll()
+                        .requestMatchers("/api/users/count/**").permitAll()
 
                         // Programmes
                         .requestMatchers(HttpMethod.GET, "/api/programmes/**").permitAll()

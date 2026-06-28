@@ -60,4 +60,27 @@ class UserService {
       throw Exception('Failed to delete student: ${response.statusCode}');
     }
   }
+
+  Future<int> countStudentsByInstitution() async {
+    final prefs = await SharedPreferences.getInstance();
+    final institutionId = prefs.getInt('institution_id') ?? 0;
+
+    print('🏫 Counting students for institution ID: $institutionId');
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/count/$institutionId'),
+      headers: await _authHeaders(),
+    );
+
+    print('📊 Count status: ${response.statusCode}');
+    print('📊 Count body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final count = int.parse(response.body);
+      print('✅ Student count: $count');
+      return count;
+    } else {
+      throw Exception('Failed to count students: ${response.statusCode}');
+    }
+  }
 }

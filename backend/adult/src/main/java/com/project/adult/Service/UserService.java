@@ -114,4 +114,20 @@ public class UserService {
             throw new RuntimeException(e);
         }
     }
+    /*
+    * this method counts all the user in the system
+    * this method is for the admin
+    * */
+    public Long countUsers(){
+     return this.userRepository.count();
+    }
+
+    /*
+    * this method return a number of users that belong to an institution
+    * @param institution
+    * */
+
+    public Long CountUsersByInstitution(long institutionId){
+        return this.userRepository.countByInstitution_id(institutionId);
+    }
 }

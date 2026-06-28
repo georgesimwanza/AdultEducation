@@ -51,4 +51,9 @@ public UserController(UserService userService){
     public List< User> getAllUsersByInstitution(@PathVariable Long institution){
     return  this.userService.getUserByInstitution(institution);
 }
+
+@GetMapping("/count/{institutionId}")
+    public Long countUsersByInstitution(@PathVariable Long institutionId){
+    return this.userService.CountUsersByInstitution(institutionId);
+}
 }
