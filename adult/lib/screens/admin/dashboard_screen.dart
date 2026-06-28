@@ -1,14 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:adult/Service/user_service.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final UserService _userService = UserService();
+  String _totalStudents = '...';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStudentCount();
+  }
+
+  Future<void> _fetchStudentCount() async {
+    try {
+      final count = await _userService. countStudentsByInstitution();
+      setState(() {
+        _totalStudents = count.toString();
+      });
+    } catch (e) {
+      setState(() {
+        _totalStudents = 'N/A';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final stats = [
       {
         'label': 'Total Students',
-        'value': '1,234',
+        'value': _totalStudents, // 👈 real count
         'icon': Icons.people_rounded,
         'color': const Color.fromARGB(255, 0, 0, 0),
       },
@@ -52,7 +80,7 @@ class DashboardScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 255, 255, 255),
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -77,8 +105,6 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Stats Grid
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -112,7 +138,7 @@ class DashboardScreen extends StatelessWidget {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: (stat['color'] as Color),
+                            color: stat['color'] as Color,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -144,8 +170,6 @@ class DashboardScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 16),
-
-              // Recent Activity
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -163,15 +187,15 @@ class DashboardScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.bolt_rounded,
                           color: Color.fromARGB(255, 0, 0, 0),
                           size: 20,
                         ),
-                        const SizedBox(width: 8),
-                        const Text(
+                        SizedBox(width: 8),
+                        Text(
                           'Recent Activity',
                           style: TextStyle(
                             fontSize: 16,
@@ -241,8 +265,6 @@ class DashboardScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Performance Card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
@@ -280,20 +302,20 @@ class DashboardScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 13, color: Color(0xFFBFDBFE)),
                     ),
                     const SizedBox(height: 16),
-                    Row(
+                    const Row(
                       children: [
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Completion Rate',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFFBFDBFE),
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            const Text(
+                            SizedBox(height: 2),
+                            Text(
                               '87%',
                               style: TextStyle(
                                 fontSize: 20,
@@ -303,19 +325,19 @@ class DashboardScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(width: 32),
+                        SizedBox(width: 32),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Avg. Score',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFFBFDBFE),
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            const Text(
+                            SizedBox(height: 2),
+                            Text(
                               '82%',
                               style: TextStyle(
                                 fontSize: 20,

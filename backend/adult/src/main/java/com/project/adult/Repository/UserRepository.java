@@ -14,4 +14,6 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     @Query("SELECT u FROM User u WHERE u.institution.id = :institutionId")
     List<User> findByInstitutionId(@Param("institutionId") Long institutionId);
+
+    Long countByInstitution_id(long institutionId);
 }
