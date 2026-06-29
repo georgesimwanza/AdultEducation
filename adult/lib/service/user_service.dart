@@ -17,7 +17,7 @@ class UserService {
 
   Future<List<UserModel>> getStudentsByInstitution() async {
     final prefs = await SharedPreferences.getInstance();
-    final institution = prefs.getInt('institution') ?? '';
+    final institution = await prefs.getInt('institution') ?? '';
     print('Institution from prefs: $institution');
     final response = await http.get(
       Uri.parse('$baseUrl/institution/$institution'),
@@ -63,7 +63,7 @@ class UserService {
 
   Future<int> countStudentsByInstitution() async {
     final prefs = await SharedPreferences.getInstance();
-    final institutionId = prefs.getInt('institution_id') ?? 0;
+    final institutionId = prefs.getInt('institution') ?? 0;
 
     print('🏫 Counting students for institution ID: $institutionId');
 
