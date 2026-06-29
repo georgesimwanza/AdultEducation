@@ -94,6 +94,6 @@ class AuthService {
 
   Future<int?> getInstitution() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('institution_id');
+    return prefs.getInt('institution');
   }
 }
