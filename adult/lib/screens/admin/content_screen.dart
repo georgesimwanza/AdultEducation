@@ -1,7 +1,9 @@
-import 'package:adult/Model/content.dart'; // Ensure ContentModel is imported from here
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:adult/Model/content.dart';
 import 'package:adult/service/contentService.dart';
+import 'package:adult/service/cdn_supabase.dart'; // adjust path to match your actual file
 import 'package:flutter/material.dart';
-import 'package:adult/service/api_service.dart';
 
 class ContentScreen extends StatefulWidget {
   const ContentScreen({super.key});
@@ -14,9 +16,9 @@ class _ContentScreenState extends State<ContentScreen> {
   String _searchTerm = '';
   String _filterType = 'all';
 
-  // ✅ Back to tracking ContentModel exclusively
   List<ContentModel> _content = [];
   bool _loading = false;
+  bool _uploading = false;
 
   @override
   void initState() {
@@ -27,9 +29,7 @@ class _ContentScreenState extends State<ContentScreen> {
   Future<void> _fetchAllContent() async {
     setState(() => _loading = true);
     try {
-      // ✅ Directly consumes what your API service returns
       final data = await contentService().getAllContent();
-
       setState(() {
         _content = data;
       });
@@ -40,11 +40,12 @@ class _ContentScreenState extends State<ContentScreen> {
     }
   }
 
-  // ── POST via ApiService ─────────────────────────────────────────────────────
+  // ── POST via contentService ─────────────────────────────────────────────
   Future<void> _addContent(
     String title,
     String type,
     String courseIdText,
+    File? file,
   ) async {
     final courseId = int.tryParse(courseIdText);
     if (courseId == null) {
@@ -52,12 +53,26 @@ class _ContentScreenState extends State<ContentScreen> {
       return;
     }
 
+    String fileUrl = '';
+    if (file != null) {
+      setState(() => _uploading = true);
+      final url = await CdnSupabaseService().uploadContent(file, courseIdText);
+      setState(() => _uploading = false);
+      if (url == null) {
+        _showError('File upload failed');
+        return;
+      }
+      fileUrl = url;
+    }
+
     try {
-      await ApiService.addContent(
+      await contentService().addContent(
         title: title,
         type: type,
-        fileUrl: '',
+        fileUrl: fileUrl,
         courseId: courseId,
+        institutionId: 0, // ← replace with actual logged-in institution ID
+        subjectId: 0, // ← replace with actual subject ID if tracked client-side
       );
       await _fetchAllContent();
     } catch (e) {
@@ -70,7 +85,6 @@ class _ContentScreenState extends State<ContentScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  // ✅ Filtering dynamically using ContentModel fields
   List<ContentModel> get _filtered => _content.where((item) {
     final matchSearch =
         item.title.toLowerCase().contains(_searchTerm.toLowerCase()) ||
@@ -90,7 +104,7 @@ class _ContentScreenState extends State<ContentScreen> {
       case 'assignment':
         return Icons.assignment_outlined;
       default:
-        return Icons.description_outlined; // Default document icon
+        return Icons.description_outlined;
     }
   }
 
@@ -107,11 +121,12 @@ class _ContentScreenState extends State<ContentScreen> {
     }
   }
 
-  // ── Add modal ───────────────────────────────────────────────────────────────
+  // ── Add modal ────────────────────────────────────────────────────────────
   void _showAddModal() {
     final titleCtrl = TextEditingController();
     final courseIdCtrl = TextEditingController();
     String selectedType = 'document';
+    File? selectedFile;
 
     final contentTypes = ['document', 'video', 'image', 'assignment'];
 
@@ -121,7 +136,7 @@ class _ContentScreenState extends State<ContentScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => DraggableScrollableSheet(
-          initialChildSize: 0.65,
+          initialChildSize: 0.7,
           minChildSize: 0.4,
           maxChildSize: 0.95,
           expand: false,
@@ -240,6 +255,46 @@ class _ContentScreenState extends State<ContentScreen> {
                               )
                               .toList(),
                         ),
+                        const SizedBox(height: 12),
+
+                        const Text(
+                          'Content File',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF374151),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final result = await FilePicker.platform
+                                .pickFiles();
+                            if (result != null &&
+                                result.files.single.path != null) {
+                              setModalState(() {
+                                selectedFile = File(result.files.single.path!);
+                              });
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            side: const BorderSide(color: Color(0xFFE5E7EB)),
+                          ),
+                          icon: const Icon(
+                            Icons.attach_file,
+                            color: Colors.black,
+                          ),
+                          label: Text(
+                            selectedFile == null
+                                ? 'Attach File'
+                                : selectedFile!.path.split('/').last,
+                            style: const TextStyle(color: Color(0xFF374151)),
+                          ),
+                        ),
                         const SizedBox(height: 24),
 
                         Row(
@@ -267,19 +322,22 @@ class _ContentScreenState extends State<ContentScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: ElevatedButton(
-                                onPressed: () {
-                                  if (titleCtrl.text.isEmpty ||
-                                      courseIdCtrl.text.isEmpty) {
-                                    _showError('Please fill all fields');
-                                    return;
-                                  }
-                                  Navigator.pop(ctx);
-                                  _addContent(
-                                    titleCtrl.text,
-                                    selectedType,
-                                    courseIdCtrl.text,
-                                  );
-                                },
+                                onPressed: _uploading
+                                    ? null
+                                    : () {
+                                        if (titleCtrl.text.isEmpty ||
+                                            courseIdCtrl.text.isEmpty) {
+                                          _showError('Please fill all fields');
+                                          return;
+                                        }
+                                        Navigator.pop(ctx);
+                                        _addContent(
+                                          titleCtrl.text,
+                                          selectedType,
+                                          courseIdCtrl.text,
+                                          selectedFile,
+                                        );
+                                      },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.black,
                                   padding: const EdgeInsets.symmetric(
