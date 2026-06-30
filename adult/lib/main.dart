@@ -12,9 +12,15 @@ import './screens/schedule_screen.dart';
 import 'Controller/schedule_controller.dart';
 import './screens/admin/content_screen.dart';
 import './screens/navbar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://vuleceqwhdmzdiugsety.supabase.co',
+    publishableKey: 'sb_publishable_lm84SUJHemNg2ovdvON27Q_r1_2-yGF',
+  );
   final auth = AuthController();
   await auth.init();
 

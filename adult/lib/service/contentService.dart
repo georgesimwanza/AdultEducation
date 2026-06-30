@@ -6,7 +6,6 @@ import 'dart:convert';
 class contentService {
   final String baseUrl = 'http://10.0.2.2:8080/api/Content';
   final Database? db;
-
   contentService({this.db});
 
   Future<List<ContentModel>> getContent(int courseId) async {
@@ -31,8 +30,9 @@ class contentService {
             id: row['id'] as int,
             title: row['title'] as String? ?? '',
             type: row['type'] as String? ?? '',
-
             fileUrl: row['fileUrl'] as String? ?? '',
+            institutionId: row['institutionId'] as int? ?? 0,
+            subjectId: row['subjectId'] as int? ?? 0,
           ),
         )
         .toList();
@@ -55,6 +55,31 @@ class contentService {
       return data.map((json) => ContentModel.fromJson(json)).toList();
     } else {
       throw Exception('Failed to load content');
+    }
+  }
+
+  Future<void> addContent({
+    required String title,
+    required String type,
+    required String fileUrl,
+    required int courseId,
+    required int institutionId,
+    required int subjectId,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/addContent'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'title': title,
+        'type': type,
+        'fileUrl': fileUrl,
+        'courseId': courseId,
+        'institutionId': institutionId,
+        'subjectId': subjectId,
+      }),
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Failed to add content: ${response.body}');
     }
   }
 }

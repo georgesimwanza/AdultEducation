@@ -1,7 +1,6 @@
 package com.project.adult.Controller;
 
 import com.project.adult.DTO.ContentDTO;
-import com.project.adult.Model.Content;
 import com.project.adult.Service.ContentService;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,15 +18,16 @@ public class ContentController {
 
     @PostMapping("/addContent")
     public ContentDTO addContent(@RequestBody ContentDTO contentDTO){
-      return contentService.addContent(contentDTO);
+        return contentService.addContent(contentDTO);
     }
 
     @GetMapping("/course/{courseId}")
     public List<ContentDTO> getContentByCourseId(@PathVariable Long courseId) {
         return contentService.getContentById(courseId);
     }
-    @GetMapping("getAllContent")
-    public List<Content> getAllContent(){
+
+    @GetMapping("/getAllContent") // ← also added missing leading slash, was "getAllContent" before
+    public List<ContentDTO> getAllContent(){
         return this.contentService.getAllContent();
     }
 }
