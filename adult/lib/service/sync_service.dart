@@ -36,7 +36,8 @@ class SyncService {
             title TEXT,
             type TEXT,
             fileUrl TEXT,
-            courseId INTEGER
+            courseId INTEGER,
+            institutionId INTEGER
           )
         ''');
         await db.execute('''
