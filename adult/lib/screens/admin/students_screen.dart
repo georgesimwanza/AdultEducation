@@ -305,12 +305,15 @@ class _StudentsScreenState extends State<StudentsScreen> {
                                 children: [
                                   Row(
                                     children: [
-                                      Text(
-                                        s.fullName,
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF111827),
+                                      Flexible(
+                                        child: Text(
+                                          s.fullName,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF111827),
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
