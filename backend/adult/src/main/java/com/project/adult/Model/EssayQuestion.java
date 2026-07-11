@@ -23,4 +23,6 @@ public class EssayQuestion extends Question {
     private String rubric;
 
 
+    public EssayQuestion(String text, int points, String explanation, Integer minWords, Integer maxWords, String rubric) {
+    }
 }

@@ -1,12 +1,20 @@
 package com.project.adult.Model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @DiscriminatorValue("shortAnswer")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class ShortAnswerQuestion extends Question {
 
     @ElementCollection
@@ -17,30 +25,6 @@ public class ShortAnswerQuestion extends Question {
     @Column(name = "case_sensitive", nullable = false)
     private boolean caseSensitive;
 
-    protected ShortAnswerQuestion() {
-        super();
-    }
-
-    public ShortAnswerQuestion(String text, int points, String explanation,
-                                List<String> acceptedAnswers, boolean caseSensitive) {
-        super(text, points, explanation);
-        this.acceptedAnswers = acceptedAnswers;
-        this.caseSensitive = caseSensitive;
-    }
-
-    public List<String> getAcceptedAnswers() {
-        return acceptedAnswers;
-    }
-
-    public void setAcceptedAnswers(List<String> acceptedAnswers) {
-        this.acceptedAnswers = acceptedAnswers;
-    }
-
-    public boolean isCaseSensitive() {
-        return caseSensitive;
-    }
-
-    public void setCaseSensitive(boolean caseSensitive) {
-        this.caseSensitive = caseSensitive;
+    public ShortAnswerQuestion(String text, int points, String explanation, List<String> acceptedAnswers, boolean caseSensitive) {
     }
 }

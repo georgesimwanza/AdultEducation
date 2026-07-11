@@ -2,7 +2,11 @@ package com.project.adult.Service;
 
 import com.project.adult.DTO.CreateQuizRequest;
 import com.project.adult.DTO.QuizDto;
+import com.project.adult.Model.Course;
+import com.project.adult.Model.Institution;
 import com.project.adult.Model.Quiz;
+import com.project.adult.Repository.CourseRepository;
+import com.project.adult.Repository.InstitutionRepository;
 import com.project.adult.Utilities.QuizMapper;
 import com.project.adult.Repository.QuizRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -16,9 +20,12 @@ import java.util.stream.Collectors;
 public class QuizService {
 
     private final QuizRepository quizRepository;
-
-    public QuizService(QuizRepository quizRepository) {
+    private final CourseRepository courseRepository;
+    private final InstitutionRepository institutionRepository;
+    public QuizService(QuizRepository quizRepository, CourseRepository courseRepository, InstitutionRepository institutionRepository) {
         this.quizRepository = quizRepository;
+        this.courseRepository = courseRepository;
+        this.institutionRepository = institutionRepository;
     }
 
     /**
@@ -30,11 +37,11 @@ public class QuizService {
     public List<QuizDto> getAllQuizzes(Long subjectId, Long institutionId) {
         List<Quiz> quizzes;
         if (subjectId != null && institutionId != null) {
-            quizzes = quizRepository.findBySubjectIdAndInstitutionId(subjectId, institutionId);
+            quizzes = quizRepository.findByCourse_IdAndInstitution_Id(subjectId, institutionId);
         } else if (subjectId != null) {
-            quizzes = quizRepository.findBySubjectId(subjectId);
+            quizzes = quizRepository.findByCourse_Id(subjectId);
         } else if (institutionId != null) {
-            quizzes = quizRepository.findByInstitutionId(institutionId);
+            quizzes = quizRepository.findByInstitution_Id(institutionId);
         } else {
             quizzes = quizRepository.findAll();
         }
@@ -50,13 +57,23 @@ public class QuizService {
 
     @Transactional
     public QuizDto createQuiz(CreateQuizRequest request) {
-        Quiz quiz = new Quiz(
-                request.getTitle(),
-                request.getDescription(),
-                request.getSubjectId(),
-                request.getInstitutionId()
-        );
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> new EntityNotFoundException("Course not found"));
+
+        Institution institution = institutionRepository.findById(request.getInstitutionId())
+                .orElseThrow(() -> new EntityNotFoundException("Institution not found"));
+
+        Quiz quiz = new Quiz();
+
+        quiz.setTitle(request.getTitle());
+        quiz.setDescription(request.getDescription());
+        quiz.setCourse(course);
+        quiz.setInstitution(institution);
+        quiz.setTimeLimitMinutes(request.getTimeLimitMinutes());
+        quiz.setPassingScorePercent(request.getPassingScorePercent());
+
         Quiz saved = quizRepository.save(quiz);
+
         return QuizMapper.toDto(saved);
     }
 
@@ -73,8 +90,14 @@ public class QuizService {
 
         quiz.setTitle(dto.getTitle());
         quiz.setDescription(dto.getDescription());
-        quiz.setSubjectId(dto.getSubjectId());
-        quiz.setInstitutionId(dto.getInstitutionId());
+        Course course = courseRepository.findById(dto.getCourseId())
+                .orElseThrow(() -> new EntityNotFoundException("Course not found"));
+
+        Institution institution = institutionRepository.findById(dto.getInstitutionId())
+                .orElseThrow(() -> new EntityNotFoundException("Institution not found"));
+
+        quiz.setCourse(course);
+        quiz.setInstitution(institution);
         quiz.setTimeLimitMinutes(dto.getTimeLimitMinutes());
         quiz.setPassingScorePercent(dto.getPassingScorePercent());
 

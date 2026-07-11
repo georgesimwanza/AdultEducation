@@ -15,7 +15,7 @@ public class QuizDto {
     private String id;
     private String title;
     private String description = "";
-    private Long subjectId;
+    private Long courseId;
     private Long institutionId;
     private List<QuestionDto> questions = new ArrayList<>();
     private Integer timeLimitMinutes;

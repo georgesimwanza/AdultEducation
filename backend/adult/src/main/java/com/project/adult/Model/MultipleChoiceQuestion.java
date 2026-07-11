@@ -1,12 +1,20 @@
 package com.project.adult.Model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @DiscriminatorValue("multipleChoice")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class MultipleChoiceQuestion extends Question {
 
     @ElementCollection
@@ -18,30 +26,6 @@ public class MultipleChoiceQuestion extends Question {
     @Column(name = "correct_option_index", nullable = false)
     private int correctOptionIndex;
 
-    protected MultipleChoiceQuestion() {
-        super();
-    }
-
-    public MultipleChoiceQuestion(String text, int points, String explanation,
-                                   List<String> options, int correctOptionIndex) {
-        super(text, points, explanation);
-        this.options = options;
-        this.correctOptionIndex = correctOptionIndex;
-    }
-
-    public List<String> getOptions() {
-        return options;
-    }
-
-    public void setOptions(List<String> options) {
-        this.options = options;
-    }
-
-    public int getCorrectOptionIndex() {
-        return correctOptionIndex;
-    }
-
-    public void setCorrectOptionIndex(int correctOptionIndex) {
-        this.correctOptionIndex = correctOptionIndex;
+    public MultipleChoiceQuestion(String text, int points, String explanation, List<String> options, int correctOptionIndex) {
     }
 }
