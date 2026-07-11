@@ -1,6 +1,8 @@
 package com.project.adult.Model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -69,6 +71,7 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
     @ManyToOne
+    @JsonBackReference
     @JoinColumn(name = "institution_id")
     private Institution institution;
 

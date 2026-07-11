@@ -1,5 +1,6 @@
 package com.project.adult.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,11 +22,14 @@ public class ProgrammeCourse {
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("programmeId")
     @JoinColumn(name = "programme_id", nullable = false)
+    @JsonIgnoreProperties({"programmeCourses", "users"})
     private Programme programme;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("courseId")
     @JoinColumn(name = "course_id", nullable = false)
+
+    @JsonIgnoreProperties({"programmeCourses", "userContentProgresses", "contents"})
     private Course course;
 
     @Column(name = "is_required", nullable = false)

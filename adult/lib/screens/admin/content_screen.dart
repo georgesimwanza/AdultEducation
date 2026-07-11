@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:adult/service/auth_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:adult/Model/content.dart';
 import 'package:adult/service/contentService.dart';
-import 'package:adult/service/cdn_supabase.dart'; // adjust path to match your actual file
+import 'package:adult/service/cdn_supabase.dart';
+import 'package:adult/Controller/auth_controller.dart'; // ← added, adjust if getInstitution lives elsewhere
 import 'package:flutter/material.dart';
 
 class ContentScreen extends StatefulWidget {
@@ -53,6 +55,13 @@ class _ContentScreenState extends State<ContentScreen> {
       return;
     }
 
+    // ← pull the real saved institution ID instead of hardcoding
+    final institutionId = await AuthService().getInstitution();
+    if (institutionId == null) {
+      _showError('No institution found — please log in again');
+      return;
+    }
+
     String fileUrl = '';
     if (file != null) {
       setState(() => _uploading = true);
@@ -71,8 +80,7 @@ class _ContentScreenState extends State<ContentScreen> {
         type: type,
         fileUrl: fileUrl,
         courseId: courseId,
-        institutionId: 0, // ← replace with actual logged-in institution ID
-        subjectId: 0, // ← replace with actual subject ID if tracked client-side
+        institutionId: institutionId,
       );
       await _fetchAllContent();
     } catch (e) {

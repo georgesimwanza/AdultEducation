@@ -1,18 +1,16 @@
 import 'package:adult/Controller/AuthWrapper.dart';
 import 'package:adult/Controller/auth_controller.dart';
+import 'package:adult/screens/login_screen.dart';
 import 'package:adult/service/sync_service.dart'; // ← add this
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import './screens/register_screen.dart';
-import './screens/dashboard.dart';
-import 'package:adult/screens/login_screen.dart';
-import './screens/subject.dart';
-import './screens/coursepage.dart';
-import './screens/schedule_screen.dart';
-import 'Controller/schedule_controller.dart';
-import './screens/admin/content_screen.dart';
-import './screens/navbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import './screens/coursepage.dart';
+import './screens/dashboard.dart';
+import './screens/schedule_screen.dart';
+import './screens/subject.dart';
+import 'Controller/schedule_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

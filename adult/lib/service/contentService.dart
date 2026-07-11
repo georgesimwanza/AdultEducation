@@ -32,7 +32,6 @@ class contentService {
             type: row['type'] as String? ?? '',
             fileUrl: row['fileUrl'] as String? ?? '',
             institutionId: row['institutionId'] as int? ?? 0,
-            subjectId: row['subjectId'] as int? ?? 0,
           ),
         )
         .toList();
@@ -64,7 +63,6 @@ class contentService {
     required String fileUrl,
     required int courseId,
     required int institutionId,
-    required int subjectId,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/addContent'),
@@ -75,7 +73,6 @@ class contentService {
         'fileUrl': fileUrl,
         'courseId': courseId,
         'institutionId': institutionId,
-        'subjectId': subjectId,
       }),
     );
     if (response.statusCode != 200 && response.statusCode != 201) {

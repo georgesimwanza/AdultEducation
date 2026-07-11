@@ -1,6 +1,6 @@
 import 'package:adult/service/contentService.dart';
 import 'package:flutter/material.dart';
-import 'admins_screen.dart';
+import 'quiz_screen.dart';
 import 'content_screen.dart';
 import 'dashboard_screen.dart';
 import 'students_screen.dart';
@@ -22,7 +22,7 @@ class _MyNavBarState extends State<AdminNavBar> {
     StudentsScreen(),
     SubjectsScreen(),
     ContentScreen(),
-    AdminsScreen(),
+    QuizScreen(),
   ];
 
   @override
