@@ -80,4 +80,7 @@ public class Course {
    protected void onUpdate() {
       this.updatedAt = LocalDateTime.now();
    }
+   @OneToMany()
+   @JoinColumn(name = "quiz_id")
+   private List<Quiz> quiz;
 }

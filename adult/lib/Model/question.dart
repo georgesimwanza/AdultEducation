@@ -49,6 +49,22 @@ sealed class Question {
   final String? explanation;
 
   QuestionType get type;
+
+  Map<String, dynamic> toJson();
+
+  static Question fromJson(Map<String, dynamic> json) {
+    final type = QuestionType.values.firstWhere((t) => t.name == json['type']);
+    switch (type) {
+      case QuestionType.multipleChoice:
+        return MultipleChoiceQuestion.fromJson(json);
+      case QuestionType.trueFalse:
+        return TrueFalseQuestion.fromJson(json);
+      case QuestionType.shortAnswer:
+        return ShortAnswerQuestion.fromJson(json);
+      case QuestionType.essay:
+        return EssayQuestion.fromJson(json);
+    }
+  }
 }
 
 class MultipleChoiceQuestion extends Question {
@@ -66,6 +82,28 @@ class MultipleChoiceQuestion extends Question {
 
   @override
   QuestionType get type => QuestionType.multipleChoice;
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'type': type.name,
+    'text': text,
+    'points': points,
+    'explanation': explanation,
+    'options': options,
+    'correctOptionIndex': correctOptionIndex,
+  };
+
+  factory MultipleChoiceQuestion.fromJson(Map<String, dynamic> json) {
+    return MultipleChoiceQuestion(
+      id: json['id'] as String,
+      text: json['text'] as String,
+      points: json['points'] as int? ?? 1,
+      explanation: json['explanation'] as String?,
+      options: List<String>.from(json['options'] as List),
+      correctOptionIndex: json['correctOptionIndex'] as int,
+    );
+  }
 }
 
 class TrueFalseQuestion extends Question {
@@ -81,6 +119,26 @@ class TrueFalseQuestion extends Question {
 
   @override
   QuestionType get type => QuestionType.trueFalse;
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'type': type.name,
+    'text': text,
+    'points': points,
+    'explanation': explanation,
+    'correctAnswer': correctAnswer,
+  };
+
+  factory TrueFalseQuestion.fromJson(Map<String, dynamic> json) {
+    return TrueFalseQuestion(
+      id: json['id'] as String,
+      text: json['text'] as String,
+      points: json['points'] as int? ?? 1,
+      explanation: json['explanation'] as String?,
+      correctAnswer: json['correctAnswer'] as bool,
+    );
+  }
 }
 
 class ShortAnswerQuestion extends Question {
@@ -99,6 +157,28 @@ class ShortAnswerQuestion extends Question {
 
   @override
   QuestionType get type => QuestionType.shortAnswer;
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'type': type.name,
+    'text': text,
+    'points': points,
+    'explanation': explanation,
+    'acceptedAnswers': acceptedAnswers,
+    'caseSensitive': caseSensitive,
+  };
+
+  factory ShortAnswerQuestion.fromJson(Map<String, dynamic> json) {
+    return ShortAnswerQuestion(
+      id: json['id'] as String,
+      text: json['text'] as String,
+      points: json['points'] as int? ?? 1,
+      explanation: json['explanation'] as String?,
+      acceptedAnswers: List<String>.from(json['acceptedAnswers'] as List),
+      caseSensitive: json['caseSensitive'] as bool? ?? false,
+    );
+  }
 }
 
 class EssayQuestion extends Question {
@@ -120,4 +200,28 @@ class EssayQuestion extends Question {
 
   @override
   QuestionType get type => QuestionType.essay;
+
+  @override
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'type': type.name,
+    'text': text,
+    'points': points,
+    'explanation': explanation,
+    'minWords': minWords,
+    'maxWords': maxWords,
+    'rubric': rubric,
+  };
+
+  factory EssayQuestion.fromJson(Map<String, dynamic> json) {
+    return EssayQuestion(
+      id: json['id'] as String,
+      text: json['text'] as String,
+      points: json['points'] as int? ?? 1,
+      explanation: json['explanation'] as String?,
+      minWords: json['minWords'] as int?,
+      maxWords: json['maxWords'] as int?,
+      rubric: json['rubric'] as String?,
+    );
+  }
 }
