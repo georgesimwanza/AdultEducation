@@ -56,5 +56,6 @@ public class Quiz {
     private int passingScorePercent = 50;
 
 
-
+    public Quiz(String title, String description, Long subjectId, Long institutionId) {
+    }
 }

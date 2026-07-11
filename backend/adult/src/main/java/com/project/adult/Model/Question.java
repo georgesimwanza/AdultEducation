@@ -41,4 +41,6 @@ public abstract class Question {
     private Quiz quiz;
 
 
+    public Question(String text, int points, String explanation) {
+    }
 }
