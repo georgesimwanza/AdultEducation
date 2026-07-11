@@ -8,8 +8,8 @@ import 'quiz_editor_screen.dart';
 ///
 /// Self-contained: creates its own QuizAdminController, so you don't need
 /// to touch main.dart or AdminNavBar. Because AdminNavBar keeps this
-/// widget alive inside an IndexedStack, quizzes the teacher adds persist
-/// as they switch between the other tabs.
+/// widget alive inside an IndexedStack, the loaded quiz list persists as
+/// the teacher switches between the other tabs (no need to refetch).
 class QuizScreen extends StatelessWidget {
   const QuizScreen({super.key});
 
@@ -22,53 +22,108 @@ class QuizScreen extends StatelessWidget {
   }
 }
 
-class _QuizListView extends StatelessWidget {
+class _QuizListView extends StatefulWidget {
   const _QuizListView();
 
-  Future<void> _createQuiz(BuildContext context) async {
+  @override
+  State<_QuizListView> createState() => _QuizListViewState();
+}
+
+class _QuizListViewState extends State<_QuizListView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<QuizAdminController>().loadQuizzes();
+    });
+  }
+
+  Future<void> _createQuiz() async {
     final titleController = TextEditingController();
-    final title = await showDialog<String>(
+    final subjectIdController = TextEditingController();
+    final institutionIdController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('New quiz'),
-        content: TextField(
-          controller: titleController,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Quiz title'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: titleController,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Quiz title'),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Title is required'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: subjectIdController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Subject ID'),
+                validator: (v) => int.tryParse(v ?? '') == null
+                    ? 'Enter a valid subject ID'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: institutionIdController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Institution ID'),
+                validator: (v) => int.tryParse(v ?? '') == null
+                    ? 'Enter a valid institution ID'
+                    : null,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () =>
-                Navigator.pop(context, titleController.text.trim()),
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(context, true);
+              }
+            },
             child: const Text('Create'),
           ),
         ],
       ),
     );
 
-    if (title == null || title.isEmpty || !context.mounted) return;
+    if (confirmed != true || !mounted) return;
 
-    // Grab the controller instance *before* pushing. Navigator.push puts
-    // the new screen in a separate branch of the widget tree (inside the
-    // Overlay), so it can't look up a Provider that only wraps this tab.
-    // We carry the same controller along explicitly instead.
     final controller = context.read<QuizAdminController>();
-    final quiz = controller.createQuiz(title);
-    if (!context.mounted) return;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider.value(
-          value: controller,
-          child: QuizEditorScreen(quizId: quiz.id),
+    try {
+      final quiz = await controller.createQuiz(
+        titleController.text.trim(),
+        subjectId: int.parse(subjectIdController.text),
+        institutionId: int.parse(institutionIdController.text),
+      );
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider.value(
+            value: controller,
+            child: QuizEditorScreen(quizId: quiz.id),
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not create quiz: $e')));
+    }
   }
 
   @override
@@ -80,9 +135,15 @@ class _QuizListView extends StatelessWidget {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => context.read<QuizAdminController>().loadQuizzes(),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _createQuiz(context),
+        onPressed: _createQuiz,
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
@@ -90,29 +151,53 @@ class _QuizListView extends StatelessWidget {
       ),
       body: Consumer<QuizAdminController>(
         builder: (context, controller, _) {
+          if (controller.isLoading && controller.quizzes.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.black),
+            );
+          }
+          if (controller.errorMessage != null && controller.quizzes.isEmpty) {
+            return _ErrorState(
+              message: controller.errorMessage!,
+              onRetry: () => controller.loadQuizzes(),
+            );
+          }
           if (controller.quizzes.isEmpty) {
             return const _EmptyState();
           }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            itemCount: controller.quizzes.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final quiz = controller.quizzes[index];
-              return _QuizTile(
-                quiz: quiz,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ChangeNotifierProvider.value(
-                      value: controller,
-                      child: QuizEditorScreen(quizId: quiz.id),
+          return RefreshIndicator(
+            onRefresh: controller.loadQuizzes,
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              itemCount: controller.quizzes.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final quiz = controller.quizzes[index];
+                return _QuizTile(
+                  quiz: quiz,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChangeNotifierProvider.value(
+                        value: controller,
+                        child: QuizEditorScreen(quizId: quiz.id),
+                      ),
                     ),
                   ),
-                ),
-                onDelete: () => controller.deleteQuiz(quiz.id),
-              );
-            },
+                  onDelete: () async {
+                    try {
+                      await controller.deleteQuiz(quiz.id);
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Could not delete quiz: $e')),
+                        );
+                      }
+                    }
+                  },
+                );
+              },
+            ),
           );
         },
       ),
@@ -205,6 +290,48 @@ class _EmptyState extends StatelessWidget {
               'Tap "New Quiz" to build your first assessment.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off, size: 56, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
+              'Could not reach the server',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: onRetry,
+              child: const Text('Retry'),
             ),
           ],
         ),

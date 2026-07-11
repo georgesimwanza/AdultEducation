@@ -22,6 +22,7 @@ public class QuizService {
     private final QuizRepository quizRepository;
     private final CourseRepository courseRepository;
     private final InstitutionRepository institutionRepository;
+
     public QuizService(QuizRepository quizRepository, CourseRepository courseRepository, InstitutionRepository institutionRepository) {
         this.quizRepository = quizRepository;
         this.courseRepository = courseRepository;
@@ -70,7 +71,16 @@ public class QuizService {
         quiz.setCourse(course);
         quiz.setInstitution(institution);
         quiz.setTimeLimitMinutes(request.getTimeLimitMinutes());
-        quiz.setPassingScorePercent(request.getPassingScorePercent());
+
+        // Lombok's @AllArgsConstructor on CreateQuizRequest can end up being
+        // the constructor Jackson uses to deserialize (Spring Boot registers
+        // ParameterNamesModule by default), and that constructor assigns
+        // `null` for any field missing from the JSON body — bypassing the
+        // "= 50" field-initializer default entirely. Guard explicitly here
+        // rather than trusting the DTO's default to survive deserialization.
+        quiz.setPassingScorePercent(
+                request.getPassingScorePercent() != null ? request.getPassingScorePercent() : 50
+        );
 
         Quiz saved = quizRepository.save(quiz);
 
@@ -90,6 +100,7 @@ public class QuizService {
 
         quiz.setTitle(dto.getTitle());
         quiz.setDescription(dto.getDescription());
+
         Course course = courseRepository.findById(dto.getCourseId())
                 .orElseThrow(() -> new EntityNotFoundException("Course not found"));
 

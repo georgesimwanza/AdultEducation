@@ -102,11 +102,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/Content/addContent").permitAll()
                         .requestMatchers(HttpMethod.GET,  "/api/Content/**").permitAll()
 
+                        //quiz permissions
+                        .requestMatchers("/api/quizzes/**").permitAll()
                         // Subject
                         .requestMatchers("/api/subject/programme/**").permitAll()
                         .requestMatchers("/api/subject/allSubjects").hasRole("ADMIN")
                         .requestMatchers("/api/subject/addSubject").hasRole("ADMIN")
                         .anyRequest().authenticated()
+
+
                 )
 
                 .authenticationProvider(authenticationProvider())
