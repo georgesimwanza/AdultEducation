@@ -36,4 +36,7 @@ public class Institution {
     @OneToMany(mappedBy = "institution")
     @JsonIgnoreProperties("institution")
     private List<Content> contents;
+
+    @OneToMany(mappedBy = "institution")
+    private List<Quiz> quiz;
 }
