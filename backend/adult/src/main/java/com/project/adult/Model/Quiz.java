@@ -1,5 +1,6 @@
 package com.project.adult.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -32,11 +33,13 @@ public class Quiz {
      */
     @JoinColumn(name = "institution_id", nullable = false)
     @ManyToOne
+    @JsonIgnoreProperties({"quiz", "hibernateLazyInitializer", "handler"})
     private Institution institution;
 
     /** FK to your Institution entity, same reasoning as subjectId above. */
     @JoinColumn(name = "course_id", nullable = false)
     @ManyToOne
+    @JsonIgnoreProperties({"quiz", "hibernateLazyInitializer", "handler"})
     private Course course;
 
     /**
@@ -48,6 +51,7 @@ public class Quiz {
      */
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderColumn(name = "question_order")
+    @JsonIgnoreProperties({"quiz", "hibernateLazyInitializer", "handler"})
     private List<Question> questions = new ArrayList<>();
 
     private Integer timeLimitMinutes;
