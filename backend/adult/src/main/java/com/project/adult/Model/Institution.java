@@ -38,5 +38,6 @@ public class Institution {
     private List<Content> contents;
 
     @OneToMany(mappedBy = "institution")
+    @JsonIgnoreProperties({"institution", "hibernateLazyInitializer", "handler"})
     private List<Quiz> quiz;
 }

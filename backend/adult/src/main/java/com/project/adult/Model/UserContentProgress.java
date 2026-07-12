@@ -33,7 +33,7 @@ public class UserContentProgress {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
-    @JsonIgnoreProperties({"userContentProgresses", "contents", "programmeCourses"})
+    @JsonIgnoreProperties({"userContentProgresses", "contents", "programmeCourses", "quiz"})
     private Course course;
 
     @Column(name = "is_completed", nullable = false)
