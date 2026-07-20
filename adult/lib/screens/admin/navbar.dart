@@ -4,7 +4,7 @@ import 'quiz_screen.dart';
 import 'content_screen.dart';
 import 'dashboard_screen.dart';
 import 'students_screen.dart';
-import 'subjects_screen.dart';
+import 'announcement_screen.dart';
 
 class AdminNavBar extends StatefulWidget {
   const AdminNavBar({super.key});
@@ -20,7 +20,7 @@ class _MyNavBarState extends State<AdminNavBar> {
     // fix 1: List<Widget> not List<NavBar>
     DashboardScreen(),
     StudentsScreen(),
-    SubjectsScreen(),
+    AnnouncementsScreen(),
     ContentScreen(),
     QuizScreen(),
   ];
@@ -47,7 +47,7 @@ class _MyNavBarState extends State<AdminNavBar> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.book_rounded),
-            label: 'Subjects',
+            label: 'Announcements',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.folder_rounded),
