@@ -32,10 +32,10 @@ public class QuizController {
     /** Both the teacher's admin list and the student's quiz list hit this. */
     @GetMapping
     public List<QuizDto> getAllQuizzes(
-            @RequestParam(required = false) Long subjectId,
+            @RequestParam(required = false) Long courseId,
             @RequestParam(required = false) Long institutionId
     ) {
-        return quizService.getAllQuizzes(subjectId, institutionId);
+        return quizService.getAllQuizzes(courseId, institutionId);
     }
 
     @GetMapping("/{id}")

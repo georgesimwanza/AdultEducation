@@ -19,7 +19,7 @@ public class ProgrammeController {
 
     private final ProgrammeService programmeService;
 
-    @GetMapping
+    @GetMapping("/allProgrammes")
     public ResponseEntity<List<ProgrammeDTO>> getAllProgrammes() {
         return ResponseEntity.ok(programmeService.getAllProgrammes());
     }

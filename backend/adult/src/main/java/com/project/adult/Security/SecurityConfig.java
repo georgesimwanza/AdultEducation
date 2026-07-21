@@ -101,7 +101,11 @@ public class SecurityConfig {
                         // Content — specific rules BEFORE broad ones
                         .requestMatchers(HttpMethod.POST, "/api/Content/addContent").permitAll()
                         .requestMatchers(HttpMethod.GET,  "/api/Content/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/announcement/allAnnouncements").permitAll()
 
+                        // Writes restricted to ADMIN
+                        .requestMatchers(HttpMethod.POST, "/api/announcement/addAnnouncement").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/announcement/delete/**").permitAll()
                         //quiz permissions
                         .requestMatchers("/api/quizzes/**").permitAll()
                         // Subject
