@@ -243,43 +243,67 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () async {
-                            if (titleCtrl.text.isNotEmpty &&
-                                contentCtrl.text.isNotEmpty &&
-                                selectedProgramme != null) {
-                              try {
-                                final token = Provider.of<AuthController>(
-                                  context,
-                                  listen: false,
-                                ).token;
-                                final response = await http.post(
-                                  Uri.parse(
-                                    'http://10.0.2.2:8080/api/announcement/addAnnouncement',
-                                  ),
-                                  headers: {
-                                    'Authorization': 'Bearer $token',
-                                    'Content-Type': 'application/json',
-                                  },
-                                  body: jsonEncode({
-                                    'title': titleCtrl.text,
-                                    'content': contentCtrl.text,
-                                    'programmeId': selectedProgramme!.id,
-                                  }),
-                                );
-                                if (response.statusCode == 200 ||
-                                    response.statusCode == 201) {
-                                  Navigator.pop(ctx);
-                                  _refreshAnnouncements();
-                                }
-                              } catch (e) {
-                                debugPrint('Error creating announcement: $e');
-                              }
-                            } else {
+                            debugPrint('POST button tapped');
+
+                            if (titleCtrl.text.isEmpty ||
+                                contentCtrl.text.isEmpty ||
+                                selectedProgramme == null) {
+                              debugPrint(
+                                'Validation failed: title="${titleCtrl.text}" '
+                                'content="${contentCtrl.text}" '
+                                'programme=${selectedProgramme?.id}',
+                              );
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
                                     'Please fill all fields and pick a programme',
                                   ),
                                 ),
+                              );
+                              return;
+                            }
+
+                            try {
+                              final token = Provider.of<AuthController>(
+                                context,
+                                listen: false,
+                              ).token;
+
+                              final response = await http.post(
+                                Uri.parse(
+                                  'http://10.0.2.2:8080/api/announcement/addAnnouncement',
+                                ),
+                                headers: {
+                                  'Authorization': 'Bearer $token',
+                                  'Content-Type': 'application/json',
+                                },
+                                body: jsonEncode({
+                                  'title': titleCtrl.text,
+                                  'content': contentCtrl.text,
+                                  'programmeId': selectedProgramme!.id,
+                                }),
+                              );
+
+                              debugPrint('POST status: ${response.statusCode}');
+                              debugPrint('POST body: ${response.body}');
+
+                              if (response.statusCode == 200 ||
+                                  response.statusCode == 201) {
+                                Navigator.pop(ctx);
+                                _refreshAnnouncements();
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Failed (${response.statusCode}): ${response.body}',
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              debugPrint('Error creating announcement: $e');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
                               );
                             }
                           },
