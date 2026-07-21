@@ -35,11 +35,11 @@ public class AnnouncementController {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .build(); // admin account has no institution attached — shouldn't normally happen
         }
-
+        Long programmeId = ((Number) body.get("programmeId")).longValue();
         Announcement announcement = announcementService.createFromRequest(
                 (String) body.get("title"),
                 (String) body.get("content"),
-                (Long) body.get("programmeId"),
+                programmeId,
                 institutionId.longValue()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(announcement);

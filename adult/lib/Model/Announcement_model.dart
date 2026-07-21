@@ -1,5 +1,5 @@
 class AnnouncementModel {
-  final String id;
+  final int id;
   final int programmeId;
   final int institutionId;
   final String title;
@@ -13,19 +13,16 @@ class AnnouncementModel {
     required this.content,
   });
 
-  /// Factory constructor to securely construct the model from API backend maps
   factory AnnouncementModel.fromJson(Map<String, dynamic> json) {
     return AnnouncementModel(
-      // Safely handles alternative MongoDB variations like '_id' or 'id'
-      id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
-      programmeId: json['programmeId'],
-      institutionId: json['institutionId'],
+      id: json['id'] ?? 0,
+      programmeId: json['programme']?['id'] ?? json['programmeId'] ?? 0,
+      institutionId: json['institution']?['id'] ?? json['institutionId'] ?? 0,
       title: json['title']?.toString() ?? '',
       content: json['content']?.toString() ?? '',
     );
   }
 
-  /// Helper tool converting the entity payload back into a map for POST updates
   Map<String, dynamic> toJson() {
     return {
       'id': id,
