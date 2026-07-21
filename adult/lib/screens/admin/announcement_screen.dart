@@ -5,6 +5,14 @@ import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:adult/Controller/auth_controller.dart';
 
+class ProgrammeModel {
+  final int id;
+  final String name;
+  ProgrammeModel({required this.id, required this.name});
+  factory ProgrammeModel.fromJson(Map<String, dynamic> json) =>
+      ProgrammeModel(id: json['id'], name: json['name']?.toString() ?? '');
+}
+
 class AnnouncementsScreen extends StatefulWidget {
   const AnnouncementsScreen({super.key});
 
@@ -41,6 +49,22 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     }
   }
 
+  Future<List<ProgrammeModel>> _fetchProgrammes() async {
+    final token = Provider.of<AuthController>(context, listen: false).token;
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8080/api/programmes/allProgrammes'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      return data.map((e) => ProgrammeModel.fromJson(e)).toList();
+    }
+    throw Exception('Failed to load programmes: ${response.statusCode}');
+  }
+
   void _refreshAnnouncements() {
     setState(() {
       _announcementsFuture = _fetchAnnouncements();
@@ -50,137 +74,241 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   void _showAddModal() {
     final titleCtrl = TextEditingController();
     final contentCtrl = TextEditingController();
+    ProgrammeModel? selectedProgramme;
+    List<ProgrammeModel> programmes = [];
+    bool loadingProgrammes = true;
+    String? programmeLoadError;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          border: Border(top: BorderSide(color: Colors.black, width: 2)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          if (loadingProgrammes) {
+            loadingProgrammes = false; // guard: only kick off the fetch once
+            _fetchProgrammes()
+                .then((result) {
+                  setModalState(() => programmes = result);
+                })
+                .catchError((e) {
+                  setModalState(() => programmeLoadError = e.toString());
+                });
+          }
+
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              border: Border(top: BorderSide(color: Colors.black, width: 2)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'NEW ANNOUNCEMENT',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                      color: Colors.black,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(
-                      Icons.close,
-                      color: Colors.black,
-                      size: 24,
-                    ),
-                  ),
-                ],
-              ),
-              const Divider(color: Colors.black, thickness: 1.5),
-              const SizedBox(height: 16),
-              _buildField(titleCtrl, 'TITLE', 'Enter announcement title...'),
-              const SizedBox(height: 16),
-              _buildField(
-                contentCtrl,
-                'CONTENT',
-                'Write details here...',
-                maxLines: 4,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        side: const BorderSide(color: Colors.black, width: 2),
-                      ),
-                      child: const Text(
-                        'CANCEL',
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'NEW ANNOUNCEMENT',
                         style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
                           color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1,
                         ),
                       ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.black,
+                          size: 24,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(color: Colors.black, thickness: 1.5),
+                  const SizedBox(height: 16),
+                  _buildField(
+                    titleCtrl,
+                    'TITLE',
+                    'Enter announcement title...',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildField(
+                    contentCtrl,
+                    'CONTENT',
+                    'Write details here...',
+                    maxLines: 4,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'PROGRAMME',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                      color: Colors.black,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (titleCtrl.text.isNotEmpty &&
-                            contentCtrl.text.isNotEmpty) {
-                          try {
-                            final token = Provider.of<AuthController>(
-                              context,
-                              listen: false,
-                            ).token;
-                            final response = await http.post(
-                              Uri.parse(
-                                'http://10.0.2.2:8080/api/announcement/addAnnouncement',
-                              ),
-                              headers: {
-                                'Authorization': 'Bearer $token',
-                                'Content-Type': 'application/json',
-                              },
-                              body: jsonEncode({
-                                'title': titleCtrl.text,
-                                'content': contentCtrl.text,
-                              }),
-                            );
-                            if (response.statusCode == 200 ||
-                                response.statusCode == 201) {
-                              Navigator.pop(ctx);
-                              _refreshAnnouncements();
-                            }
-                          } catch (e) {
-                            debugPrint('Error creating announcement: $e');
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: const RoundedRectangleBorder(
+                  const SizedBox(height: 6),
+                  if (programmeLoadError != null)
+                    Text(
+                      'Failed to load programmes',
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontSize: 12,
+                      ),
+                    )
+                  else
+                    DropdownButtonFormField<ProgrammeModel>(
+                      value: selectedProgramme,
+                      isExpanded: true,
+                      hint: Text(
+                        programmes.isEmpty
+                            ? 'Loading programmes...'
+                            : 'Select programme',
+                      ),
+                      decoration: const InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
                           borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(
+                            color: Colors.black,
+                            width: 1.5,
+                          ),
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'POST',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(
+                            color: Colors.black,
+                            width: 1.5,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.zero,
+                          borderSide: BorderSide(
+                            color: Colors.black,
+                            width: 2.5,
+                          ),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
                         ),
                       ),
+                      items: programmes
+                          .map(
+                            (p) =>
+                                DropdownMenuItem(value: p, child: Text(p.name)),
+                          )
+                          .toList(),
+                      onChanged: (val) =>
+                          setModalState(() => selectedProgramme = val),
                     ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            side: const BorderSide(
+                              color: Colors.black,
+                              width: 2,
+                            ),
+                          ),
+                          child: const Text(
+                            'CANCEL',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (titleCtrl.text.isNotEmpty &&
+                                contentCtrl.text.isNotEmpty &&
+                                selectedProgramme != null) {
+                              try {
+                                final token = Provider.of<AuthController>(
+                                  context,
+                                  listen: false,
+                                ).token;
+                                final response = await http.post(
+                                  Uri.parse(
+                                    'http://10.0.2.2:8080/api/announcement/addAnnouncement',
+                                  ),
+                                  headers: {
+                                    'Authorization': 'Bearer $token',
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: jsonEncode({
+                                    'title': titleCtrl.text,
+                                    'content': contentCtrl.text,
+                                    'programmeId': selectedProgramme!.id,
+                                  }),
+                                );
+                                if (response.statusCode == 200 ||
+                                    response.statusCode == 201) {
+                                  Navigator.pop(ctx);
+                                  _refreshAnnouncements();
+                                }
+                              } catch (e) {
+                                debugPrint('Error creating announcement: $e');
+                              }
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Please fill all fields and pick a programme',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'POST',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
                 ],
               ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -287,7 +415,6 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // ── Search Bar ───────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.all(16),
               child: TextField(
@@ -315,8 +442,6 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 ),
               ),
             ),
-
-            // ── Announcements Feed ────────────────────────────────────
             Expanded(
               child: FutureBuilder<List<AnnouncementModel>>(
                 future: _announcementsFuture,
@@ -392,7 +517,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     itemCount: filtered.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final announcement = filtered[index];
                       return Container(
