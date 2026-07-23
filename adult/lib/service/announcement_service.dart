@@ -8,9 +8,7 @@ class AnnouncementService {
 
   Future<Map<String, String>> _headers() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(
-      'auth_token',
-    ); // update key name if yours differs
+    final token = prefs.getString('auth_token');
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
@@ -46,6 +44,47 @@ class AnnouncementService {
       Uri.parse('$baseUrl/api/announcements/institution/$institutionId'),
       headers: await _headers(),
     );
+    if (res.statusCode == 200) {
+      final List data = jsonDecode(res.body);
+      return data.map((e) => AnnouncementModel.fromJson(e)).toList();
+    }
+    throw Exception('Failed to load announcements: ${res.statusCode}');
+  }
+
+  /// Reads institutionId and programmeId from SharedPreferences and
+  /// fetches announcements scoped to both.
+  Future<List<AnnouncementModel>>
+  getByInstitutionAndProgrammeFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final institutionId = prefs.getInt('institution');
+    final programmeId = prefs.getInt('programme_id');
+
+    if (institutionId == null || programmeId == null) {
+      throw Exception(
+        'Missing institutionId or programmeId in SharedPreferences',
+      );
+    }
+
+    return getByInstitutionAndProgramme(institutionId, programmeId);
+  }
+
+  /// Same as above, but takes the IDs directly if you already have them.
+  Future<List<AnnouncementModel>> getByInstitutionAndProgramme(
+    int institutionId,
+    int programmeId,
+  ) async {
+    final uri =
+        Uri.parse(
+          '$baseUrl/api/announcement/getByInstitutionAndProgramme',
+        ).replace(
+          queryParameters: {
+            'institutionId': institutionId.toString(),
+            'programmeId': programmeId.toString(),
+          },
+        );
+
+    final res = await http.get(uri, headers: await _headers());
+
     if (res.statusCode == 200) {
       final List data = jsonDecode(res.body);
       return data.map((e) => AnnouncementModel.fromJson(e)).toList();

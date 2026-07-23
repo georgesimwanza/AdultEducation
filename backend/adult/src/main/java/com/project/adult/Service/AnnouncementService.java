@@ -33,6 +33,10 @@ public class AnnouncementService {
         return announcementRepository.findByInstitution_Id(institutionId);
     }
 
+    public List<Announcement> getByInstitutionAndProgramme(int institutionId, int programmeId) {
+        return announcementRepository.getByInstitutionAndOrProgramme(institutionId, programmeId);
+    }
+
     public Announcement create(Announcement announcement) {
         return announcementRepository.save(announcement);
     }
