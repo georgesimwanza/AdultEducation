@@ -16,4 +16,10 @@ public interface AnnouncementRepository extends JpaRepository<Announcement, Inte
     @Query("SELECT a FROM Announcement a WHERE a.programme.id = :programmeId OR a.institution.id = :institutionId")
     List<Announcement> findRelevantAnnouncements(@Param("programmeId") Integer programmeId,
                                                  @Param("institutionId") Integer institutionId);
+    @Query("SELECT a FROM Announcement a WHERE " +
+            "(:institutionId IS NULL OR a.institution.id = :institutionId) AND " +
+            "(:programmeId IS NULL OR a.programme.id = :programmeId)")
+    List<Announcement> getByInstitutionAndOrProgramme(
+            @Param("institutionId") Integer institutionId,
+            @Param("programmeId") Integer programmeId);
 }

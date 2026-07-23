@@ -45,6 +45,14 @@ public class AnnouncementController {
         return ResponseEntity.status(HttpStatus.CREATED).body(announcement);
     }
 
+
+    @GetMapping("/getByInstitutionAndProgramme")
+    public ResponseEntity<List<Announcement>> getByInstitutionAndProgramme(
+            @RequestParam int institutionId,
+            @RequestParam int programmeId) {
+        List<Announcement> announcements = announcementService.getByInstitutionAndProgramme(institutionId, programmeId);
+        return ResponseEntity.ok(announcements);
+    }
     @DeleteMapping("/delete/{id}")
 
     public ResponseEntity<Void> delete(@PathVariable int id) {
