@@ -1,9 +1,11 @@
 package com.project.adult.Service;
 
 import com.project.adult.DTO.CreateQuizRequest;
+import com.project.adult.DTO.QuestionDto;
 import com.project.adult.DTO.QuizDto;
 import com.project.adult.Model.Course;
 import com.project.adult.Model.Institution;
+import com.project.adult.Model.Question;
 import com.project.adult.Model.Quiz;
 import com.project.adult.Repository.CourseRepository;
 import com.project.adult.Repository.InstitutionRepository;
@@ -13,7 +15,9 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -98,6 +102,13 @@ public class QuizService {
         Quiz quiz = quizRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Quiz " + id + " not found"));
 
+        // NEW: validation guard — right after fetching, before anything else
+        for (QuestionDto qDto : dto.getQuestions()) {
+            if (qDto.getText() == null || qDto.getText().isBlank()) {
+                throw new IllegalArgumentException("Question text cannot be empty");
+            }
+        }
+
         quiz.setTitle(dto.getTitle());
         quiz.setDescription(dto.getDescription());
 
@@ -112,11 +123,25 @@ public class QuizService {
         quiz.setTimeLimitMinutes(dto.getTimeLimitMinutes());
         quiz.setPassingScorePercent(dto.getPassingScorePercent());
 
-        // orphanRemoval=true on Quiz.questions means clearing + re-adding
-        // deletes questions that were removed and inserts new/edited ones,
-        // in one transaction.
+        // CHANGED: merge by id instead of clear()+addAll() with fresh entities
+        Map<Long, Question> existingById = quiz.getQuestions().stream()
+                .filter(q -> q.getId() != null)
+                .collect(Collectors.toMap(Question::getId, q -> q));
+
+        List<Question> updatedQuestions = new ArrayList<>();
+        for (QuestionDto qDto : dto.getQuestions()) {
+            Long qId = qDto.getId() == null ? null : Long.valueOf(qDto.getId());
+            if (qId != null && existingById.containsKey(qId)) {
+                Question existing = existingById.get(qId);
+                QuizMapper.updateEntity(existing, qDto);
+                updatedQuestions.add(existing);
+            } else {
+                updatedQuestions.add(QuizMapper.toEntity(qDto, quiz));
+            }
+        }
+
         quiz.getQuestions().clear();
-        quiz.getQuestions().addAll(QuizMapper.toEntities(dto.getQuestions(), quiz));
+        quiz.getQuestions().addAll(updatedQuestions);
 
         Quiz saved = quizRepository.save(quiz);
         return QuizMapper.toDto(saved);

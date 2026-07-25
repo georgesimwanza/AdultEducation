@@ -104,4 +104,35 @@ public final class QuizMapper {
             return q;
         }).collect(Collectors.toList());
     }
+
+    /** Copies a DTO's fields onto an existing Question entity in place. */
+    public static void updateEntity(Question entity, QuestionDto dto) {
+        entity.setText(dto.getText());
+        entity.setPoints(dto.getPoints());
+        entity.setExplanation(dto.getExplanation());
+
+        if (entity instanceof MultipleChoiceQuestion mcq && dto instanceof MultipleChoiceQuestionDto mcqDto) {
+            mcq.setOptions(mcqDto.getOptions());
+            mcq.setCorrectOptionIndex(mcqDto.getCorrectOptionIndex());
+        } else if (entity instanceof TrueFalseQuestion tf && dto instanceof TrueFalseQuestionDto tfDto) {
+            tf.setCorrectAnswer(tfDto.isCorrectAnswer());
+        } else if (entity instanceof ShortAnswerQuestion sa && dto instanceof ShortAnswerQuestionDto saDto) {
+            sa.setAcceptedAnswers(saDto.getAcceptedAnswers());
+            sa.setCaseSensitive(saDto.isCaseSensitive());
+        } else if (entity instanceof EssayQuestion essay && dto instanceof EssayQuestionDto essayDto) {
+            essay.setMinWords(essayDto.getMinWords());
+            essay.setMaxWords(essayDto.getMaxWords());
+            essay.setRubric(essayDto.getRubric());
+        } else {
+            throw new IllegalStateException(
+                    "Question type mismatch: entity=" + entity.getClass() + " dto=" + dto.getClass());
+        }
+    }
+
+    /** Builds a brand-new Question entity (no id yet), attached to owner. */
+    public static Question toEntity(QuestionDto dto, Quiz owner) {
+        Question q = toEntity(dto);
+        q.setQuiz(owner);
+        return q;
+    }
 }
