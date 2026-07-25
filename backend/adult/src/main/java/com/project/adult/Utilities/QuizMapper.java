@@ -32,8 +32,9 @@ public final class QuizMapper {
         dto.setId(String.valueOf(quiz.getId()));
         dto.setTitle(quiz.getTitle());
         dto.setDescription(quiz.getDescription());
-        dto.setCourseId(quiz.getInstitution().getId());
-        dto.setInstitutionId(quiz.getCourse().getId());
+        dto.setCourseId(quiz.getCourse().getId());
+        dto.setInstitutionId(quiz.getInstitution().getId()
+        );
         dto.setTimeLimitMinutes(quiz.getTimeLimitMinutes());
         dto.setPassingScorePercent(quiz.getPassingScorePercent());
         dto.setQuestions(quiz.getQuestions().stream()
