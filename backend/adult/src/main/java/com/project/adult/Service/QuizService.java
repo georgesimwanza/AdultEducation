@@ -123,14 +123,24 @@ public class QuizService {
         quiz.setTimeLimitMinutes(dto.getTimeLimitMinutes());
         quiz.setPassingScorePercent(dto.getPassingScorePercent());
 
-        // CHANGED: merge by id instead of clear()+addAll() with fresh entities
+
         Map<Long, Question> existingById = quiz.getQuestions().stream()
                 .filter(q -> q.getId() != null)
                 .collect(Collectors.toMap(Question::getId, q -> q));
 
         List<Question> updatedQuestions = new ArrayList<>();
         for (QuestionDto qDto : dto.getQuestions()) {
-            Long qId = qDto.getId() == null ? null : Long.valueOf(qDto.getId());
+            Long qId = null;
+            if (qDto.getId() != null) {
+                try {
+                    qId = Long.valueOf(qDto.getId());
+                } catch (NumberFormatException ex) {
+                    // client-generated temp id (e.g. "mcq_1785088627968133") for a
+                    // question that hasn't been persisted yet — treat as new
+                    qId = null;
+                }
+            }
+
             if (qId != null && existingById.containsKey(qId)) {
                 Question existing = existingById.get(qId);
                 QuizMapper.updateEntity(existing, qDto);

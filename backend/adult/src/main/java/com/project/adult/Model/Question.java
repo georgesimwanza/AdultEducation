@@ -44,5 +44,8 @@ public abstract class Question {
 
 
     public Question(String text, int points, String explanation) {
+    this.text=text;
+    this.points=points;
+    this.explanation=explanation;
     }
 }

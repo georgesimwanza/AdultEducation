@@ -27,5 +27,8 @@ public class MultipleChoiceQuestion extends Question {
     private int correctOptionIndex;
 
     public MultipleChoiceQuestion(String text, int points, String explanation, List<String> options, int correctOptionIndex) {
+        super(text, points, explanation);
+        this.options = options;
+        this.correctOptionIndex = correctOptionIndex;
     }
 }
