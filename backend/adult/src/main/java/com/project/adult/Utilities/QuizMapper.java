@@ -47,23 +47,27 @@ public final class QuizMapper {
         if (question instanceof MultipleChoiceQuestion mcq) {
             MultipleChoiceQuestionDto dto = new MultipleChoiceQuestionDto();
             fillBase(dto, mcq);
+            dto.setType("multipleChoice");
             dto.setOptions(mcq.getOptions());
             dto.setCorrectOptionIndex(mcq.getCorrectOptionIndex());
             return dto;
         } else if (question instanceof TrueFalseQuestion tf) {
             TrueFalseQuestionDto dto = new TrueFalseQuestionDto();
             fillBase(dto, tf);
+            dto.setType("trueFalse");
             dto.setCorrectAnswer(tf.isCorrectAnswer());
             return dto;
         } else if (question instanceof ShortAnswerQuestion sa) {
             ShortAnswerQuestionDto dto = new ShortAnswerQuestionDto();
             fillBase(dto, sa);
+            dto.setType("shortAnswer");
             dto.setAcceptedAnswers(sa.getAcceptedAnswers());
             dto.setCaseSensitive(sa.isCaseSensitive());
             return dto;
         } else if (question instanceof EssayQuestion essay) {
             EssayQuestionDto dto = new EssayQuestionDto();
             fillBase(dto, essay);
+            dto.setType("essay");
             dto.setMinWords(essay.getMinWords());
             dto.setMaxWords(essay.getMaxWords());
             dto.setRubric(essay.getRubric());
