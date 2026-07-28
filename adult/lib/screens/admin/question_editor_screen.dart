@@ -40,30 +40,30 @@ class QuestionEditorScreen extends StatelessWidget {
         child: switch (type) {
           QuestionType.multipleChoice => _MultipleChoiceForm(
             initial: initial as MultipleChoiceQuestion?,
-            onSave: (q) {
-              controller.upsertQuestion(quiz, q);
-              Navigator.pop(context);
+            onSave: (q) async{
+             await controller.upsertQuestion(quiz, q);
+             if (context.mounted) Navigator.pop(context);
             },
           ),
           QuestionType.trueFalse => _TrueFalseForm(
             initial: initial as TrueFalseQuestion?,
-            onSave: (q) {
-              controller.upsertQuestion(quiz, q);
-              Navigator.pop(context);
+            onSave: (q) async {
+              await controller.upsertQuestion(quiz, q);
+             if (context.mounted) Navigator.pop(context);
             },
           ),
           QuestionType.shortAnswer => _ShortAnswerForm(
             initial: initial as ShortAnswerQuestion?,
-            onSave: (q) {
-              controller.upsertQuestion(quiz, q);
-              Navigator.pop(context);
+            onSave: (q) async {
+              await controller.upsertQuestion(quiz, q);
+            if (context.mounted)  Navigator.pop(context);
             },
           ),
           QuestionType.essay => _EssayForm(
             initial: initial as EssayQuestion?,
-            onSave: (q) {
-              controller.upsertQuestion(quiz, q);
-              Navigator.pop(context);
+            onSave: (q) async {
+             await controller.upsertQuestion(quiz, q);
+             if (context.mounted) Navigator.pop(context);
             },
           ),
         },
