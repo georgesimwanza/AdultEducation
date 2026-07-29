@@ -13,11 +13,15 @@ class QuizService {
   /// address. On a physical device or in production, replace this with
   /// your actual backend URL (e.g. your deployed API's https:// host).
   final String baseUrl;
-
-  Future<List<Quiz>> fetchQuizzes({int? subjectId, int? institutionId}) async {
+  Future<List<Quiz>> fetchQuizzes({
+    int? subjectId,
+    int? institutionId,
+    int? programmeId,
+  }) async {
     final query = <String, String>{
       if (subjectId != null) 'courseId': '$subjectId',
       if (institutionId != null) 'institutionId': '$institutionId',
+      if (programmeId != null) 'programmeId': '$programmeId',
     };
     final uri = Uri.parse(
       '$baseUrl/quizzes',
@@ -40,6 +44,7 @@ class QuizService {
     String title, {
     required int subjectId,
     required int institutionId,
+    required int programmeId,
     String description = '',
   }) async {
     final response = await http.post(
@@ -50,6 +55,7 @@ class QuizService {
         'description': description,
         'courseId': subjectId,
         'institutionId': institutionId,
+        'programmeId': programmeId,
       }),
     );
     _checkOk(response);

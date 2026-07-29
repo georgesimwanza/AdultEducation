@@ -9,4 +9,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     List<Quiz> findByCourse_IdAndInstitution_Id(Long courseId, Long institutionId);
     List<Quiz> findByCourse_Id(Long courseId);
     List<Quiz> findByInstitution_Id(Long institutionId);
+    List<Quiz> findByProgramme_IdAndCourse_IdAndInstitution_Id(Long programmeId, Long courseId, Long institutionId);
+    List<Quiz> findByProgramme_Id(Long programmeId);
+
 }

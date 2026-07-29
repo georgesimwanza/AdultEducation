@@ -33,9 +33,10 @@ public class QuizController {
     @GetMapping
     public List<QuizDto> getAllQuizzes(
             @RequestParam(required = false) Long courseId,
-            @RequestParam(required = false) Long institutionId
+            @RequestParam(required = false) Long institutionId,
+            @RequestParam(required = false) Long programmeId
     ) {
-        return quizService.getAllQuizzes(courseId, institutionId);
+        return quizService.getAllQuizzes(courseId, institutionId, programmeId);
     }
 
     @GetMapping("/{id}")

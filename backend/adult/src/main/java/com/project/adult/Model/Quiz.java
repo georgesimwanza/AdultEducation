@@ -35,6 +35,10 @@ public class Quiz {
     @ManyToOne
     @JsonIgnoreProperties({"quiz", "hibernateLazyInitializer", "handler"})
     private Institution institution;
+    @JoinColumn(name = "programme_id", nullable = false)
+    @ManyToOne
+    @JsonIgnoreProperties({"quiz", "hibernateLazyInitializer", "handler"})
+    private Programme programme;
 
     /** FK to your Institution entity, same reasoning as subjectId above. */
     @JoinColumn(name = "course_id", nullable = false)
