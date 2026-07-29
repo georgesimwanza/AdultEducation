@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../service/contentService.dart';
 import 'package:provider/provider.dart';
 import 'package:adult/service/sync_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:adult/Model/quiz.dart';
+import 'package:adult/service/quiz_service.dart';
+import 'quiz_taking_screen.dart'; // adjust path to wherever you place it
 
 typedef Content = ContentModel;
 
@@ -17,6 +21,7 @@ class CoursePage extends StatefulWidget {
 
 class _CoursePageState extends State<CoursePage> {
   late Future<List<ContentModel>> _coursePageFuture;
+  Future<List<Quiz>>? _quizzesFuture;
   int _selectedTab = 0;
 
   int get subjectId => widget.subjectId;
@@ -25,6 +30,20 @@ class _CoursePageState extends State<CoursePage> {
   void initState() {
     super.initState();
     print('>>> CoursePage subjectId: $subjectId');
+    _loadQuizzes();
+  }
+
+  Future<void> _loadQuizzes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final institutionId = prefs.getInt('institution') ?? 0;
+    final programmeId = prefs.getInt('programme_id');
+    setState(() {
+      _quizzesFuture = QuizService().fetchQuizzes(
+        subjectId: subjectId,
+        institutionId: institutionId,
+        programmeId: programmeId,
+      );
+    });
   }
 
   @override
@@ -243,6 +262,66 @@ class _CoursePageState extends State<CoursePage> {
   }
 
   Widget _buildAssignments() {
-    return const Center(child: Text("No assignments yet"));
+    if (_quizzesFuture == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return FutureBuilder<List<Quiz>>(
+      future: _quizzesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+        final quizzes = snapshot.data ?? [];
+        if (quizzes.isEmpty) {
+          return const Center(child: Text('No assignments yet'));
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: quizzes.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final quiz = quizzes[index];
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.black, width: 1),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.10),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.quiz),
+                title: Text(quiz.title),
+                subtitle: Text(
+                  '${quiz.questionCount} question${quiz.questionCount == 1 ? '' : 's'} · ${quiz.totalPoints} points'
+                  '${quiz.timeLimitMinutes != null ? ' · ${quiz.timeLimitMinutes} min' : ''}',
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => QuizTakingScreen(quiz: quiz),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }

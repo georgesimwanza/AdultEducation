@@ -42,6 +42,7 @@ class _QuizListViewState extends State<_QuizListView> {
     final titleController = TextEditingController();
     final subjectIdController = TextEditingController();
     final institutionIdController = TextEditingController();
+    final programmeIdController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
     final confirmed = await showDialog<bool>(
@@ -79,6 +80,15 @@ class _QuizListViewState extends State<_QuizListView> {
                     ? 'Enter a valid institution ID'
                     : null,
               ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: programmeIdController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Programme ID'),
+                validator: (v) => int.tryParse(v ?? '') == null
+                    ? 'Enter a valid programme ID'
+                    : null,
+              ),
             ],
           ),
         ),
@@ -107,6 +117,7 @@ class _QuizListViewState extends State<_QuizListView> {
         titleController.text.trim(),
         subjectId: int.parse(subjectIdController.text),
         institutionId: int.parse(institutionIdController.text),
+        programmeId: int.parse(programmeIdController.text),
       );
       if (!mounted) return;
       Navigator.push(

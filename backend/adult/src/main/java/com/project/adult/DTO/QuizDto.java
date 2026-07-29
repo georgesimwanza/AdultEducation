@@ -17,6 +17,7 @@ public class QuizDto {
     private String description = "";
     private Long courseId;
     private Long institutionId;
+    private Long programmeId;
     private List<QuestionDto> questions = new ArrayList<>();
     private Integer timeLimitMinutes;
     private int passingScorePercent = 50;

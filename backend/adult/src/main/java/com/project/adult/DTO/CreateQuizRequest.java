@@ -13,8 +13,10 @@ public class CreateQuizRequest {
     private String description = "";
     private Long courseId;
     private Long institutionId;
+    private Long programmeId;
     private Integer timeLimitMinutes;
     private Integer passingScorePercent = 50;
+
     public void setTitle(String title) {
         this.title = title;
     }
@@ -29,5 +31,13 @@ public class CreateQuizRequest {
 
     public void setInstitutionId(Long institutionId) {
         this.institutionId = institutionId;
+    }
+
+    public void setProgrammeId(Long programmeId) {
+        this.programmeId = programmeId;
+    }
+
+    public Long getProgrammeId() {
+        return programmeId;
     }
 }

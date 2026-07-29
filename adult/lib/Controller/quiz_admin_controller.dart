@@ -9,17 +9,13 @@ import '../service/quiz_service.dart';
 class QuizAdminController extends ChangeNotifier {
   QuizAdminController({QuizService? service})
     : _service = service ?? QuizService();
-
   final QuizService _service;
-
   List<Quiz> _quizzes = [];
   bool _isLoading = false;
   String? _errorMessage;
-
   List<Quiz> get quizzes => List.unmodifiable(_quizzes);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-
   Future<void> loadQuizzes() async {
     _isLoading = true;
     notifyListeners();
@@ -38,12 +34,14 @@ class QuizAdminController extends ChangeNotifier {
     String title, {
     required int subjectId,
     required int institutionId,
+    required int programmeId,
     String description = '',
   }) async {
     final quiz = await _service.createQuiz(
       title,
       subjectId: subjectId,
       institutionId: institutionId,
+      programmeId: programmeId,
       description: description,
     );
     _quizzes = [..._quizzes, quiz];

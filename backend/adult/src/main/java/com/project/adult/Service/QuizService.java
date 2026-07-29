@@ -5,10 +5,12 @@ import com.project.adult.DTO.QuestionDto;
 import com.project.adult.DTO.QuizDto;
 import com.project.adult.Model.Course;
 import com.project.adult.Model.Institution;
+import com.project.adult.Model.Programme;
 import com.project.adult.Model.Question;
 import com.project.adult.Model.Quiz;
 import com.project.adult.Repository.CourseRepository;
 import com.project.adult.Repository.InstitutionRepository;
+import com.project.adult.Repository.ProgrammeRepository;
 import com.project.adult.Utilities.QuizMapper;
 import com.project.adult.Repository.QuizRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -26,23 +28,30 @@ public class QuizService {
     private final QuizRepository quizRepository;
     private final CourseRepository courseRepository;
     private final InstitutionRepository institutionRepository;
+    private final ProgrammeRepository programmeRepository;
 
-    public QuizService(QuizRepository quizRepository, CourseRepository courseRepository, InstitutionRepository institutionRepository) {
+    public QuizService(QuizRepository quizRepository, CourseRepository courseRepository,
+                       InstitutionRepository institutionRepository, ProgrammeRepository programmeRepository) {
         this.quizRepository = quizRepository;
         this.courseRepository = courseRepository;
         this.institutionRepository = institutionRepository;
+        this.programmeRepository = programmeRepository;
     }
 
     /**
      * Used by both the teacher's admin list and the student's quiz list.
-     * Pass subjectId and/or institutionId to scope results — e.g. a
-     * student's quiz list would filter by both.
+     * Pass subjectId, institutionId, and/or programmeId to scope results —
+     * e.g. a student's Assignments tab filters by programme and course.
      */
     @Transactional(readOnly = true)
-    public List<QuizDto> getAllQuizzes(Long subjectId, Long institutionId) {
+    public List<QuizDto> getAllQuizzes(Long subjectId, Long institutionId, Long programmeId) {
         List<Quiz> quizzes;
-        if (subjectId != null && institutionId != null) {
+        if (subjectId != null && institutionId != null && programmeId != null) {
+            quizzes = quizRepository.findByProgramme_IdAndCourse_IdAndInstitution_Id(programmeId, subjectId, institutionId);
+        } else if (subjectId != null && institutionId != null) {
             quizzes = quizRepository.findByCourse_IdAndInstitution_Id(subjectId, institutionId);
+        } else if (programmeId != null) {
+            quizzes = quizRepository.findByProgramme_Id(programmeId);
         } else if (subjectId != null) {
             quizzes = quizRepository.findByCourse_Id(subjectId);
         } else if (institutionId != null) {
@@ -68,12 +77,16 @@ public class QuizService {
         Institution institution = institutionRepository.findById(request.getInstitutionId())
                 .orElseThrow(() -> new EntityNotFoundException("Institution not found"));
 
+        Programme programme = programmeRepository.findById(request.getProgrammeId())
+                .orElseThrow(() -> new EntityNotFoundException("Programme not found"));
+
         Quiz quiz = new Quiz();
 
         quiz.setTitle(request.getTitle());
         quiz.setDescription(request.getDescription());
         quiz.setCourse(course);
         quiz.setInstitution(institution);
+        quiz.setProgramme(programme);
         quiz.setTimeLimitMinutes(request.getTimeLimitMinutes());
 
         // Lombok's @AllArgsConstructor on CreateQuizRequest can end up being
@@ -118,8 +131,12 @@ public class QuizService {
         Institution institution = institutionRepository.findById(dto.getInstitutionId())
                 .orElseThrow(() -> new EntityNotFoundException("Institution not found"));
 
+        Programme programme = programmeRepository.findById(dto.getProgrammeId())
+                .orElseThrow(() -> new EntityNotFoundException("Programme not found"));
+
         quiz.setCourse(course);
         quiz.setInstitution(institution);
+        quiz.setProgramme(programme);
         quiz.setTimeLimitMinutes(dto.getTimeLimitMinutes());
         quiz.setPassingScorePercent(dto.getPassingScorePercent());
 
