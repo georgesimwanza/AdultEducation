@@ -83,7 +83,7 @@ class _SubjectPageState extends State<SubjectPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,11 +95,11 @@ class _SubjectPageState extends State<SubjectPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Subjects 📚',
+                    'Subjects',
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF1A1D2E),
+                      color: Colors.black,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -108,7 +108,7 @@ class _SubjectPageState extends State<SubjectPage> {
                     'Explore and enrol in a course below',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey.shade500,
+                      color: Colors.grey.shade600,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -118,13 +118,7 @@ class _SubjectPageState extends State<SubjectPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      border: Border.all(color: const Color(0xFFE4E4E4)),
                     ),
                     child: TextField(
                       controller: _searchController,
@@ -162,7 +156,7 @@ class _SubjectPageState extends State<SubjectPage> {
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF3D7BF5)),
+        child: CircularProgressIndicator(color: Colors.black),
       );
     }
 
@@ -184,7 +178,7 @@ class _SubjectPageState extends State<SubjectPage> {
               icon: const Icon(Icons.refresh_rounded, size: 16),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+                backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -217,14 +211,18 @@ class _SubjectPageState extends State<SubjectPage> {
     }
 
     return RefreshIndicator(
-      color: const Color.fromARGB(255, 0, 0, 0),
+      color: Colors.black,
       onRefresh: _loadSubjects,
-      child: ListView.separated(
+      child: GridView.builder(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 14,
+          crossAxisSpacing: 14,
+          childAspectRatio: 0.82,
+        ),
         itemCount: _filtered.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 14),
-        itemBuilder: (context, index) =>
-            _SubjectCard(subject: _filtered[index]),
+        itemBuilder: (context, index) => _SubjectCard(subject: _filtered[index]),
       ),
     );
   }
@@ -243,129 +241,101 @@ class _SubjectCard extends StatefulWidget {
 class _SubjectCardState extends State<_SubjectCard> {
   bool _pressed = false;
 
+  void _enter() {
+    Navigator.pushNamed(
+      context,
+      '/coursepage',
+      arguments: widget.subject.id, // ← pass subject id
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Entering ${widget.subject.name}...'),
+        duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = widget.subject;
     return AnimatedScale(
-      scale: _pressed ? 0.97 : 1.0,
+      scale: _pressed ? 0.96 : 1.0,
       duration: const Duration(milliseconds: 120),
       child: GestureDetector(
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: (_) => setState(() => _pressed = false),
         onTapCancel: () => setState(() => _pressed = false),
+        onTap: _enter,
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+            border: Border.all(color: const Color(0xFFE4E4E4)),
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: const Icon(
+                      Icons.menu_book_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _enter,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: const BoxDecoration(
+                        color: Colors.black,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Colors.white,
+                        size: 15,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                s.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                  height: 1.25,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                s.code,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                // Icon
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.menu_book_rounded,
-                    color: Color.fromARGB(255, 0, 0, 0),
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(width: 14),
-
-                // Title + Code
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        s.name,
-                        style: const TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A1D2E),
-                          height: 1.3,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        s.code,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-
-                // Enter button
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/coursepage',
-                      arguments: s.id, // ← pass subject id
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Entering ${s.name}...'),
-                        duration: const Duration(seconds: 1),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 9,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 0, 0, 0),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Enter',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.arrow_forward_rounded,
-                          color: Colors.white,
-                          size: 14,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
