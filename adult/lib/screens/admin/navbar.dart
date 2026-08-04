@@ -8,14 +8,12 @@ import 'announcement_screen.dart';
 
 class AdminNavBar extends StatefulWidget {
   const AdminNavBar({super.key});
-
   @override
   State<AdminNavBar> createState() => _MyNavBarState();
 }
 
 class _MyNavBarState extends State<AdminNavBar> {
   int _selectedIndex = 0;
-
   final List<Widget> _screens = [
     // fix 1: List<Widget> not List<NavBar>
     DashboardScreen(),
@@ -24,7 +22,6 @@ class _MyNavBarState extends State<AdminNavBar> {
     ContentScreen(),
     QuizScreen(),
   ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,8 +51,8 @@ class _MyNavBarState extends State<AdminNavBar> {
             label: 'Content',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.admin_panel_settings_rounded),
-            label: 'Admins',
+            icon: Icon(Icons.quiz_rounded),
+            label: 'Quiz',
           ),
         ],
       ),
