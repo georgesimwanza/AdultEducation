@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:adult/Service/user_service.dart';
-import 'students_screen.dart';
-import 'announcement_screen.dart';
-import 'content_screen.dart';
-import 'quiz_screen.dart';
+import 'package:adult/service/sync_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -15,11 +14,17 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final UserService _userService = UserService();
   String _totalStudents = '...';
+  String _institutionName = 'Loading...';
+  bool _fetched = false;
 
   @override
-  void initState() {
-    super.initState();
-    _fetchStudentCount();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_fetched) {
+      _fetched = true;
+      _fetchStudentCount();
+      _fetchInstitutionName();
+    }
   }
 
   Future<void> _fetchStudentCount() async {
@@ -35,35 +40,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  static const List<BoxShadow> _cardShadow = [
-    BoxShadow(color: Color(0x0D000000), blurRadius: 10, offset: Offset(0, 2)),
-  ];
+  /// Mirrors the same local-db-first pattern used for programme titles in
+  /// the student-facing Dashboard (Dashboard._fetchTitle). No confirmed
+  /// server endpoint for institution name exists yet, so this only checks
+  /// local storage — if it's not synced there, it falls back to a
+  /// placeholder rather than guessing at an API call.
+  Future<void> _fetchInstitutionName() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final institutionId = prefs.getInt('institution');
+      if (institutionId == null) {
+        setState(() => _institutionName = 'Institution');
+        return;
+      }
+
+      final db = context.read<SyncService>().db;
+      if (db != null) {
+        final results = await db.query(
+          'institutions',
+          where: 'id = ?',
+          whereArgs: [institutionId],
+        );
+        if (results.isNotEmpty) {
+          setState(() => _institutionName = results.first['name'] as String);
+          return;
+        }
+      }
+
+      setState(() => _institutionName = 'Institution');
+    } catch (e) {
+      setState(() => _institutionName = 'Institution');
+    }
+  }
+
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  String _formattedDate() {
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    final now = DateTime.now();
+    return '${weekdays[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final quickActions = [
-      {
-        'icon': Icons.people_rounded,
-        'label': 'Students',
-        'builder': (BuildContext c) => const StudentsScreen(),
-      },
-      {
-        'icon': Icons.campaign_rounded,
-        'label': 'Announcements',
-        'builder': (BuildContext c) => const AnnouncementsScreen(),
-      },
-      {
-        'icon': Icons.folder_rounded,
-        'label': 'Content',
-        'builder': (BuildContext c) => const ContentScreen(),
-      },
-      {
-        'icon': Icons.quiz_rounded,
-        'label': 'Quiz',
-        'builder': (BuildContext c) => const QuizScreen(),
-      },
-    ];
-
     final recentActivity = [
       {
         'action': 'New student enrolled',
@@ -84,62 +130,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTopBar(),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildStudentCountCard(),
-                    const SizedBox(height: 20),
-                    const Text(
-                      'Quick Actions',
-                      style: TextStyle(
-                        fontSize: 16,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_greeting()}, $_institutionName 👋',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _formattedDate(),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: Colors.black,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _institutionName.isNotEmpty
+                          ? _institutionName[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
                         fontWeight: FontWeight.w800,
-                        color: Colors.black,
+                        fontSize: 16,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 2.1,
-                          ),
-                      itemCount: quickActions.length,
-                      itemBuilder: (context, index) {
-                        final action = quickActions[index];
-                        return _buildQuickActionCard(
-                          icon: action['icon'] as IconData,
-                          label: action['label'] as String,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: action['builder'] as WidgetBuilder,
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    _buildRecentActivityCard(recentActivity),
-                    const SizedBox(height: 16),
-                  ],
-                ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 24),
+              _buildStudentCountCard(),
+              const SizedBox(height: 16),
+              _buildTermCard(),
+              const SizedBox(height: 20),
+              _buildRecentActivityCard(recentActivity),
             ],
           ),
         ),
@@ -147,53 +197,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTopBar() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
-      decoration: const BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(28),
-          bottomRight: Radius.circular(28),
-        ),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Dashboard Overview',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            "Welcome back! Here's what's happening today.",
-            style: TextStyle(fontSize: 13, color: Color(0xFFB3B3B3)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStudentCountCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: _cardShadow,
-        border: Border.all(color: const Color(0xFFF0F0F0)),
+        color: const Color(0xFFF7F7F7),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE4E4E4)),
       ),
       child: Row(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
               color: Colors.black,
               borderRadius: BorderRadius.circular(14),
@@ -201,7 +218,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: const Icon(
               Icons.people_rounded,
               color: Colors.white,
-              size: 26,
+              size: 24,
             ),
           ),
           const SizedBox(width: 16),
@@ -209,11 +226,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Total Students',
-                  style: TextStyle(fontSize: 13, color: Colors.black54),
-                ),
-                const SizedBox(height: 2),
                 Text(
                   _totalStudents,
                   style: const TextStyle(
@@ -221,6 +233,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     fontWeight: FontWeight.w800,
                     color: Colors.black,
                   ),
+                ),
+                const Text(
+                  'Students',
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
                 ),
               ],
             ),
@@ -237,50 +253,88 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildQuickActionCard({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: _cardShadow,
-          border: Border.all(color: const Color(0xFFF0F0F0)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(10),
+  /// Static placeholder — no term-tracking data source exists in this app
+  /// yet. Swap these values for a real fetch once there's an endpoint.
+  Widget _buildTermCard() {
+    const daysLeft = 69;
+    const percentComplete = 0.13;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today_rounded,
+                    color: Colors.white70,
+                    size: 16,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Term 3 (2025/2026)',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-              child: Icon(icon, color: Colors.black, size: 19),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Active',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            '$daysLeft days left in term',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
             ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: Colors.black26,
-              size: 18,
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: percentComplete,
+              minHeight: 6,
+              backgroundColor: const Color(0xFF3A3A3A),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${(percentComplete * 100).round()}% complete',
+            style: const TextStyle(color: Color(0xFFB3B3B3), fontSize: 12),
+          ),
+        ],
       ),
     );
   }
@@ -291,7 +345,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: _cardShadow,
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
         border: Border.all(color: const Color(0xFFF0F0F0)),
       ),
       child: Column(

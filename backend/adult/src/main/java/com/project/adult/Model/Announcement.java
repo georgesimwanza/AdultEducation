@@ -18,12 +18,12 @@ public class Announcement {
 
     @ManyToOne
     @JoinColumn(name = "institution_id")
-    @JsonIgnoreProperties({"programmes", "students", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"programmes", "students","announcements", "hibernateLazyInitializer", "handler"})
     private Institution institution;
 
     @ManyToOne
     @JoinColumn(name = "programme_id")
-    @JsonIgnoreProperties({"institution", "students", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"institution", "students","announcements", "hibernateLazyInitializer", "handler"})
     private Programme programme;
 
     private String title;
