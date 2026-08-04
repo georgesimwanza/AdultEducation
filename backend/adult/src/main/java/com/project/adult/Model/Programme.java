@@ -1,5 +1,6 @@
 package com.project.adult.Model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -59,10 +60,12 @@ public class Programme {
 
     // Users enrolled in this programme
     @OneToMany(mappedBy = "selectedProgramme")
+    @JsonIgnoreProperties({"selectedProgramme", "hibernateLazyInitializer", "handler"})
     private List<User> users;
 
     // Courses in this programme (via junction table)
     @OneToMany(mappedBy = "programme", cascade = CascadeType.ALL)
+    @JsonIgnoreProperties({"programme", "hibernateLazyInitializer", "handler"})
     private List<ProgrammeCourse> programmeCourses;
 
     @PreUpdate
