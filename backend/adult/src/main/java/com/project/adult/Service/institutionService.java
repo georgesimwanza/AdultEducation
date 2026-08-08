@@ -16,6 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service layer for managing {@link Institution} entities.
+ * <p>
+ * Handles institution self-registration (which also provisions an admin
+ * {@link User} account for that institution) and institution lookups.
+ */
 @Service
 public class institutionService {
 
@@ -24,6 +30,14 @@ public class institutionService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
 
+    /**
+     * Constructs the service with its required repositories and security helpers.
+     *
+     * @param institutionRepository repository for persisting and querying institutions
+     * @param userRepository        repository for persisting and querying users
+     * @param passwordEncoder       encoder used to hash the admin user's password
+     * @param jwtUtils              utility used to generate an auth token for the new admin
+     */
     public institutionService(InstitutionRepository institutionRepository,
                               UserRepository userRepository,
                               PasswordEncoder passwordEncoder,
@@ -34,6 +48,17 @@ public class institutionService {
         this.jwtUtils              = jwtUtils;
     }
 
+    /**
+     * Registers a new institution and creates an accompanying ADMIN user for it,
+     * sharing the same email address. Runs in a single transaction so both records
+     * are created atomically.
+     *
+     * @param request the registration payload, containing the institution's name,
+     *                email, location, and the admin account password
+     * @return a {@link UserDTO} for the newly created admin, including an auth
+     *         token, so the client can navigate straight to the admin dashboard
+     * @throws RuntimeException if an institution is already registered with the given email
+     */
     @Transactional
     public UserDTO registerWithAdmin(InstitutionRegisterRequest request) {
         if (institutionRepository.existsByEmail(request.getEmail())) {
@@ -72,9 +97,14 @@ public class institutionService {
                 saved.getId(),               // institutionId
                 saved.getName()
 
-                );
+        );
     }
 
+    /**
+     * Retrieves a lightweight list of all institutions (id and name only).
+     *
+     * @return a list of {@link InstitutionDto} for every institution
+     */
     public List<InstitutionDto> getInstitutions() {
         return institutionRepository.findAll()
                 .stream()

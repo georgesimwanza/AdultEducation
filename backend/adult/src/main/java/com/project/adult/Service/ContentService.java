@@ -12,12 +12,26 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service layer for managing {@link Content} entities (course materials).
+ * <p>
+ * Handles creation and retrieval of content, converting between the
+ * {@link Content} entity and {@link ContentDTO} to avoid exposing raw
+ * JPA entities (and their nested-object/infinite-loop risk) to callers.
+ */
 @Service
 public class ContentService {
     private final ContentRepository contentRepository;
     private final CourseRepository courseRepository;
     private final InstitutionRepository institutionRepository; // ← added
 
+    /**
+     * Constructs the service with its required repositories.
+     *
+     * @param contentRepository     repository for persisting and querying content
+     * @param courseRepository      repository for looking up the parent course
+     * @param institutionRepository repository for looking up the associated institution
+     */
     public ContentService(ContentRepository contentRepository,
                           CourseRepository courseRepository,
                           InstitutionRepository institutionRepository) {
@@ -26,6 +40,16 @@ public class ContentService {
         this.institutionRepository = institutionRepository;
     }
 
+    /**
+     * Creates a new piece of content and attaches it to its course, and
+     * optionally its institution, before saving.
+     *
+     * @param contentDTO the incoming content data, including the target course id
+     *                   and, optionally, an institution id
+     * @return a {@link ContentDTO} representing the newly saved content
+     * @throws RuntimeException if the referenced course does not exist, or if
+     *                          an institution id is provided but does not exist
+     */
     public ContentDTO addContent(ContentDTO contentDTO) {
         Course course = courseRepository.findById(contentDTO.getCourseId())
                 .orElseThrow(() -> new RuntimeException("Course not found"));
@@ -55,6 +79,12 @@ public class ContentService {
                 .build();
     }
 
+    /**
+     * Retrieves all content belonging to a given subject.
+     *
+     * @param id the subject id to look up content for
+     * @return a list of {@link ContentDTO} for the given subject
+     */
     public List<ContentDTO> getContentById(Long id) {
         return contentRepository.findContentbySubjectId(id)
                 .stream()
@@ -70,6 +100,11 @@ public class ContentService {
     }
 
     // ← now returns DTOs instead of raw entities, fixes nested-object/infinite-loop risk
+    /**
+     * Retrieves all content in the system.
+     *
+     * @return a list of {@link ContentDTO} for every content record
+     */
     public List<ContentDTO> getAllContent() {
         return contentRepository.findAll()
                 .stream()

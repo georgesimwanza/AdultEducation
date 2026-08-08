@@ -18,7 +18,7 @@ public class Announcement {
 
     @ManyToOne
     @JoinColumn(name = "institution_id")
-    @JsonIgnoreProperties({"programmes", "students","announcements", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"contents","quiz","programmes", "students","announcements", "hibernateLazyInitializer", "handler"})
     private Institution institution;
 
     @ManyToOne
