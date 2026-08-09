@@ -22,6 +22,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Service layer for managing {@link Quiz} entities, including their
+ * nested {@link Question} lists.
+ * <p>
+ * Handles quiz creation, scoped retrieval (by course, institution, and/or
+ * programme), and full quiz updates that replace both metadata and questions
+ * in a single transaction.
+ */
 @Service
 public class QuizService {
 
@@ -30,6 +38,14 @@ public class QuizService {
     private final InstitutionRepository institutionRepository;
     private final ProgrammeRepository programmeRepository;
 
+    /**
+     * Constructs the service with its required repositories.
+     *
+     * @param quizRepository        repository for persisting and querying quizzes
+     * @param courseRepository      repository for looking up the associated course
+     * @param institutionRepository repository for looking up the associated institution
+     * @param programmeRepository   repository for looking up the associated programme
+     */
     public QuizService(QuizRepository quizRepository, CourseRepository courseRepository,
                        InstitutionRepository institutionRepository, ProgrammeRepository programmeRepository) {
         this.quizRepository = quizRepository;
@@ -39,9 +55,17 @@ public class QuizService {
     }
 
     /**
+     * Retrieves quizzes, optionally scoped by any combination of subject
+     * (course), institution, and programme.
+     * <p>
      * Used by both the teacher's admin list and the student's quiz list.
      * Pass subjectId, institutionId, and/or programmeId to scope results —
      * e.g. a student's Assignments tab filters by programme and course.
+     *
+     * @param subjectId     the course/subject id to filter by, or {@code null} for no filter
+     * @param institutionId the institution id to filter by, or {@code null} for no filter
+     * @param programmeId   the programme id to filter by, or {@code null} for no filter
+     * @return a list of {@link QuizDto} matching the given filters, or all quizzes if none are given
      */
     @Transactional(readOnly = true)
     public List<QuizDto> getAllQuizzes(Long subjectId, Long institutionId, Long programmeId) {
@@ -62,6 +86,13 @@ public class QuizService {
         return quizzes.stream().map(QuizMapper::toDto).collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves a single quiz by its identifier.
+     *
+     * @param id the quiz id
+     * @return the matching quiz as a {@link QuizDto}
+     * @throws EntityNotFoundException if no quiz exists with the given id
+     */
     @Transactional(readOnly = true)
     public QuizDto getQuiz(Long id) {
         Quiz quiz = quizRepository.findById(id)
@@ -69,6 +100,14 @@ public class QuizService {
         return QuizMapper.toDto(quiz);
     }
 
+    /**
+     * Creates a new quiz from a request payload, resolving and attaching its
+     * course, institution, and programme.
+     *
+     * @param request the quiz creation request, including course/institution/programme ids
+     * @return the saved quiz as a {@link QuizDto}
+     * @throws EntityNotFoundException if the referenced course, institution, or programme does not exist
+     */
     @Transactional
     public QuizDto createQuiz(CreateQuizRequest request) {
         Course course = courseRepository.findById(request.getCourseId())
@@ -109,6 +148,16 @@ public class QuizService {
      * This matches how the Flutter admin screen sends updates: it always
      * builds a full, updated Quiz (settings + complete question list)
      * rather than sending granular per-field patches.
+     * <p>
+     * Existing questions (identified by a numeric id already present in the
+     * database) are updated in place; questions with a non-numeric,
+     * client-generated temporary id are treated as new and inserted.
+     *
+     * @param id  the id of the quiz to update
+     * @param dto the full replacement quiz data, including its question list
+     * @return the updated quiz as a {@link QuizDto}
+     * @throws EntityNotFoundException if the quiz, course, institution, or programme does not exist
+     * @throws IllegalArgumentException if any question in the payload has blank text
      */
     @Transactional
     public QuizDto updateQuiz(Long id, QuizDto dto) {
@@ -174,6 +223,12 @@ public class QuizService {
         return QuizMapper.toDto(saved);
     }
 
+    /**
+     * Deletes a quiz by its identifier.
+     *
+     * @param id the id of the quiz to delete
+     * @throws EntityNotFoundException if no quiz exists with the given id
+     */
     @Transactional
     public void deleteQuiz(Long id) {
         if (!quizRepository.existsById(id)) {
