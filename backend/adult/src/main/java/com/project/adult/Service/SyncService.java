@@ -18,18 +18,40 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Service layer supporting offline/incremental sync for the mobile client.
+ * <p>
+ * Each {@code getSynced*} method returns either the full dataset (when
+ * {@code since} is {@code null}) or only records updated after the given
+ * epoch-millisecond timestamp, so the client can pull incremental changes.
+ */
 @Service
 @Transactional
 public class SyncService {
     private final subjectRepository subjectRepository;
     private final ContentRepository contentRepository;
     private final ProgrammeRepository programmeRepository;
+
+    /**
+     * Constructs the service with its required repositories.
+     *
+     * @param subjectRepository   repository for persisting and querying subjects/courses
+     * @param contentRepository   repository for persisting and querying content
+     * @param programmeRepository repository for persisting and querying programmes
+     */
     public SyncService(subjectRepository subjectRepository, ContentRepository contentRepository, ProgrammeRepository programmeRepository) {
         this.subjectRepository = subjectRepository;
         this.contentRepository = contentRepository;
         this.programmeRepository = programmeRepository;
     }
 
+    /**
+     * Retrieves subjects (courses) for sync, either all of them or only those
+     * updated since the given timestamp.
+     *
+     * @param since epoch-millisecond timestamp to sync from, or {@code null} for a full sync
+     * @return a list of {@link SubjectDTO}, each including its parent programme id if available
+     */
     public List<SubjectDTO> getSyncedSubjects(Long since) {
         List<Course> courses;
 
@@ -56,6 +78,14 @@ public class SyncService {
             );
         }).collect(Collectors.toList());
     }
+
+    /**
+     * Retrieves content for sync, either all of it or only records updated
+     * since the given timestamp.
+     *
+     * @param since epoch-millisecond timestamp to sync from, or {@code null} for a full sync
+     * @return a list of {@link ContentDTO} matching the requested scope
+     */
     // Returns all content or only changed ones since last sync
     public List<ContentDTO> getSyncedContent(Long since) {
         if (since == null) {
@@ -85,6 +115,17 @@ public class SyncService {
                         .build())
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Retrieves programmes for sync, either all of them or only those updated
+     * since the given timestamp.
+     * <p>
+     * Returned as loosely-typed maps rather than a DTO class, keyed by
+     * {@code id}, {@code name}, {@code code}, and {@code description}.
+     *
+     * @param since epoch-millisecond timestamp to sync from, or {@code null} for a full sync
+     * @return a list of programme field maps matching the requested scope
+     */
     public List<Map<String, Object>> getSyncedProgrammes(Long since) {
         List<Programme> programmes;
 
