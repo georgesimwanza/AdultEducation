@@ -103,7 +103,6 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              border: Border(top: BorderSide(color: Colors.black, width: 2)),
             ),
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -115,11 +114,10 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'NEW ANNOUNCEMENT',
+                        'New Announcement',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
                           color: Colors.black,
                         ),
                       ),
@@ -127,34 +125,32 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                         onPressed: () => Navigator.pop(ctx),
                         icon: const Icon(
                           Icons.close,
-                          color: Colors.black,
-                          size: 24,
+                          color: Colors.black54,
+                          size: 22,
                         ),
                       ),
                     ],
                   ),
-                  const Divider(color: Colors.black, thickness: 1.5),
                   const SizedBox(height: 16),
                   _buildField(
                     titleCtrl,
-                    'TITLE',
+                    'Title',
                     'Enter announcement title...',
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   _buildField(
                     contentCtrl,
-                    'CONTENT',
+                    'Content',
                     'Write details here...',
                     maxLines: 4,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   const Text(
-                    'PROGRAMME',
+                    'Programme',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
-                      color: Colors.black,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black54,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -175,31 +171,14 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                             ? 'Loading programmes...'
                             : 'Select programme',
                       ),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: const Color(0xFFF5F5F5),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.zero,
-                          borderSide: BorderSide(
-                            color: Colors.black,
-                            width: 1.5,
-                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.zero,
-                          borderSide: BorderSide(
-                            color: Colors.black,
-                            width: 1.5,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.zero,
-                          borderSide: BorderSide(
-                            color: Colors.black,
-                            width: 2.5,
-                          ),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
+                        contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14,
                           vertical: 12,
                         ),
@@ -220,21 +199,17 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                         child: OutlinedButton(
                           onPressed: () => Navigator.pop(ctx),
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
                             ),
-                            side: const BorderSide(
-                              color: Colors.black,
-                              width: 2,
-                            ),
+                            side: const BorderSide(color: Colors.black26),
                           ),
                           child: const Text(
-                            'CANCEL',
+                            'Cancel',
                             style: TextStyle(
                               color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.1,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -310,18 +285,15 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
                             ),
                             elevation: 0,
                           ),
                           child: const Text(
-                            'POST',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.1,
-                            ),
+                            'Post',
+                            style: TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -350,9 +322,8 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           label,
           style: const TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.0,
-            color: Colors.black,
+            fontWeight: FontWeight.w700,
+            color: Colors.black54,
           ),
         ),
         const SizedBox(height: 6),
@@ -362,20 +333,12 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           cursorColor: Colors.black,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.black.withOpacity(0.4)),
+            hintStyle: TextStyle(color: Colors.black.withOpacity(0.35)),
             filled: true,
-            fillColor: Colors.white,
-            border: const OutlineInputBorder(
-              borderRadius: BorderRadius.zero,
-              borderSide: BorderSide(color: Colors.black, width: 1.5),
-            ),
-            enabledBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.zero,
-              borderSide: BorderSide(color: Colors.black, width: 1.5),
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.zero,
-              borderSide: BorderSide(color: Colors.black, width: 2.5),
+            fillColor: const Color(0xFFF5F5F5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
@@ -391,81 +354,96 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: FutureBuilder<List<AnnouncementModel>>(
-          future: _announcementsFuture,
-          builder: (context, snapshot) {
-            final count = snapshot.data?.length ?? 0;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'ANNOUNCEMENTS',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                    color: Colors.black,
-                  ),
-                ),
-                Text(
-                  '$count updates posted',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.black,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: IconButton(
-              onPressed: _showAddModal,
-              icon: const Icon(Icons.add, color: Colors.black, size: 28),
-            ),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(2.0),
-          child: Container(color: Colors.black, height: 2.0),
-        ),
-      ),
       body: SafeArea(
         child: Column(
           children: [
+            // ── Header: title + count badge + add button ──────────
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Text(
+                        'Announcements',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      FutureBuilder<List<AnnouncementModel>>(
+                        future: _announcementsFuture,
+                        builder: (context, snapshot) {
+                          final count = snapshot.data?.length ?? 0;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0F0F0),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '$count',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  GestureDetector(
+                    onTap: _showAddModal,
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: const BoxDecoration(
+                        color: Colors.black,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // ── Search bar ──────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
               child: TextField(
                 onChanged: (v) => setState(() => _searchTerm = v),
                 cursorColor: Colors.black,
                 decoration: InputDecoration(
                   hintText: 'Search updates...',
-                  hintStyle: TextStyle(color: Colors.black.withOpacity(0.4)),
-                  prefixIcon: const Icon(Icons.search, color: Colors.black),
+                  hintStyle: TextStyle(color: Colors.black.withOpacity(0.35)),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Colors.black45,
+                    size: 20,
+                  ),
                   filled: true,
-                  fillColor: Colors.white,
-                  border: const OutlineInputBorder(
-                    borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(color: Colors.black, width: 1.5),
-                  ),
-                  enabledBorder: const OutlineInputBorder(
-                    borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(color: Colors.black, width: 1.5),
-                  ),
-                  focusedBorder: const OutlineInputBorder(
-                    borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(color: Colors.black, width: 2.5),
+                  fillColor: const Color(0xFFF5F5F5),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
                   ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
             ),
+            // ── List ────────────────────────────────────────────
             Expanded(
               child: FutureBuilder<List<AnnouncementModel>>(
                 future: _announcementsFuture,
@@ -485,7 +463,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                           children: [
                             const Icon(
                               Icons.error_outline,
-                              color: Colors.black,
+                              color: Colors.black45,
                               size: 44,
                             ),
                             const SizedBox(height: 12),
@@ -493,25 +471,29 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                               'Failed to fetch announcements.\n${snapshot.error}',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 16),
                             OutlinedButton(
                               onPressed: _refreshAnnouncements,
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(
-                                  color: Colors.black,
-                                  width: 1.5,
+                                side: const BorderSide(color: Colors.black26),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
                                 ),
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.zero,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 10,
                                 ),
                               ),
                               child: const Text(
-                                'RETRY',
-                                style: TextStyle(color: Colors.black),
+                                'Retry',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
@@ -527,67 +509,75 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   }).toList();
 
                   if (filtered.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Text(
                         'No announcements posted.',
                         style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     );
                   }
 
                   return ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
                     itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final announcement = filtered[index];
                       return Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          border: Border.all(color: Colors.black, width: 2),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFEDEDED)),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Padding(
-                              padding: EdgeInsets.only(top: 3.0),
-                              child: Icon(
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0F0F0),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
                                 Icons.campaign_outlined,
                                 color: Colors.black,
-                                size: 24,
+                                size: 18,
                               ),
                             ),
-                            const SizedBox(width: 14),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    announcement.title.toUpperCase(),
+                                    announcement.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w700,
                                       color: Colors.black,
-                                      letterSpacing: 0.5,
                                     ),
                                   ),
-                                  const SizedBox(height: 6),
+                                  const SizedBox(height: 4),
                                   Text(
                                     announcement.content,
-                                    style: const TextStyle(
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
                                       fontSize: 13,
-                                      height: 1.4,
-                                      color: Colors.black,
+                                      height: 1.35,
+                                      color: Colors.grey.shade600,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 8),
                             IconButton(
                               onPressed: () async {
                                 try {
@@ -607,10 +597,12 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                                 }
                               },
                               icon: const Icon(
-                                Icons.delete_sharp,
-                                color: Colors.black,
-                                size: 20,
+                                Icons.delete_outline,
+                                color: Colors.black38,
+                                size: 19,
                               ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             ),
                           ],
                         ),
