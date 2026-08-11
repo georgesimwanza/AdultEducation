@@ -27,49 +27,160 @@ class QuestionEditorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          initial == null ? 'Add ${type.label} Question' : 'Edit Question',
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Header(
+              title: initial == null
+                  ? 'Add ${type.label} Question'
+                  : 'Edit Question',
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: switch (type) {
+                  QuestionType.multipleChoice => _MultipleChoiceForm(
+                    initial: initial as MultipleChoiceQuestion?,
+                    onSave: (q) async {
+                      await controller.upsertQuestion(quiz, q);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                  QuestionType.trueFalse => _TrueFalseForm(
+                    initial: initial as TrueFalseQuestion?,
+                    onSave: (q) async {
+                      await controller.upsertQuestion(quiz, q);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                  QuestionType.shortAnswer => _ShortAnswerForm(
+                    initial: initial as ShortAnswerQuestion?,
+                    onSave: (q) async {
+                      await controller.upsertQuestion(quiz, q);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                  QuestionType.essay => _EssayForm(
+                    initial: initial as EssayQuestion?,
+                    onSave: (q) async {
+                      await controller.upsertQuestion(quiz, q);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                },
+              ),
+            ),
+          ],
         ),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: switch (type) {
-          QuestionType.multipleChoice => _MultipleChoiceForm(
-            initial: initial as MultipleChoiceQuestion?,
-            onSave: (q) async{
-             await controller.upsertQuestion(quiz, q);
-             if (context.mounted) Navigator.pop(context);
-            },
-          ),
-          QuestionType.trueFalse => _TrueFalseForm(
-            initial: initial as TrueFalseQuestion?,
-            onSave: (q) async {
-              await controller.upsertQuestion(quiz, q);
-             if (context.mounted) Navigator.pop(context);
-            },
-          ),
-          QuestionType.shortAnswer => _ShortAnswerForm(
-            initial: initial as ShortAnswerQuestion?,
-            onSave: (q) async {
-              await controller.upsertQuestion(quiz, q);
-            if (context.mounted)  Navigator.pop(context);
-            },
-          ),
-          QuestionType.essay => _EssayForm(
-            initial: initial as EssayQuestion?,
-            onSave: (q) async {
-             await controller.upsertQuestion(quiz, q);
-             if (context.mounted) Navigator.pop(context);
-            },
-          ),
-        },
       ),
     );
   }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.title});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFF262626),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              title,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shared field decoration used by every form below — soft grey fill,
+/// no visible border, matching the rest of the app.
+InputDecoration _fieldDecoration(String label, {String? hint}) {
+  return InputDecoration(
+    labelText: label,
+    hintText: hint,
+    filled: true,
+    fillColor: const Color(0xFFF5F5F5),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide.none,
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Colors.redAccent),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Colors.redAccent, width: 1.6),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+  );
+}
+
+Widget _sectionLabel(String text) {
+  return Text(
+    text,
+    style: const TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      color: Colors.black,
+    ),
+  );
+}
+
+Widget _saveButton(VoidCallback onPressed) {
+  return SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        elevation: 0,
+      ),
+      onPressed: onPressed,
+      child: const Text(
+        'Save Question',
+        style: TextStyle(fontWeight: FontWeight.w700),
+      ),
+    ),
+  );
 }
 
 // ── Multiple Choice ──────────────────────────────────────────────────
@@ -141,23 +252,23 @@ class _MultipleChoiceFormState extends State<_MultipleChoiceForm> {
           TextFormField(
             controller: _questionController,
             maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Question text'),
+            decoration: _fieldDecoration('Question text'),
             validator: (v) => (v == null || v.trim().isEmpty)
                 ? 'Question text is required'
                 : null,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           TextFormField(
             controller: _pointsController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Points'),
+            decoration: _fieldDecoration('Points'),
             validator: (v) => (int.tryParse(v ?? '') ?? 0) > 0
                 ? null
                 : 'Enter a valid point value',
           ),
-          const SizedBox(height: 20),
-          Text('Options', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
+          const SizedBox(height: 22),
+          _sectionLabel('Options'),
+          const SizedBox(height: 10),
           ..._optionControllers.asMap().entries.map((entry) {
             final index = entry.key;
             final controller = entry.value;
@@ -174,9 +285,7 @@ class _MultipleChoiceFormState extends State<_MultipleChoiceForm> {
                   Expanded(
                     child: TextFormField(
                       controller: controller,
-                      decoration: InputDecoration(
-                        labelText: 'Option ${index + 1}',
-                      ),
+                      decoration: _fieldDecoration('Option ${index + 1}'),
                       validator: (v) => (v == null || v.trim().isEmpty)
                           ? 'Option cannot be empty'
                           : null,
@@ -184,7 +293,7 @@ class _MultipleChoiceFormState extends State<_MultipleChoiceForm> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.remove_circle_outline),
-                    color: Colors.grey,
+                    color: Colors.black38,
                     onPressed: _optionControllers.length > 2
                         ? () => _removeOption(index)
                         : null,
@@ -197,34 +306,23 @@ class _MultipleChoiceFormState extends State<_MultipleChoiceForm> {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: _addOption,
-              icon: const Icon(Icons.add),
+              style: TextButton.styleFrom(foregroundColor: Colors.black),
+              icon: const Icon(Icons.add, size: 18),
               label: const Text('Add option'),
             ),
           ),
-          const Text(
+          Text(
             'Select the radio button next to the correct option.',
-            style: TextStyle(color: Colors.grey, fontSize: 12),
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _explanationController,
             maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'Explanation (optional)',
-            ),
+            decoration: _fieldDecoration('Explanation (optional)'),
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: _submit,
-              child: const Text('Save Question'),
-            ),
-          ),
+          _saveButton(_submit),
         ],
       ),
     );
@@ -280,23 +378,23 @@ class _TrueFalseFormState extends State<_TrueFalseForm> {
           TextFormField(
             controller: _questionController,
             maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Statement'),
+            decoration: _fieldDecoration('Statement'),
             validator: (v) => (v == null || v.trim().isEmpty)
                 ? 'Statement is required'
                 : null,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           TextFormField(
             controller: _pointsController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Points'),
+            decoration: _fieldDecoration('Points'),
             validator: (v) => (int.tryParse(v ?? '') ?? 0) > 0
                 ? null
                 : 'Enter a valid point value',
           ),
-          const SizedBox(height: 20),
-          Text('Correct answer', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
+          const SizedBox(height: 22),
+          _sectionLabel('Correct answer'),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -320,22 +418,10 @@ class _TrueFalseFormState extends State<_TrueFalseForm> {
           TextFormField(
             controller: _explanationController,
             maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'Explanation (optional)',
-            ),
+            decoration: _fieldDecoration('Explanation (optional)'),
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: _submit,
-              child: const Text('Save Question'),
-            ),
-          ),
+          _saveButton(_submit),
         ],
       ),
     );
@@ -356,22 +442,19 @@ class _ToggleTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: selected ? Colors.black : const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected ? Colors.black : const Color(0xFFD6D6D6),
-          ),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           label,
           style: TextStyle(
             color: selected ? Colors.white : Colors.black,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
@@ -444,30 +527,28 @@ class _ShortAnswerFormState extends State<_ShortAnswerForm> {
           TextFormField(
             controller: _questionController,
             maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Question text'),
+            decoration: _fieldDecoration('Question text'),
             validator: (v) => (v == null || v.trim().isEmpty)
                 ? 'Question text is required'
                 : null,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           TextFormField(
             controller: _pointsController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Points'),
+            decoration: _fieldDecoration('Points'),
             validator: (v) => (int.tryParse(v ?? '') ?? 0) > 0
                 ? null
                 : 'Enter a valid point value',
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 22),
+          _sectionLabel('Accepted answers'),
+          const SizedBox(height: 4),
           Text(
-            'Accepted answers',
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const Text(
             'Add every wording that should be marked correct.',
-            style: TextStyle(color: Colors.grey, fontSize: 12),
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           ..._answerControllers.asMap().entries.map((entry) {
             final index = entry.key;
             final controller = entry.value;
@@ -478,9 +559,7 @@ class _ShortAnswerFormState extends State<_ShortAnswerForm> {
                   Expanded(
                     child: TextFormField(
                       controller: controller,
-                      decoration: InputDecoration(
-                        labelText: 'Answer ${index + 1}',
-                      ),
+                      decoration: _fieldDecoration('Answer ${index + 1}'),
                       validator: (v) => (v == null || v.trim().isEmpty)
                           ? 'Answer cannot be empty'
                           : null,
@@ -488,7 +567,7 @@ class _ShortAnswerFormState extends State<_ShortAnswerForm> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.remove_circle_outline),
-                    color: Colors.grey,
+                    color: Colors.black38,
                     onPressed: _answerControllers.length > 1
                         ? () => _removeAnswer(index)
                         : null,
@@ -501,7 +580,8 @@ class _ShortAnswerFormState extends State<_ShortAnswerForm> {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: _addAnswer,
-              icon: const Icon(Icons.add),
+              style: TextButton.styleFrom(foregroundColor: Colors.black),
+              icon: const Icon(Icons.add, size: 18),
               label: const Text('Add accepted answer'),
             ),
           ),
@@ -512,25 +592,14 @@ class _ShortAnswerFormState extends State<_ShortAnswerForm> {
             value: _caseSensitive,
             onChanged: (v) => setState(() => _caseSensitive = v),
           ),
+          const SizedBox(height: 4),
           TextFormField(
             controller: _explanationController,
             maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'Explanation (optional)',
-            ),
+            decoration: _fieldDecoration('Explanation (optional)'),
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: _submit,
-              child: const Text('Save Question'),
-            ),
-          ),
+          _saveButton(_submit),
         ],
       ),
     );
@@ -598,29 +667,27 @@ class _EssayFormState extends State<_EssayForm> {
           TextFormField(
             controller: _questionController,
             maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Essay prompt'),
+            decoration: _fieldDecoration('Essay prompt'),
             validator: (v) =>
                 (v == null || v.trim().isEmpty) ? 'Prompt is required' : null,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           TextFormField(
             controller: _pointsController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Points'),
+            decoration: _fieldDecoration('Points'),
             validator: (v) => (int.tryParse(v ?? '') ?? 0) > 0
                 ? null
                 : 'Enter a valid point value',
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
                 child: TextFormField(
                   controller: _minWordsController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Min words (optional)',
-                  ),
+                  decoration: _fieldDecoration('Min words (optional)'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -628,37 +695,35 @@ class _EssayFormState extends State<_EssayForm> {
                 child: TextFormField(
                   controller: _maxWordsController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Max words (optional)',
-                  ),
+                  decoration: _fieldDecoration('Max words (optional)'),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           TextFormField(
             controller: _rubricController,
             maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'Grading rubric (optional)',
-              hintText: 'Guidance shown to instructors when manually grading',
+            decoration: _fieldDecoration(
+              'Grading rubric (optional)',
+              hint: 'Guidance shown to instructors when manually grading',
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline, size: 18, color: Colors.grey),
-                SizedBox(width: 8),
+                Icon(Icons.info_outline, size: 18, color: Colors.grey.shade600),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Essay answers are always graded manually by an instructor.',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   ),
                 ),
               ],
@@ -668,22 +733,10 @@ class _EssayFormState extends State<_EssayForm> {
           TextFormField(
             controller: _explanationController,
             maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: 'Explanation (optional)',
-            ),
+            decoration: _fieldDecoration('Explanation (optional)'),
           ),
           const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: _submit,
-              child: const Text('Save Question'),
-            ),
-          ),
+          _saveButton(_submit),
         ],
       ),
     );
