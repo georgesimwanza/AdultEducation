@@ -101,8 +101,12 @@ class SyncService {
     print('💾 Saved new sync timestamp: $now');
   }
 
-  Future<void> syncOnStartup() async {
+  /// [onProgress] is called with a short, user-facing status string at each
+  /// major stage — e.g. for a loading screen to display live. Optional; if
+  /// omitted, sync behaves exactly as before (debug prints only).
+  Future<void> syncOnStartup({void Function(String stage)? onProgress}) async {
     print('🚀 Starting sync on startup...');
+    onProgress?.call('Preparing local storage...');
     await initDb();
 
     final prefs = await SharedPreferences.getInstance();
@@ -126,17 +130,22 @@ class SyncService {
       print('🔄 Previous sync found — fetching changes since $lastSync');
     }
 
+    onProgress?.call('Loading content locally...');
     await Future.wait([
-      _syncSubjects(lastSync),
-      _syncContent(lastSync),
-      _syncProgrammes(lastSync), // ← added
+      _syncSubjects(lastSync, onProgress),
+      _syncContent(lastSync, onProgress),
+      _syncProgrammes(lastSync, onProgress), // ← added
     ]);
 
+    onProgress?.call('Finishing up...');
     await saveLastSyncTimestamp();
     print('✅ Sync completed successfully');
   }
 
-  Future<void> _syncSubjects(int? since) async {
+  Future<void> _syncSubjects(
+    int? since,
+    void Function(String)? onProgress,
+  ) async {
     try {
       print(
         '📚 Fetching subjects${since != null ? ' since $since' : ' (full)'}...',
@@ -148,6 +157,7 @@ class SyncService {
 
       final List data = res.data;
       print('📚 Received ${data.length} subjects from server');
+      onProgress?.call('Loading subjects...');
 
       for (var item in data) {
         await db!.insert(
@@ -164,7 +174,10 @@ class SyncService {
     }
   }
 
-  Future<void> _syncContent(int? since) async {
+  Future<void> _syncContent(
+    int? since,
+    void Function(String)? onProgress,
+  ) async {
     try {
       print(
         '📄 Fetching content${since != null ? ' since $since' : ' (full)'}...',
@@ -176,6 +189,7 @@ class SyncService {
 
       final List data = res.data;
       print('📄 Received ${data.length} content items from server');
+      onProgress?.call('Loading course materials...');
 
       for (var item in data) {
         await db!.insert(
@@ -192,7 +206,10 @@ class SyncService {
     }
   }
 
-  Future<void> _syncProgrammes(int? since) async {
+  Future<void> _syncProgrammes(
+    int? since,
+    void Function(String)? onProgress,
+  ) async {
     try {
       print(
         '🎓 Fetching programmes${since != null ? ' since $since' : ' (full)'}...',
@@ -204,6 +221,7 @@ class SyncService {
 
       final List data = res.data;
       print('🎓 Received ${data.length} programmes from server');
+      onProgress?.call('Loading programmes...');
 
       for (var item in data) {
         await db!.insert(
