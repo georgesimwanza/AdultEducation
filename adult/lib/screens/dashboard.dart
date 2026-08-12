@@ -20,6 +20,11 @@ class DashboardState extends State<Dashboard> {
 
   static const List<String> _filters = ['All', 'Courses', 'Schedule'];
 
+  // Tied together — the segmented bar below reflects these same numbers
+  // instead of a separate hardcoded percentage.
+  static const int _modulesCompleted = 12;
+  static const int _modulesTotal = 18;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -154,7 +159,7 @@ class DashboardState extends State<Dashboard> {
               _buildTopBar(),
               const SizedBox(height: 20),
               const Text(
-                'Learn Smarter\nFaster With AI',
+                'Learn At Your\nOwn Pace',
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 26,
@@ -345,14 +350,14 @@ class DashboardState extends State<Dashboard> {
           const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
-                'Overall Progress',
+            children: [
+              const Text(
+                'Modules Completed',
                 style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 13),
               ),
               Text(
-                '68%',
-                style: TextStyle(
+                '$_modulesCompleted/$_modulesTotal',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -360,16 +365,8 @@ class DashboardState extends State<Dashboard> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: 0.68,
-              minHeight: 6,
-              backgroundColor: const Color(0xFF2E2E2E),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ),
+          const SizedBox(height: 10),
+          _buildSegmentedProgress(_modulesCompleted, _modulesTotal),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -377,7 +374,11 @@ class DashboardState extends State<Dashboard> {
               const SizedBox(width: 8),
               _buildStatChipDark(Icons.hourglass_bottom, '2 mo', 'Time Left'),
               const SizedBox(width: 8),
-              _buildStatChipDark(Icons.play_arrow_rounded, '12/18', 'Complete'),
+              _buildStatChipDark(
+                Icons.play_arrow_rounded,
+                '$_modulesCompleted/$_modulesTotal',
+                'Complete',
+              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -424,6 +425,26 @@ class DashboardState extends State<Dashboard> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Row of small rounded blocks — filled ones represent completed
+  /// modules, replacing the plain linear percentage bar.
+  Widget _buildSegmentedProgress(int completed, int total) {
+    return Row(
+      children: List.generate(total, (i) {
+        final isFilled = i < completed;
+        return Expanded(
+          child: Container(
+            height: 8,
+            margin: EdgeInsets.only(right: i == total - 1 ? 0 : 4),
+            decoration: BoxDecoration(
+              color: isFilled ? Colors.white : const Color(0xFF2E2E2E),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        );
+      }),
     );
   }
 
