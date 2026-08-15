@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'programmes.dart';
 import 'package:adult/Controller/auth_controller.dart';
 import 'package:adult/Model/programme_model.dart';
+import 'package:adult/screens/loading_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -442,9 +443,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         institutionId: selectedInstitution!.id,
                                       );
 
-                                      if (success) {
-                                        navigator.pushReplacementNamed(
-                                          '/dashboard',
+                                      if (success && navigator.mounted) {
+                                        messenger.showSnackBar(
+                                          const SnackBar(
+                                            backgroundColor: Colors.black,
+                                            content: Row(
+                                              children: [
+                                                Icon(Icons.check_circle,
+                                                    color: Colors.white, size: 18),
+                                                SizedBox(width: 10),
+                                                Text(
+                                                  'Registration successful',
+                                                  style: TextStyle(color: Colors.white),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                        // Same post-auth flow as LoginPage:
+                                        // LoadingScreen runs the initial sync
+                                        // then redirects to '/dashboard', which
+                                        // resolves to the correct student/admin
+                                        // shell based on the stored role.
+                                        navigator.pushReplacement(
+                                          MaterialPageRoute(
+                                            builder: (_) => const LoadingScreen(),
+                                          ),
                                         );
                                       }
                                     },
