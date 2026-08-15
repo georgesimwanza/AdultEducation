@@ -16,27 +16,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   DateTime? _selectedDay;
 
   static const List<String> _weekdayLabels = [
-    'Mon',
-    'Tue',
-    'Wed',
-    'Thu',
-    'Fri',
-    'Sat',
-    'Sun',
+    'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'
   ];
   static const List<String> _monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
   @override
@@ -87,6 +71,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     String? endTime;
 
     final email = context.read<AuthController>().currentUser?.email ?? '';
+    // Captured here, before the sheet's own local `context` shadows it —
+    // this is what lets the success message show on the main screen
+    // after the sheet has already closed.
+    final rootMessenger = ScaffoldMessenger.of(context);
 
     showModalBottomSheet(
       context: context,
@@ -280,6 +268,22 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                   if (ctrl.errorMessage == null &&
                                       context.mounted) {
                                     Navigator.pop(context);
+                                    rootMessenger.showSnackBar(
+                                      const SnackBar(
+                                        backgroundColor: Colors.black,
+                                        content: Row(
+                                          children: [
+                                            Icon(Icons.check_circle,
+                                                color: Colors.white, size: 18),
+                                            SizedBox(width: 10),
+                                            Text(
+                                              'Schedule added successfully',
+                                              style: TextStyle(color: Colors.white),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
                                   }
                                 },
                           child: ctrl.isLoading
@@ -336,10 +340,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         Row(
                           children: [
                             IconButton(
-                              icon: const Icon(
-                                Icons.chevron_left,
-                                color: Colors.black,
-                              ),
+                              icon: const Icon(Icons.chevron_left, color: Colors.black),
                               onPressed: () => _changeMonth(-1),
                             ),
                             Text(
@@ -352,10 +353,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(
-                                Icons.chevron_right,
-                                color: Colors.black,
-                              ),
+                              icon: const Icon(Icons.chevron_right, color: Colors.black),
                               onPressed: () => _changeMonth(1),
                             ),
                           ],
@@ -370,17 +368,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
-                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                               ),
                               child: const Text(
                                 'Today',
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
                               ),
                             ),
                           ],
@@ -393,21 +385,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: _weekdayLabels
-                          .map(
-                            (d) => Expanded(
-                              child: Center(
-                                child: Text(
-                                  d,
-                                  style: const TextStyle(
-                                    fontFamily: 'Poppins',
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black45,
+                          .map((d) => Expanded(
+                                child: Center(
+                                  child: Text(
+                                    d,
+                                    style: const TextStyle(
+                                      fontFamily: 'Poppins',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black45,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ),
-                          )
+                              ))
                           .toList(),
                     ),
                   ),
@@ -417,22 +407,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     child: GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 7,
-                            childAspectRatio: 1,
-                          ),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 7,
+                        childAspectRatio: 1,
+                      ),
                       itemCount: grid.length,
                       itemBuilder: (context, index) {
                         final day = grid[index];
                         final inCurrentMonth = day.month == _visibleMonth.month;
-                        final isSelected =
-                            _selectedDay != null &&
-                            _isSameDay(day, _selectedDay!);
+                        final isSelected = _selectedDay != null && _isSameDay(day, _selectedDay!);
                         final isToday = _isSameDay(day, today);
-                        final hasEntries = controller
-                            .entriesForDay(day)
-                            .isNotEmpty;
+                        final hasEntries = controller.entriesForDay(day).isNotEmpty;
 
                         return GestureDetector(
                           onTap: () => _onDayTapped(day),
@@ -440,15 +425,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             padding: const EdgeInsets.all(3),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: isSelected
-                                    ? Colors.black
-                                    : Colors.transparent,
+                                color: isSelected ? Colors.black : Colors.transparent,
                                 shape: BoxShape.circle,
                                 border: isToday && !isSelected
-                                    ? Border.all(
-                                        color: Colors.black,
-                                        width: 1.4,
-                                      )
+                                    ? Border.all(color: Colors.black, width: 1.4)
                                     : null,
                               ),
                               child: Stack(
@@ -463,8 +443,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                       color: isSelected
                                           ? Colors.white
                                           : inCurrentMonth
-                                          ? Colors.black
-                                          : Colors.black26,
+                                              ? Colors.black
+                                              : Colors.black26,
                                     ),
                                   ),
                                   if (hasEntries && !isSelected)
@@ -529,18 +509,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                   color: const Color(0xFFF7F7F7),
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border(
-                                    left: BorderSide(
-                                      color: Colors.black,
-                                      width: 4,
-                                    ),
+                                    left: BorderSide(color: Colors.black, width: 4),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             entry.title,
