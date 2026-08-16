@@ -3,7 +3,9 @@ import '../model/schedule_model.dart';
 import '../service/schedule_service.dart';
 
 class ScheduleController extends ChangeNotifier {
-  final ScheduleService _service = ScheduleService();
+  final ScheduleService _service;
+
+  ScheduleController({required ScheduleService service}) : _service = service;
 
   List<ScheduleEntry> _entries = [];
   bool isLoading = false;
@@ -26,7 +28,6 @@ class ScheduleController extends ChangeNotifier {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
-
     try {
       _entries = await _service.fetchSchedules(email);
     } catch (e) {
@@ -41,7 +42,6 @@ class ScheduleController extends ChangeNotifier {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
-
     try {
       final saved = await _service.createSchedule(entry);
       _entries.add(saved);
