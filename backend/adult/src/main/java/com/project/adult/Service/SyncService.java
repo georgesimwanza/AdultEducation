@@ -2,10 +2,14 @@ package com.project.adult.Service;
 
 import com.project.adult.DTO.ContentDTO;
 import com.project.adult.DTO.SubjectDTO;
+import com.project.adult.Model.Announcement;
 import com.project.adult.Model.Course;
 import com.project.adult.Model.Programme;
+import com.project.adult.Model.Quiz;
+import com.project.adult.Repository.AnnouncementRepository;
 import com.project.adult.Repository.ContentRepository;
 import com.project.adult.Repository.ProgrammeRepository;
+import com.project.adult.Repository.QuizRepository;
 import com.project.adult.Repository.subjectRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -31,18 +35,24 @@ public class SyncService {
     private final subjectRepository subjectRepository;
     private final ContentRepository contentRepository;
     private final ProgrammeRepository programmeRepository;
+    private final AnnouncementRepository announcementRepository;
+    private final QuizRepository quizRepository;
 
     /**
      * Constructs the service with its required repositories.
      *
-     * @param subjectRepository   repository for persisting and querying subjects/courses
-     * @param contentRepository   repository for persisting and querying content
-     * @param programmeRepository repository for persisting and querying programmes
+     * @param subjectRepository      repository for persisting and querying subjects/courses
+     * @param contentRepository      repository for persisting and querying content
+     * @param programmeRepository    repository for persisting and querying programmes
+     * @param announcementRepository repository for persisting and querying announcements
+     * @param quizRepository         repository for persisting and querying quizzes
      */
-    public SyncService(subjectRepository subjectRepository, ContentRepository contentRepository, ProgrammeRepository programmeRepository) {
+    public SyncService(subjectRepository subjectRepository, ContentRepository contentRepository, ProgrammeRepository programmeRepository, AnnouncementRepository announcementRepository, QuizRepository quizRepository) {
         this.subjectRepository = subjectRepository;
         this.contentRepository = contentRepository;
         this.programmeRepository = programmeRepository;
+        this.announcementRepository = announcementRepository;
+        this.quizRepository = quizRepository;
     }
 
     /**
@@ -146,5 +156,33 @@ public class SyncService {
             map.put("description", p.getDescription());
             return map;
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves announcements for sync.
+     * <p>
+     * {@code Announcement} doesn't have an {@code updatedAt} column yet, so
+     * this always returns the full set regardless of {@code since} — add
+     * that column plus a {@code findByUpdatedAtAfter} query if you want
+     * this to become incremental like subjects/content.
+     *
+     * @param since accepted for API symmetry with the other sync endpoints, currently unused
+     * @return every announcement
+     */
+    public List<Announcement> getSyncedAnnouncements(Long since) {
+        return announcementRepository.findAll();
+    }
+
+    /**
+     * Retrieves quizzes (with their questions) for sync.
+     * <p>
+     * Same story as announcements: {@code Quiz} has no {@code updatedAt}
+     * column, so this is always a full sync for now.
+     *
+     * @param since accepted for API symmetry with the other sync endpoints, currently unused
+     * @return every quiz, including its questions
+     */
+    public List<Quiz> getSyncedQuizzes(Long since) {
+        return quizRepository.findAll();
     }
 }
