@@ -18,7 +18,7 @@ class SyncService {
     final dbPath = await getDatabasesPath();
     db = await openDatabase(
       join(dbPath, 'app.db'),
-      version: 3, // ← bumped to 3
+      version: 4, // ← bumped to 4 (added schedules table)
       onCreate: (db, version) async {
         print('🗄️ Creating tables...');
         await db.execute('''
@@ -46,6 +46,16 @@ class SyncService {
             name TEXT,
             code TEXT,
             description TEXT
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE schedules (
+            id TEXT PRIMARY KEY,
+            email TEXT,
+            data TEXT,
+            synced INTEGER DEFAULT 1,
+            pendingDelete INTEGER DEFAULT 0,
+            updatedAt INTEGER
           )
         ''');
         print('✅ Tables created successfully');
@@ -79,6 +89,19 @@ class SyncService {
             name TEXT,
             code TEXT,
             description TEXT
+          )
+        ''');
+        // NOTE: schedules is intentionally NOT dropped/recreated here —
+        // it can hold local writes that haven't synced to the server yet,
+        // so a drop would silently lose user data on upgrade.
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS schedules (
+            id TEXT PRIMARY KEY,
+            email TEXT,
+            data TEXT,
+            synced INTEGER DEFAULT 1,
+            pendingDelete INTEGER DEFAULT 0,
+            updatedAt INTEGER
           )
         ''');
         print('✅ Database upgraded successfully');
