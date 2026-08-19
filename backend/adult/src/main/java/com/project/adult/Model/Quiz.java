@@ -33,17 +33,27 @@ public class Quiz {
      */
     @JoinColumn(name = "institution_id", nullable = false)
     @ManyToOne
-    @JsonIgnoreProperties({"quiz", "hibernateLazyInitializer", "handler"})
+    // Widened to match Announcement.institution's ignore list — ignoring
+    // only "quiz" left Jackson free to walk institution.programmes ->
+    // programme.institution -> ... in a circle (that's what produced the
+    // depth-500 nesting error on the announcements endpoint).
+    @JsonIgnoreProperties({"contents", "quiz", "programmes", "students", "announcements", "hibernateLazyInitializer", "handler"})
     private Institution institution;
     @JoinColumn(name = "programme_id", nullable = false)
     @ManyToOne
-    @JsonIgnoreProperties({"quiz", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"users", "programmeCourses", "institution", "students", "announcements", "quiz", "hibernateLazyInitializer", "handler"})
     private Programme programme;
 
-    /** FK to your Institution entity, same reasoning as subjectId above. */
+    /**
+     * FK to your Course entity. The ignored property names here
+     * ("content", "programmeCourses", "quiz") are a best guess based on
+     * how Course is used elsewhere in SyncService — verify against your
+     * actual Course entity's field names, or share Course.java and I'll
+     * correct this.
+     */
     @JoinColumn(name = "course_id", nullable = false)
     @ManyToOne
-    @JsonIgnoreProperties({"quiz", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"content", "programmeCourses", "quiz", "institution", "hibernateLazyInitializer", "handler"})
     private Course course;
 
     /**

@@ -29,40 +29,17 @@ public class SecurityConfig {
         this.jwtFilter          = jwtFilter;
     }
 
-    // -------------------------------------------------------------------------
-    // PasswordEncoder
-    // IMPORTANT: your passwordHash column must store BCrypt hashes.
-    // When registering a new user, encode with:
-    //   user.setPasswordHash(passwordEncoder.encode(rawPassword));
-    // Never store plain text.
-    // -------------------------------------------------------------------------
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
     }
 
-    // -------------------------------------------------------------------------
-    // DaoAuthenticationProvider
-    // Wires your UserDetailsServiceImpl + BCryptPasswordEncoder together.
-    // On login it calls:
-    //   1. userDetailsService.loadUserByUsername(email)
-    //   2. passwordEncoder.matches(rawPassword, storedHash)
-    // -------------------------------------------------------------------------
-
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
-        // Spring Security 6: UserDetailsService is passed into the constructor,
-        // not set via a setter. PasswordEncoder is set via the remaining setter.
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
-
-    // -------------------------------------------------------------------------
-    // AuthenticationManager — inject this into your AuthController to
-    // manually call authenticate() on the /login endpoint.
-    // -------------------------------------------------------------------------
 
     @Bean
     public AuthenticationManager authenticationManager(
@@ -70,14 +47,10 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    // -------------------------------------------------------------------------
-    // Security filter chain
-    // -------------------------------------------------------------------------
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())              // stateless JWT — no CSRF needed
+                .csrf(csrf -> csrf.disable())
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -102,6 +75,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/Content/addContent").permitAll()
                         .requestMatchers(HttpMethod.GET,  "/api/Content/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/announcement/allAnnouncements").permitAll()
+                        // ← added: this was falling through to anyRequest().authenticated(),
+                        // which is where the 403 on the notices screen was coming from.
+                        .requestMatchers(HttpMethod.GET, "/api/announcement/getByInstitutionAndProgramme").permitAll()
 
                         // Writes restricted to ADMIN
                         .requestMatchers(HttpMethod.POST, "/api/announcement/addAnnouncement").permitAll()
@@ -119,10 +95,6 @@ public class SecurityConfig {
 
                 .authenticationProvider(authenticationProvider())
 
-                // JWT filter runs before Spring's own credential filter.
-                // It reads the Authorization header, validates the token, and
-                // sets the SecurityContext — so the request arrives at your
-                // controller already authenticated.
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
