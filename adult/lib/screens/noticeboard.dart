@@ -1,5 +1,7 @@
 import 'package:adult/service/announcement_service.dart';
+import 'package:adult/service/sync_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:adult/Model/Announcement_model.dart';
 
 class NoticeBoardScreen extends StatefulWidget {
@@ -10,7 +12,11 @@ class NoticeBoardScreen extends StatefulWidget {
 }
 
 class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
-  final AnnouncementService _service = AnnouncementService();
+  // Built in initState once we can reach the SyncService's db via Provider —
+  // a field initializer can't use context, and without db the service has
+  // no offline fallback, which is what caused the raw SocketException to
+  // reach this screen instead of falling back to the local cache.
+  late final AnnouncementService _service;
 
   late Future<List<AnnouncementModel>> _futureAnnouncements;
 
@@ -23,6 +29,8 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
   @override
   void initState() {
     super.initState();
+    final syncService = Provider.of<SyncService>(context, listen: false);
+    _service = AnnouncementService(db: syncService.db);
     _futureAnnouncements = _loadAnnouncements();
   }
 
