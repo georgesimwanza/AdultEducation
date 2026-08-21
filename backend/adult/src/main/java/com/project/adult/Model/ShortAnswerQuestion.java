@@ -25,6 +25,9 @@ public class ShortAnswerQuestion extends Question {
     @Column(name = "case_sensitive", nullable = false)
     private boolean caseSensitive;
 
-    public ShortAnswerQuestion(String text, int points, String explanation, List<String> acceptedAnswers, boolean caseSensitive) {
+    public ShortAnswerQuestion(String text, int points, String explanation, List<String> acceptedAnswers, Boolean caseSensitive) {
+        super(text, points, explanation);
+        this.acceptedAnswers = acceptedAnswers;
+        this.caseSensitive = caseSensitive;
     }
 }

@@ -1,66 +1,91 @@
 import 'package:flutter/foundation.dart';
 import '../Model/question.dart';
 import '../Model/quiz.dart';
+import '../service/quiz_service.dart';
 
-/// Holds all quiz admin state and mutation logic.
-///
-/// Purely in-memory for now — no backend yet, so quizzes reset when the
-/// app restarts. When your API is ready, this is the only file that
-/// needs to change: swap the in-memory list operations below for real
-/// HTTP calls (e.g. through your existing lib/service folder).
+/// Holds all quiz admin state and mutation logic, backed by [QuizService]
+/// (which talks to the Spring Boot API). Screens read from this via
+/// Provider/Consumer and never call QuizService directly.
 class QuizAdminController extends ChangeNotifier {
-  final List<Quiz> _quizzes = [];
-
+  QuizAdminController({QuizService? service})
+    : _service = service ?? QuizService();
+  final QuizService _service;
+  List<Quiz> _quizzes = [];
+  bool _isLoading = false;
+  String? _errorMessage;
   List<Quiz> get quizzes => List.unmodifiable(_quizzes);
-
-  Quiz createQuiz(String title, {String description = ''}) {
-    final quiz = Quiz(
-      id: 'quiz_${DateTime.now().microsecondsSinceEpoch}',
-      title: title,
-      description: description,
-    );
-    _quizzes.add(quiz);
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  Future<void> loadQuizzes() async {
+    _isLoading = true;
     notifyListeners();
-    return quiz;
-  }
-
-  void updateQuiz(Quiz quiz) {
-    final index = _quizzes.indexWhere((q) => q.id == quiz.id);
-    if (index != -1) {
-      _quizzes[index] = quiz;
+    try {
+      _quizzes = await _service.fetchQuizzes();
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = 'Failed to load quizzes: $e';
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
-  void deleteQuiz(String id) {
-    _quizzes.removeWhere((q) => q.id == id);
+  Future<Quiz> createQuiz(
+    String title, {
+    required int subjectId,
+    required int institutionId,
+    required int programmeId,
+    String description = '',
+  }) async {
+    final quiz = await _service.createQuiz(
+      title,
+      subjectId: subjectId,
+      institutionId: institutionId,
+      programmeId: programmeId,
+      description: description,
+    );
+    _quizzes = [..._quizzes, quiz];
+    notifyListeners();
+    return quiz;
+  }
+
+  Future<void> updateQuiz(Quiz quiz) async {
+    final updated = await _service.updateQuiz(quiz);
+    _quizzes = _quizzes.map((q) => q.id == updated.id ? updated : q).toList();
     notifyListeners();
   }
 
-  /// Adds a new question, or replaces an existing one (matched by id).
-  void upsertQuestion(Quiz quiz, Question question) {
-    final existingIndex =
-        quiz.questions.indexWhere((q) => q.id == question.id);
+  Future<void> deleteQuiz(String id) async {
+    await _service.deleteQuiz(id);
+    _quizzes = _quizzes.where((q) => q.id != id).toList();
+    notifyListeners();
+  }
+
+  /// Adds a new question, or replaces an existing one (matched by id),
+  /// then saves the whole quiz via [updateQuiz].
+  Future<void> upsertQuestion(Quiz quiz, Question question) async {
+    final existingIndex = quiz.questions.indexWhere((q) => q.id == question.id);
     final newQuestions = [...quiz.questions];
     if (existingIndex == -1) {
       newQuestions.add(question);
     } else {
       newQuestions[existingIndex] = question;
     }
-    updateQuiz(quiz.copyWith(questions: newQuestions));
+    await updateQuiz(quiz.copyWith(questions: newQuestions));
   }
 
-  void removeQuestion(Quiz quiz, String questionId) {
-    final newQuestions =
-        quiz.questions.where((q) => q.id != questionId).toList();
-    updateQuiz(quiz.copyWith(questions: newQuestions));
+  Future<void> removeQuestion(Quiz quiz, String questionId) async {
+    final newQuestions = quiz.questions
+        .where((q) => q.id != questionId)
+        .toList();
+    await updateQuiz(quiz.copyWith(questions: newQuestions));
   }
 
-  void reorderQuestions(Quiz quiz, int oldIndex, int newIndex) {
+  Future<void> reorderQuestions(Quiz quiz, int oldIndex, int newIndex) async {
     final newQuestions = [...quiz.questions];
     if (newIndex > oldIndex) newIndex -= 1;
     final item = newQuestions.removeAt(oldIndex);
     newQuestions.insert(newIndex, item);
-    updateQuiz(quiz.copyWith(questions: newQuestions));
+    await updateQuiz(quiz.copyWith(questions: newQuestions));
   }
 }

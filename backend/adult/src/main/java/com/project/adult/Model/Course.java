@@ -62,11 +62,11 @@ public class Course {
    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
    private List<ProgrammeCourse> programmeCourses;
 
-   @JsonIgnoreProperties("course")
+   @JsonIgnoreProperties({"course","quiz"})
    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
    private List<UserContentProgress> userContentProgresses;
 
-   @JsonIgnoreProperties("course")
+   @JsonIgnoreProperties({"course","quiz","institution"})
    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
    private List<Content> contents;
 
@@ -80,7 +80,8 @@ public class Course {
    protected void onUpdate() {
       this.updatedAt = LocalDateTime.now();
    }
-   @OneToMany()
-   @JoinColumn(name = "quiz_id")
+   @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
+
+   @JsonIgnoreProperties({"course", "hibernateLazyInitializer", "handler"})
    private List<Quiz> quiz;
 }

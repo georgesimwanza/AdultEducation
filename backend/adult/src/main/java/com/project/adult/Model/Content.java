@@ -28,7 +28,7 @@ public class Content {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
-    @JsonIgnoreProperties({"contents", "programmeCourses", "userContentProgresses"})
+    @JsonIgnoreProperties({"contents", "programmeCourses", "userContentProgresses","quiz"})
     private Course course;
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
@@ -40,6 +40,6 @@ public class Content {
     }
     @ManyToOne()
     @JoinColumn(name = "institution")
-    @JsonIgnoreProperties({"contents", "users"})
+    @JsonIgnoreProperties({"contents", "users","quiz"})
     private Institution institution;
 }

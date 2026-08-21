@@ -1,4 +1,8 @@
+import 'package:adult/service/announcement_service.dart';
+import 'package:adult/service/sync_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:adult/Model/Announcement_model.dart';
 
 class NoticeBoardScreen extends StatefulWidget {
   const NoticeBoardScreen({super.key});
@@ -8,38 +12,38 @@ class NoticeBoardScreen extends StatefulWidget {
 }
 
 class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
-  final List<Notice> notices = [
-    Notice(
-      id: "1",
-      title: "Urgent: CBC Assessment Guidelines Updated",
-      content:
-          "The Ministry has released the revised Competency-Based Curriculum tracking metrics for the upcoming term. Please download the attached offline module before Friday.",
-      date: "June 22, 2026",
-      isUrgent: true,
-      isAcknowledged: false,
-    ),
-    Notice(
-      id: "2",
-      title: "System Architecture Seminar: Venue Change",
-      content:
-          "The seminar scheduled for tomorrow has been moved from Hall B to the Main Auditorium due to capacity constraints.",
-      date: "June 20, 2026",
-      isUrgent: false,
-      isAcknowledged: false,
-    ),
-    Notice(
-      id: "3",
-      title: "Final Year Project Deadlines",
-      content:
-          "Draft proposals for the digital support system implementations are due next week. Ensure all offline repositories are synced.",
-      date: "June 18, 2026",
-      isUrgent: false,
-      isAcknowledged: true,
-    ),
-  ];
+  // Built in initState once we can reach the SyncService's db via Provider —
+  // a field initializer can't use context, and without db the service has
+  // no offline fallback, which is what caused the raw SocketException to
+  // reach this screen instead of falling back to the local cache.
+  late final AnnouncementService _service;
 
-  int get _unacknowledgedCount =>
-      notices.where((n) => !n.isAcknowledged).length;
+  late Future<List<AnnouncementModel>> _futureAnnouncements;
+
+  // Local-only acknowledgment tracking — there's no "acknowledged" field
+  // on AnnouncementModel/backend yet, so this resets on app restart.
+  // If you want it to persist, either add an `isAcknowledged` column to
+  // the Announcement entity, or store acknowledged IDs in SharedPreferences.
+  final Set<int> _acknowledgedIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final syncService = Provider.of<SyncService>(context, listen: false);
+    _service = AnnouncementService(db: syncService.db);
+    _futureAnnouncements = _loadAnnouncements();
+  }
+
+  Future<List<AnnouncementModel>> _loadAnnouncements() {
+    return _service.getByInstitutionAndProgrammeFromPrefs();
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _futureAnnouncements = _loadAnnouncements();
+    });
+    await _futureAnnouncements;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,66 +54,111 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
         foregroundColor: Colors.white,
         titleSpacing: 0,
         leading: const BackButton(),
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 17,
-              backgroundColor: Colors.white24,
-              child: const Icon(
-                Icons.campaign_outlined,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        title: FutureBuilder<List<AnnouncementModel>>(
+          future: _futureAnnouncements,
+          builder: (context, snapshot) {
+            final unread = snapshot.hasData
+                ? snapshot.data!
+                      .where((a) => !_acknowledgedIds.contains(a.id))
+                      .length
+                : 0;
+            return Row(
               children: [
-                const Text(
-                  'Notice Board',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                CircleAvatar(
+                  radius: 17,
+                  backgroundColor: Colors.white24,
+                  child: const Icon(
+                    Icons.campaign_outlined,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
-                Text(
-                  '$_unacknowledgedCount unread',
-                  style: const TextStyle(fontSize: 11, color: Colors.white70),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Notice Board',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '$unread unread',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
+            );
+          },
         ),
-        actions: const [Icon(Icons.tune_outlined), SizedBox(width: 16)],
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _refresh),
+        ],
       ),
-      body: notices.isEmpty
-          ? const Center(
-              child: Text(
-                'No notices yet.',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-            )
-          : ListView.builder(
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: FutureBuilder<List<AnnouncementModel>>(
+          future: _futureAnnouncements,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return ListView(
+                children: [
+                  const SizedBox(height: 120),
+                  const Icon(Icons.error_outline, color: Colors.grey, size: 32),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      'Could not load notices.\n${snapshot.error}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            final notices = snapshot.data ?? [];
+
+            if (notices.isEmpty) {
+              return ListView(
+                children: const [
+                  SizedBox(height: 160),
+                  Center(
+                    child: Text(
+                      'No notices yet.',
+                      style: TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              itemCount: notices.length + 1,
+              itemCount: notices.length,
               itemBuilder: (context, index) {
-                if (index == 0) return _buildDateDivider('Today');
-                return _buildNoticeCard(notices[index - 1], index - 1);
+                return _buildNoticeCard(notices[index]);
               },
-            ),
-    );
-  }
-
-  Widget _buildDateDivider(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Center(
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 11, color: Colors.grey),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildNoticeCard(Notice notice, int index) {
+  Widget _buildNoticeCard(AnnouncementModel notice) {
+    final isAcknowledged = _acknowledgedIds.contains(notice.id);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -123,59 +172,26 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Left accent — black for urgent, light grey for normal
-              Container(
-                width: 4,
-                color: notice.isUrgent ? Colors.black : Colors.grey.shade200,
-              ),
+              Container(width: 4, color: Colors.grey.shade200),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Date row + urgent badge
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.calendar_today_outlined,
-                                size: 11,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                notice.date,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
+                          Text(
+                            notice.title,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              height: 1.35,
+                              color: Colors.black87,
+                            ),
                           ),
-                          if (notice.isUrgent)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'URGENT',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.6,
-                                ),
-                              ),
-                            )
-                          else if (notice.isAcknowledged)
+                          if (isAcknowledged)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -197,21 +213,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-
-                      // Title
-                      Text(
-                        notice.title,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          height: 1.35,
-                          color: Colors.black87,
-                        ),
-                      ),
                       const SizedBox(height: 6),
-
-                      // Body
                       Text(
                         notice.content,
                         style: TextStyle(
@@ -221,14 +223,11 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
-
-                      // Divider + action row
                       Divider(color: Colors.grey.shade100, thickness: 1),
                       const SizedBox(height: 6),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Posted by chip
                           Row(
                             children: [
                               CircleAvatar(
@@ -250,7 +249,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                               ),
                             ],
                           ),
-                          _buildAcknowledgeButton(notice, index),
+                          _buildAcknowledgeButton(notice),
                         ],
                       ),
                     ],
@@ -264,18 +263,44 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
     );
   }
 
-  Widget _buildAcknowledgeButton(Notice notice, int index) {
+  Widget _buildAcknowledgeButton(AnnouncementModel notice) {
+    final isAcknowledged = _acknowledgedIds.contains(notice.id);
+
     return GestureDetector(
-      onTap: () => setState(
-        () => notices[index].isAcknowledged = !notices[index].isAcknowledged,
-      ),
+      onTap: () {
+        final wasAcknowledged = isAcknowledged;
+        setState(() {
+          if (wasAcknowledged) {
+            _acknowledgedIds.remove(notice.id);
+          } else {
+            _acknowledgedIds.add(notice.id);
+          }
+        });
+        if (!wasAcknowledged) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.black,
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white, size: 18),
+                  SizedBox(width: 10),
+                  Text(
+                    'Announcement acknowledged',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: notice.isAcknowledged ? Colors.white : Colors.black,
+          color: isAcknowledged ? Colors.white : Colors.black,
           border: Border.all(
-            color: notice.isAcknowledged ? Colors.grey.shade300 : Colors.black,
+            color: isAcknowledged ? Colors.grey.shade300 : Colors.black,
           ),
           borderRadius: BorderRadius.circular(20),
         ),
@@ -283,21 +308,15 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              notice.isAcknowledged
-                  ? Icons.check_circle
-                  : Icons.circle_outlined,
+              isAcknowledged ? Icons.check_circle : Icons.circle_outlined,
               size: 14,
-              color: notice.isAcknowledged
-                  ? Colors.grey.shade500
-                  : Colors.white,
+              color: isAcknowledged ? Colors.grey.shade500 : Colors.white,
             ),
             const SizedBox(width: 6),
             Text(
-              notice.isAcknowledged ? 'Acknowledged' : 'Acknowledge',
+              isAcknowledged ? 'Acknowledged' : 'Acknowledge',
               style: TextStyle(
-                color: notice.isAcknowledged
-                    ? Colors.grey.shade500
-                    : Colors.white,
+                color: isAcknowledged ? Colors.grey.shade500 : Colors.white,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),
@@ -307,23 +326,4 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
       ),
     );
   }
-}
-
-/// DATA MODEL
-class Notice {
-  final String id;
-  final String title;
-  final String content;
-  final String date;
-  final bool isUrgent;
-  bool isAcknowledged;
-
-  Notice({
-    required this.id,
-    required this.title,
-    required this.content,
-    required this.date,
-    required this.isUrgent,
-    this.isAcknowledged = false,
-  });
 }

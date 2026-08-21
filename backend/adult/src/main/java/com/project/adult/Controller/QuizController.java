@@ -32,10 +32,11 @@ public class QuizController {
     /** Both the teacher's admin list and the student's quiz list hit this. */
     @GetMapping
     public List<QuizDto> getAllQuizzes(
-            @RequestParam(required = false) Long subjectId,
-            @RequestParam(required = false) Long institutionId
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long institutionId,
+            @RequestParam(required = false) Long programmeId
     ) {
-        return quizService.getAllQuizzes(subjectId, institutionId);
+        return quizService.getAllQuizzes(courseId, institutionId, programmeId);
     }
 
     @GetMapping("/{id}")
@@ -65,5 +66,9 @@ public class QuizController {
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<String> handleNotFound(EntityNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleBadRequest(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 }

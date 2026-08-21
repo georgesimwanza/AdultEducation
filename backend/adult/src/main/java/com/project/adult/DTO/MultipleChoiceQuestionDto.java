@@ -13,6 +13,6 @@ import java.util.List;
 public class MultipleChoiceQuestionDto extends QuestionDto {
 
     private List<String> options;
-    private int correctOptionIndex;
+    private Integer correctOptionIndex;
 
 }

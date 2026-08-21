@@ -16,6 +16,14 @@ class Dashboard extends StatefulWidget {
 class DashboardState extends State<Dashboard> {
   String _programmeTitle = 'Loading...';
   bool _titleFetched = false;
+  int _selectedFilter = 0;
+
+  static const List<String> _filters = ['All', 'Courses', 'Schedule'];
+
+  // Tied together — the segmented bar below reflects these same numbers
+  // instead of a separate hardcoded percentage.
+  static const int _modulesCompleted = 12;
+  static const int _modulesTotal = 18;
 
   @override
   void didChangeDependencies() {
@@ -68,29 +76,99 @@ class DashboardState extends State<Dashboard> {
     ),
   ];
 
+  final List<_NotifData> _notifications = [
+    _NotifData(
+      icon: Icons.check_circle_rounded,
+      iconColor: Colors.black,
+      title: 'Assignment Graded',
+      subtitle: 'Social Media Campaign – Score: 95/100',
+      time: '2 hours ago',
+    ),
+    _NotifData(
+      icon: Icons.warning_amber_rounded,
+      iconColor: Colors.black,
+      title: 'Upcoming Deadline',
+      subtitle: 'Module 4 quiz due in 3 days',
+      time: '5 hours ago',
+    ),
+    _NotifData(
+      icon: Icons.info_rounded,
+      iconColor: Colors.black,
+      title: 'New Content Available',
+      subtitle: 'Video lectures for Module 5 uploaded',
+      time: '1 day ago',
+    ),
+  ];
+
+  void _openNotifications() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Notifications',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.black54),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ..._notifications.map((n) => _buildNotifTile(n)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildTopBar(),
+              const SizedBox(height: 20),
               const Text(
-                'Dashboard',
+                'Learn At Your\nOwn Pace',
                 style: TextStyle(
                   color: Colors.black,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
                 ),
               ),
-              const SizedBox(height: 4),
-              const Text(
-                'Track your learning journey',
-                style: TextStyle(color: Colors.black54, fontSize: 13),
-              ),
+              const SizedBox(height: 16),
+              _buildFilterChips(),
               const SizedBox(height: 16),
               _buildCurrentProgramCard(),
               const SizedBox(height: 16),
@@ -107,10 +185,6 @@ class DashboardState extends State<Dashboard> {
                 title: 'Schedule',
                 subtitle: 'View your timetable',
               ),
-              const SizedBox(height: 24),
-              _buildNotificationsSection(),
-              const SizedBox(height: 24),
-              _buildUpcomingClassesSection(),
             ],
           ),
         ),
@@ -118,112 +192,212 @@ class DashboardState extends State<Dashboard> {
     );
   }
 
+  Widget _buildTopBar() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: Colors.black,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.person, color: Colors.white, size: 20),
+            ),
+          ],
+        ),
+        GestureDetector(
+          onTap: _openNotifications,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Colors.black,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.notifications_none_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              if (_notifications.isNotEmpty)
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFF5F5F5),
+                        width: 2,
+                      ),
+                    ),
+                    child: Container(
+                      margin: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: Colors.black,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterChips() {
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _filters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final isSelected = _selectedFilter == index;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedFilter = index),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.black : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? Colors.black : const Color(0xFFDDDDDD),
+                ),
+              ),
+              child: Text(
+                _filters[index],
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.black87,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildCurrentProgramCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: _cardShadow,
+        color: const Color(0xFF111111),
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Current Program',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF262626),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.school_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Current Program',
+                      style: TextStyle(
+                        color: Color(0xFF9E9E9E),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _programmeTitle,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            _programmeTitle,
-            style: const TextStyle(color: Colors.black54, fontSize: 13),
-          ),
-          const SizedBox(height: 16),
-
-          // Progress
+          const SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
-                'Overall Progress',
-                style: TextStyle(color: Colors.black54, fontSize: 13),
+            children: [
+              const Text(
+                'Modules Completed',
+                style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 13),
               ),
               Text(
-                '68%',
-                style: TextStyle(
-                  color: Colors.black,
+                '$_modulesCompleted/$_modulesTotal',
+                style: const TextStyle(
+                  color: Colors.white,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: 0.68,
-              minHeight: 6,
-              backgroundColor: const Color(0xFFE0E0E0),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.black),
-            ),
-          ),
+          const SizedBox(height: 10),
+          _buildSegmentedProgress(_modulesCompleted, _modulesTotal),
           const SizedBox(height: 16),
-
-          // Stats Row
           Row(
             children: [
-              _buildStatChip(Icons.access_time, '6 mo', 'Duration'),
+              _buildStatChipDark(Icons.access_time, '6 mo', 'Duration'),
               const SizedBox(width: 8),
-              _buildStatChip(Icons.hourglass_bottom, '2 mo', 'Time Left'),
+              _buildStatChipDark(Icons.hourglass_bottom, '2 mo', 'Time Left'),
               const SizedBox(width: 8),
-              _buildStatChip(Icons.play_arrow_rounded, '12/18', 'Complete'),
+              _buildStatChipDark(
+                Icons.play_arrow_rounded,
+                '$_modulesCompleted/$_modulesTotal',
+                'Complete',
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // Current Module
-          const Text(
-            'Current Module',
-            style: TextStyle(color: Colors.black54, fontSize: 12),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _programmeTitle,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 18),
           Row(
             children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.black,
-                  shape: BoxShape.circle,
+              const Icon(Icons.circle, color: Colors.white, size: 8),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'Module 4 of 6 • Due April 25, 2026',
+                  style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 12),
                 ),
               ),
-              const SizedBox(width: 6),
-              const Text(
-                'Module 4 of 6 • Due April 25, 2026',
-                style: TextStyle(color: Colors.black54, fontSize: 12),
-              ),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // Continue Button
+          const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton.icon(
+            child: ElevatedButton(
               onPressed: () {
                 Navigator.push(
                   context,
@@ -235,15 +409,17 @@ class DashboardState extends State<Dashboard> {
                   ),
                 );
               },
-              icon: const Icon(Icons.play_arrow_rounded, size: 18),
-              label: const Text('Continue Learning'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
+              ),
+              child: const Text(
+                'See More',
+                style: TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
           ),
@@ -252,30 +428,50 @@ class DashboardState extends State<Dashboard> {
     );
   }
 
-  Widget _buildStatChip(IconData icon, String value, String label) {
+  /// Row of small rounded blocks — filled ones represent completed
+  /// modules, replacing the plain linear percentage bar.
+  Widget _buildSegmentedProgress(int completed, int total) {
+    return Row(
+      children: List.generate(total, (i) {
+        final isFilled = i < completed;
+        return Expanded(
+          child: Container(
+            height: 8,
+            margin: EdgeInsets.only(right: i == total - 1 ? 0 : 4),
+            decoration: BoxDecoration(
+              color: isFilled ? Colors.white : const Color(0xFF2E2E2E),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildStatChipDark(IconData icon, String value, String label) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(12),
-          boxShadow: _cardShadow,
+          border: Border.all(color: const Color(0xFF2E2E2E)),
         ),
         child: Column(
           children: [
-            Icon(icon, color: Colors.black54, size: 18),
+            Icon(icon, color: Colors.white70, size: 16),
             const SizedBox(height: 6),
             Text(
               value,
               style: const TextStyle(
-                color: Colors.black,
-                fontSize: 15,
+                color: Colors.white,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
               label,
-              style: const TextStyle(color: Colors.black45, fontSize: 11),
+              style: const TextStyle(color: Color(0xFF9E9E9E), fontSize: 10),
             ),
           ],
         ),
@@ -356,57 +552,13 @@ class DashboardState extends State<Dashboard> {
     );
   }
 
-  Widget _buildNotificationsSection() {
-    final notifications = [
-      _NotifData(
-        icon: Icons.check_circle_rounded,
-        iconColor: Colors.black,
-        title: 'Assignment Graded',
-        subtitle: 'Social Media Campaign – Score: 95/100',
-        time: '2 hours ago',
-      ),
-      _NotifData(
-        icon: Icons.warning_amber_rounded,
-        iconColor: Colors.black,
-        title: 'Upcoming Deadline',
-        subtitle: 'Module 4 quiz due in 3 days',
-        time: '5 hours ago',
-      ),
-      _NotifData(
-        icon: Icons.info_rounded,
-        iconColor: Colors.black,
-        title: 'New Content Available',
-        subtitle: 'Video lectures for Module 5 uploaded',
-        time: '1 day ago',
-      ),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ...notifications.map((n) => _buildNotifTile(n)),
-        const SizedBox(height: 8),
-        Center(
-          child: TextButton(
-            onPressed: () {},
-            child: const Text(
-              'View All Notifications',
-              style: TextStyle(color: Colors.black54),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildNotifTile(_NotifData n) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF7F7F7),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: _cardShadow,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,105 +592,6 @@ class DashboardState extends State<Dashboard> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildUpcomingClassesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'New Content',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'View the new content',
-          style: TextStyle(color: Colors.black54, fontSize: 13),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: _cardShadow,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Wrestlemania watch along',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      'Live Session',
-                      style: TextStyle(color: Colors.white, fontSize: 11),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Mr. Simwanza',
-                style: TextStyle(color: Colors.black54, fontSize: 13),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: const [
-                  Icon(
-                    Icons.calendar_today_rounded,
-                    color: Colors.black45,
-                    size: 14,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'April 18, 2026',
-                    style: TextStyle(color: Colors.black54, fontSize: 12),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: const [
-                  Icon(
-                    Icons.access_time_rounded,
-                    color: Colors.black45,
-                    size: 14,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    '6:00 PM – 8:00 PM EST',
-                    style: TextStyle(color: Colors.black54, fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

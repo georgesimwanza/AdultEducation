@@ -1,5 +1,6 @@
 import 'package:adult/screens/register_institution.dart';
 import 'package:adult/screens/register_screen.dart';
+import 'package:adult/screens/loading_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:adult/Controller/auth_controller.dart';
@@ -238,9 +239,11 @@ class _LoginPageState extends State<LoginPage> {
                                   );
 
                                   if (success && context.mounted) {
-                                    Navigator.pushReplacementNamed(
+                                    Navigator.pushReplacement(
                                       context,
-                                      '/dashboard',
+                                      MaterialPageRoute(
+                                        builder: (_) => const LoadingScreen(),
+                                      ),
                                     );
                                   }
                                 },

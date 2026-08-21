@@ -24,5 +24,9 @@ public class EssayQuestion extends Question {
 
 
     public EssayQuestion(String text, int points, String explanation, Integer minWords, Integer maxWords, String rubric) {
+        super(text, points, explanation);
+        this.minWords = minWords;
+        this.maxWords = maxWords;
+        this.rubric = rubric;
     }
 }
