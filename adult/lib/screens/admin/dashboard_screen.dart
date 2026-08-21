@@ -115,18 +115,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'action': 'New student enrolled',
         'name': 'Sarah Johnson',
         'time': '5 min ago',
+        'icon': 'person',
       },
       {
         'action': 'Content uploaded',
         'name': 'Math Module 5',
         'time': '12 min ago',
+        'icon': 'document',
       },
       {
         'action': 'Subject updated',
         'name': 'Physics 101',
         'time': '1 hour ago',
+        'icon': 'gear',
       },
-      {'action': 'Admin added', 'name': 'John Smith', 'time': '2 hours ago'},
+      {
+        'action': 'Admin added',
+        'name': 'John Smith',
+        'time': '2 hours ago',
+        'icon': 'shield',
+      },
     ];
 
     return Scaffold(
@@ -163,24 +171,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                   ),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: Colors.black,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _institutionName.isNotEmpty
-                          ? _institutionName[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          color: Colors.black,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          _institutionName.isNotEmpty
+                              ? _institutionName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
-                    ),
+                      // Notification bell badge — from the reference screenshot.
+                      // No notifications data source exists yet, so this is
+                      // just the icon/affordance; wire up a real unread count
+                      // and onTap once there's something to show.
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.black, width: 1.2),
+                          ),
+                          child: const Icon(
+                            Icons.notifications_none_rounded,
+                            size: 12,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -248,13 +283,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _fetchStudentCount();
             },
           ),
+          const SizedBox(width: 4),
+          // Decorative mini bar chart, from the reference screenshot — not
+          // backed by real trend data yet, just the visual affordance.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _miniBar(height: 8, opacity: 0.25),
+              const SizedBox(width: 3),
+              _miniBar(height: 16, opacity: 0.5),
+              const SizedBox(width: 3),
+              _miniBar(height: 26, opacity: 1),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _miniBar({required double height, required double opacity}) {
+    return Container(
+      width: 5,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(opacity),
+        borderRadius: BorderRadius.circular(2),
       ),
     );
   }
 
   /// Static placeholder — no term-tracking data source exists in this app
   /// yet. Swap these values for a real fetch once there's an endpoint.
+  ///
+  /// Colors kept strictly black/white/grey — no accent colors (see the
+  /// "Active" badge and progress bar below).
   Widget _buildTermCard() {
     const daysLeft = 69;
     const percentComplete = 0.13;
@@ -339,6 +401,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  static const Map<String, IconData> _activityIcons = {
+    'person': Icons.person_outline_rounded,
+    'document': Icons.description_outlined,
+    'gear': Icons.settings_outlined,
+    'shield': Icons.shield_outlined,
+  };
+
   Widget _buildRecentActivityCard(List<Map<String, String>> recentActivity) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -380,15 +449,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.black,
-                          shape: BoxShape.circle,
-                        ),
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _activityIcons[activity['icon']] ??
+                            Icons.circle_outlined,
+                        size: 15,
+                        color: Colors.black,
                       ),
                     ),
                     const SizedBox(width: 12),
