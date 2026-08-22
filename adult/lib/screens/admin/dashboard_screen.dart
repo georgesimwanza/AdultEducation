@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:adult/Service/user_service.dart';
 import 'package:adult/service/sync_service.dart';
+import 'package:adult/Model/school_term.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -312,14 +313,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// Static placeholder — no term-tracking data source exists in this app
-  /// yet. Swap these values for a real fetch once there's an endpoint.
-  ///
   /// Colors kept strictly black/white/grey — no accent colors (see the
   /// "Active" badge and progress bar below).
   Widget _buildTermCard() {
-    const daysLeft = 69;
-    const percentComplete = 0.13;
+    final progress = computeTermProgress(
+      zambia2026TermsBestEffort,
+      DateTime.now(),
+    );
 
     return Container(
       width: double.infinity,
@@ -334,24 +334,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today_rounded,
-                    color: Colors.white70,
-                    size: 16,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Term 3 (2025/2026)',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_rounded,
+                      color: Colors.white70,
+                      size: 16,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        progress.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -361,9 +368,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
-                  'Active',
-                  style: TextStyle(
+                child: Text(
+                  progress.isHoliday ? 'Holiday' : 'Active',
+                  style: const TextStyle(
                     color: Colors.black,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -373,9 +380,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          const Text(
-            '$daysLeft days left in term',
-            style: TextStyle(
+          Text(
+            progress.isHoliday
+                ? '${progress.daysLeft} days until term starts'
+                : '${progress.daysLeft} days left in term',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.w800,
@@ -385,7 +394,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: percentComplete,
+              value: progress.isHoliday ? 0 : progress.percentComplete,
               minHeight: 6,
               backgroundColor: const Color(0xFF3A3A3A),
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
@@ -393,7 +402,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${(percentComplete * 100).round()}% complete',
+            progress.isHoliday
+                ? 'On holiday'
+                : '${(progress.percentComplete * 100).round()}% complete',
             style: const TextStyle(color: Color(0xFFB3B3B3), fontSize: 12),
           ),
         ],
