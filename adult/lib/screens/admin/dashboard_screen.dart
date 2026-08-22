@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:adult/Service/user_service.dart';
 import 'package:adult/service/sync_service.dart';
 import 'package:adult/service/institution_service.dart';
+import 'package:adult/service/activity_log_service.dart';
 import 'package:adult/Model/school_term.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final InstitutionService _institutionService = InstitutionService();
   String _totalStudents = '...';
   String _institutionName = 'Loading...';
+  List<ActivityLogEntry> _recentActivity = [];
   bool _fetched = false;
 
   @override
@@ -28,7 +30,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _fetched = true;
       _fetchStudentCount();
       _fetchInstitutionName();
+      _fetchRecentActivity();
     }
+  }
+
+  Future<void> _fetchRecentActivity() async {
+    final db = context.read<SyncService>().db;
+    if (db == null) return;
+    final entries = await ActivityLogService(db: db).recent(limit: 10);
+    if (mounted) setState(() => _recentActivity = entries);
+  }
+
+  String _timeAgo(DateTime time) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24)
+      return '${diff.inHours} hour${diff.inHours == 1 ? '' : 's'} ago';
+    return '${diff.inDays} day${diff.inDays == 1 ? '' : 's'} ago';
   }
 
   Future<void> _fetchStudentCount() async {
@@ -124,33 +143,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final recentActivity = [
-      {
-        'action': 'New student enrolled',
-        'name': 'Sarah Johnson',
-        'time': '5 min ago',
-        'icon': 'person',
-      },
-      {
-        'action': 'Content uploaded',
-        'name': 'Math Module 5',
-        'time': '12 min ago',
-        'icon': 'document',
-      },
-      {
-        'action': 'Subject updated',
-        'name': 'Physics 101',
-        'time': '1 hour ago',
-        'icon': 'gear',
-      },
-      {
-        'action': 'Admin added',
-        'name': 'John Smith',
-        'time': '2 hours ago',
-        'icon': 'shield',
-      },
-    ];
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -238,7 +230,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 16),
               _buildTermCard(),
               const SizedBox(height: 20),
-              _buildRecentActivityCard(recentActivity),
+              _buildRecentActivityCard(_recentActivity),
             ],
           ),
         ),
@@ -432,7 +424,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'shield': Icons.shield_outlined,
   };
 
-  Widget _buildRecentActivityCard(List<Map<String, String>> recentActivity) {
+  Widget _buildRecentActivityCard(List<ActivityLogEntry> recentActivity) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -465,64 +457,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          ...recentActivity.asMap().entries.map((entry) {
-            final i = entry.key;
-            final activity = entry.value;
-            return Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F4F6),
-                        shape: BoxShape.circle,
+          if (recentActivity.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Nothing yet — actions you take will show up here.',
+                style: TextStyle(fontSize: 13, color: Colors.black45),
+              ),
+            )
+          else
+            ...recentActivity.asMap().entries.map((entry) {
+              final i = entry.key;
+              final activity = entry.value;
+              return Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F4F6),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _activityIcons[activity.icon] ??
+                              Icons.circle_outlined,
+                          size: 15,
+                          color: Colors.black,
+                        ),
                       ),
-                      child: Icon(
-                        _activityIcons[activity['icon']] ??
-                            Icons.circle_outlined,
-                        size: 15,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activity['action']!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              activity.action,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                          Text(
-                            activity['name']!,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.black54,
+                            Text(
+                              activity.name,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.black54,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    Text(
-                      activity['time']!,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Colors.black38,
+                      Text(
+                        _timeAgo(activity.timestamp),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.black38,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                if (i < recentActivity.length - 1)
-                  const Divider(height: 20, color: Color(0xFFF3F4F6)),
-              ],
-            );
-          }),
+                    ],
+                  ),
+                  if (i < recentActivity.length - 1)
+                    const Divider(height: 20, color: Color(0xFFF3F4F6)),
+                ],
+              );
+            }),
         ],
       ),
     );
