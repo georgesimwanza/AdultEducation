@@ -19,7 +19,7 @@ class SyncService {
     final dbPath = await getDatabasesPath();
     db = await openDatabase(
       join(dbPath, 'app.db'),
-      version: 6, // ← bumped to 6 (added institutions cache table)
+      version: 7, // ← bumped to 7 (added activity_log)
       onCreate: (db, version) async {
         print('🗄️ Creating tables...');
         await db.execute('''
@@ -156,6 +156,19 @@ class SyncService {
       CREATE TABLE IF NOT EXISTS institutions (
         id INTEGER PRIMARY KEY,
         name TEXT
+      )
+    ''');
+    // Purely local activity feed — the app writes to this itself whenever
+    // something happens (adding a student, uploading content, etc.). No
+    // backend involved, and it's never dropped on upgrade since it's a
+    // record of things that happened, not a server-owned cache.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS activity_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        action TEXT,
+        name TEXT,
+        icon TEXT,
+        timestamp INTEGER
       )
     ''');
   }
