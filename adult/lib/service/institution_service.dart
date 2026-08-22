@@ -34,13 +34,32 @@ class InstitutionService {
         'password': password,
       }),
     );
-
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Institution.fromJson(jsonDecode(response.body));
     } else if (response.statusCode == 409) {
       throw Exception('Institution already exists');
     } else {
       throw Exception('Failed to register institution: ${response.statusCode}');
+    }
+  }
+
+  /// Used by the dashboard's institution-name lookup. There's no
+  /// single-institution-by-id endpoint here, so this goes through the
+  /// existing getInstitutions() list and finds the match client-side
+  /// rather than guessing at an endpoint that might not exist. Returns
+  /// null on any failure (offline, not found) so callers can fall back to
+  /// a placeholder.
+  Future<String?> getInstitutionName(int institutionId) async {
+    try {
+      final institutions = await getInstitutions();
+      for (final institution in institutions) {
+        if (institution.id == institutionId) {
+          return institution.name;
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 }
