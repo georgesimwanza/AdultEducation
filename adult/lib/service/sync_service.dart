@@ -19,8 +19,7 @@ class SyncService {
     final dbPath = await getDatabasesPath();
     db = await openDatabase(
       join(dbPath, 'app.db'),
-      version:
-          5, // ← bumped to 5 (added announcements, quizzes, quiz_submissions)
+      version: 6, // ← bumped to 6 (added institutions cache table)
       onCreate: (db, version) async {
         print('🗄️ Creating tables...');
         await db.execute('''
@@ -148,6 +147,15 @@ class SyncService {
         score INTEGER,
         synced INTEGER DEFAULT 0,
         submittedAt INTEGER
+      )
+    ''');
+    // Dashboard's institution-name lookup was already querying this table —
+    // it just never existed, which is why it always fell back to the
+    // generic "Institution" placeholder.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS institutions (
+        id INTEGER PRIMARY KEY,
+        name TEXT
       )
     ''');
   }
@@ -323,14 +331,13 @@ class SyncService {
       onProgress?.call('Loading announcements...');
 
       for (var item in data) {
+        // /api/sync/announcements now returns AnnouncementDTO — flat
+        // institutionId/programmeId, not nested institution/programme
+        // objects (that switch is what fixed the Jackson recursion crash).
         await db!.insert('announcements', {
           'id': item['id'],
-          'institutionId': item['institution'] != null
-              ? item['institution']['id']
-              : null,
-          'programmeId': item['programme'] != null
-              ? item['programme']['id']
-              : null,
+          'institutionId': item['institutionId'],
+          'programmeId': item['programmeId'],
           'title': item['title'],
           'content': item['content'],
         }, conflictAlgorithm: ConflictAlgorithm.replace);

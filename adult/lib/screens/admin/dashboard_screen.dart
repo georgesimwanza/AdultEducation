@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:adult/Service/user_service.dart';
 import 'package:adult/service/sync_service.dart';
+import 'package:adult/service/institution_service.dart';
 import 'package:adult/Model/school_term.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -14,6 +16,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final UserService _userService = UserService();
+  final InstitutionService _institutionService = InstitutionService();
   String _totalStudents = '...';
   String _institutionName = 'Loading...';
   bool _fetched = false;
@@ -41,11 +44,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  /// Mirrors the same local-db-first pattern used for programme titles in
-  /// the student-facing Dashboard (Dashboard._fetchTitle). No confirmed
-  /// server endpoint for institution name exists yet, so this only checks
-  /// local storage — if it's not synced there, it falls back to a
-  /// placeholder rather than guessing at an API call.
+  /// Local-db-first: check the cache first, and if it's not there yet,
+  /// fetch the real name from the backend and cache it for next time —
+  /// same pattern as QuizService/AnnouncementService.
   Future<void> _fetchInstitutionName() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -66,6 +67,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           setState(() => _institutionName = results.first['name'] as String);
           return;
         }
+      }
+
+      final name = await _institutionService.getInstitutionName(institutionId);
+      if (name != null) {
+        setState(() => _institutionName = name);
+        if (db != null) {
+          await db.insert('institutions', {
+            'id': institutionId,
+            'name': name,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+        return;
       }
 
       setState(() => _institutionName = 'Institution');
