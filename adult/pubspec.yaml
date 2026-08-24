@@ -106,7 +106,9 @@ flutter:
 # sits in a subfolder.
 flutter_native_splash:
   color: "#FFFFFF"
-  image: assets/logo.png
+  image: assets/logo.jpg
+  android_gravity: center
+  ios_content_mode: center
   android_12:
     color: "#FFFFFF"
-    image: assets/logo.png
+    image: assets/logo.jpg
