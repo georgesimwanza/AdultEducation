@@ -13,9 +13,11 @@ class Dashboard extends StatefulWidget {
   State<Dashboard> createState() => DashboardState();
 }
 
-class DashboardState extends State<Dashboard> {
+class DashboardState extends State<Dashboard>
+    with SingleTickerProviderStateMixin {
   String _programmeTitle = 'Loading...';
   bool _titleFetched = false;
+  bool _isLoadingTitle = true;
   int _selectedFilter = 0;
 
   static const List<String> _filters = ['All', 'Courses', 'Schedule'];
@@ -24,6 +26,24 @@ class DashboardState extends State<Dashboard> {
   // instead of a separate hardcoded percentage.
   static const int _modulesCompleted = 12;
   static const int _modulesTotal = 18;
+
+  // Drives the staggered entrance animation for every section on the page.
+  late final AnimationController _entranceController;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -39,7 +59,10 @@ class DashboardState extends State<Dashboard> {
       final controller = Provider.of<AuthController>(context, listen: false);
       final programmeId = controller.programmeId;
       if (programmeId == null) {
-        setState(() => _programmeTitle = 'No programme selected');
+        setState(() {
+          _programmeTitle = 'No programme selected';
+          _isLoadingTitle = false;
+        });
         return;
       }
 
@@ -53,7 +76,10 @@ class DashboardState extends State<Dashboard> {
         );
         if (results.isNotEmpty) {
           print('📦 Loaded programme title from local storage');
-          setState(() => _programmeTitle = results.first['name'] as String);
+          setState(() {
+            _programmeTitle = results.first['name'] as String;
+            _isLoadingTitle = false;
+          });
           return;
         }
       }
@@ -61,9 +87,15 @@ class DashboardState extends State<Dashboard> {
       // ← fall back to server if not in local storage
       print('🌐 Programme not in local storage — fetching from server');
       final title = await DashboardService().getProgramTitle(programmeId);
-      setState(() => _programmeTitle = title);
+      setState(() {
+        _programmeTitle = title;
+        _isLoadingTitle = false;
+      });
     } catch (e) {
-      setState(() => _programmeTitle = 'Failed to load');
+      setState(() {
+        _programmeTitle = 'Failed to load';
+        _isLoadingTitle = false;
+      });
     }
   }
 
@@ -99,6 +131,63 @@ class DashboardState extends State<Dashboard> {
       time: '1 day ago',
     ),
   ];
+
+  String _timeGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  /// Wraps [child] in a fade + upward-slide animation that plays as part
+  /// of the page's staggered entrance. [start]/[end] are 0–1 positions
+  /// within `_entranceController`'s timeline, so different sections can
+  /// animate in slightly offset from one another (Classroom-style cascade).
+  Widget _fadeSlideIn({
+    required Widget child,
+    required double start,
+    double end = 1.0,
+  }) {
+    final animation = CurvedAnimation(
+      parent: _entranceController,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
+    );
+    return FadeTransition(
+      opacity: animation,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.08),
+          end: Offset.zero,
+        ).animate(animation),
+        child: child,
+      ),
+    );
+  }
+
+  /// Fade + slight-slide page transition, used instead of the default
+  /// hard-cut MaterialPageRoute for a softer, more Classroom-like feel.
+  Route _fadeRoute(Widget page) {
+    return PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (_, animation, __, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOut,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.03),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
 
   void _openNotifications() {
     showModalBottomSheet(
@@ -138,7 +227,10 @@ class DashboardState extends State<Dashboard> {
                 ],
               ),
               const SizedBox(height: 8),
-              ..._notifications.map((n) => _buildNotifTile(n)),
+              _AnimatedNotifList(
+                notifications: _notifications,
+                tileBuilder: _buildNotifTile,
+              ),
             ],
           ),
         );
@@ -151,41 +243,105 @@ class DashboardState extends State<Dashboard> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTopBar(),
-              const SizedBox(height: 20),
-              const Text(
-                'Learn At Your\nOwn Pace',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  height: 1.2,
+        child: RefreshIndicator(
+          color: Colors.black,
+          onRefresh: () async {
+            setState(() => _isLoadingTitle = true);
+            await _fetchTitle();
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _fadeSlideIn(start: 0.0, end: 0.5, child: _buildTopBar()),
+                const SizedBox(height: 20),
+                _fadeSlideIn(
+                  start: 0.05,
+                  end: 0.55,
+                  child: Text(
+                    '${_timeGreeting()} 👋',
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildFilterChips(),
-              const SizedBox(height: 16),
-              _buildCurrentProgramCard(),
-              const SizedBox(height: 16),
-              _buildEntryCard(
-                icon: Icons.menu_book_rounded,
-                iconColor: Colors.black,
-                title: 'Browse Courses',
-                subtitle: 'Explore new programs',
-              ),
-              const SizedBox(height: 12),
-              _buildEntryCard(
-                icon: Icons.calendar_month_rounded,
-                iconColor: Colors.black,
-                title: 'Schedule',
-                subtitle: 'View your timetable',
-              ),
-            ],
+                const SizedBox(height: 4),
+                _fadeSlideIn(
+                  start: 0.05,
+                  end: 0.55,
+                  child: const Text(
+                    'Learn At Your\nOwn Pace',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _fadeSlideIn(
+                  start: 0.1,
+                  end: 0.6,
+                  child: _buildFilterChips(),
+                ),
+                const SizedBox(height: 16),
+                _fadeSlideIn(
+                  start: 0.15,
+                  end: 0.75,
+                  child: _buildCurrentProgramCard(),
+                ),
+                const SizedBox(height: 16),
+                _fadeSlideIn(
+                  start: 0.25,
+                  end: 0.85,
+                  child: _TapScale(
+                    onTap: () => Navigator.push(
+                      context,
+                      _fadeRoute(
+                        ChangeNotifierProvider.value(
+                          value: context.read<AuthController>(),
+                          child: SubjectPage(),
+                        ),
+                      ),
+                    ),
+                    child: _buildEntryCard(
+                      icon: Icons.menu_book_rounded,
+                      iconColor: Colors.black,
+                      title: 'Browse Courses',
+                      subtitle: 'Explore new programs',
+                      heroTag: 'browse-courses-icon',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _fadeSlideIn(
+                  start: 0.3,
+                  end: 0.9,
+                  child: _TapScale(
+                    onTap: () => Navigator.push(
+                      context,
+                      _fadeRoute(
+                        ChangeNotifierProvider.value(
+                          value: context.read<AuthController>(),
+                          child: ScheduleScreen(),
+                        ),
+                      ),
+                    ),
+                    child: _buildEntryCard(
+                      icon: Icons.calendar_month_rounded,
+                      iconColor: Colors.black,
+                      title: 'Schedule',
+                      subtitle: 'View your timetable',
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -231,25 +387,7 @@ class DashboardState extends State<Dashboard> {
                 Positioned(
                   top: -2,
                   right: -2,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFF5F5F5),
-                        width: 2,
-                      ),
-                    ),
-                    child: Container(
-                      margin: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
+                  child: _PulseDot(),
                 ),
             ],
           ),
@@ -269,7 +407,9 @@ class DashboardState extends State<Dashboard> {
           final isSelected = _selectedFilter == index;
           return GestureDetector(
             onTap: () => setState(() => _selectedFilter = index),
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
               padding: const EdgeInsets.symmetric(horizontal: 18),
               alignment: Alignment.center,
               decoration: BoxDecoration(
@@ -279,13 +419,14 @@ class DashboardState extends State<Dashboard> {
                   color: isSelected ? Colors.black : const Color(0xFFDDDDDD),
                 ),
               ),
-              child: Text(
-                _filters[index],
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
                 style: TextStyle(
                   color: isSelected ? Colors.white : Colors.black87,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
+                child: Text(_filters[index]),
               ),
             ),
           );
@@ -333,13 +474,25 @@ class DashboardState extends State<Dashboard> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _programmeTitle,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
+                    const SizedBox(height: 4),
+                    // Shimmer skeleton while the programme title loads,
+                    // then a soft cross-fade into the real text.
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: _isLoadingTitle
+                          ? const _ShimmerLine(
+                        key: ValueKey('shimmer'),
+                        width: 140,
+                        height: 18,
+                      )
+                          : Text(
+                        _programmeTitle,
+                        key: const ValueKey('title'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
@@ -397,29 +550,32 @@ class DashboardState extends State<Dashboard> {
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
+            child: _TapScale(
+              onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => ChangeNotifierProvider.value(
+                  _fadeRoute(
+                    ChangeNotifierProvider.value(
                       value: context.read<AuthController>(),
                       child: SubjectPage(),
                     ),
                   ),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
+              child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(30),
                 ),
-              ),
-              child: const Text(
-                'See More',
-                style: TextStyle(fontWeight: FontWeight.w700),
+                child: const Text(
+                  'See More',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
               ),
             ),
           ),
@@ -429,22 +585,32 @@ class DashboardState extends State<Dashboard> {
   }
 
   /// Row of small rounded blocks — filled ones represent completed
-  /// modules, replacing the plain linear percentage bar.
+  /// modules. Animates from empty to the real completion ratio on load
+  /// instead of appearing fully filled.
   Widget _buildSegmentedProgress(int completed, int total) {
-    return Row(
-      children: List.generate(total, (i) {
-        final isFilled = i < completed;
-        return Expanded(
-          child: Container(
-            height: 8,
-            margin: EdgeInsets.only(right: i == total - 1 ? 0 : 4),
-            decoration: BoxDecoration(
-              color: isFilled ? Colors.white : const Color(0xFF2E2E2E),
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: completed / total),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, _) {
+        final filledCount = (value * total).round();
+        return Row(
+          children: List.generate(total, (i) {
+            final isFilled = i < filledCount;
+            return Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                height: 8,
+                margin: EdgeInsets.only(right: i == total - 1 ? 0 : 4),
+                decoration: BoxDecoration(
+                  color: isFilled ? Colors.white : const Color(0xFF2E2E2E),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            );
+          }),
         );
-      }),
+      },
     );
   }
 
@@ -479,12 +645,25 @@ class DashboardState extends State<Dashboard> {
     );
   }
 
+  /// Note: navigation + tap-scale are now applied by the caller via
+  /// `_TapScale`, so this just builds the visual card. The inner
+  /// "Enter" button still works as a secondary explicit tap target.
   Widget _buildEntryCard({
     required IconData icon,
     required Color iconColor,
     required String title,
     required String subtitle,
+    String? heroTag,
   }) {
+    final iconBadge = Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(icon, color: iconColor, size: 20),
+    );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -494,15 +673,9 @@ class DashboardState extends State<Dashboard> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
-          ),
+          // Hero'd on the "Browse Courses" card so the icon visibly
+          // flies into SubjectPage's header icon on navigation.
+          heroTag != null ? Hero(tag: heroTag, child: iconBadge) : iconBadge,
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -523,29 +696,16 @@ class DashboardState extends State<Dashboard> {
               ],
             ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChangeNotifierProvider.value(
-                    value: context.read<AuthController>(),
-                    child: title == 'Browse Courses'
-                        ? SubjectPage()
-                        : ScheduleScreen(),
-                  ),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text('Enter', style: TextStyle(fontSize: 13)),
+            child: const Text(
+              'Enter',
+              style: TextStyle(fontSize: 13, color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -592,6 +752,212 @@ class DashboardState extends State<Dashboard> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Compresses its child slightly on press and springs back on release —
+/// the small tactile "give" that makes Classroom cards feel responsive.
+class _TapScale extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+
+  const _TapScale({required this.child, required this.onTap});
+
+  @override
+  State<_TapScale> createState() => _TapScaleState();
+}
+
+class _TapScaleState extends State<_TapScale> {
+  double _scale = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _scale = 0.97),
+      onTapUp: (_) => setState(() => _scale = 1.0),
+      onTapCancel: () => setState(() => _scale = 1.0),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// A pulsing gray placeholder block, standing in for content that's
+/// still loading — used for the programme title while it's being fetched.
+class _ShimmerLine extends StatefulWidget {
+  final double width;
+  final double height;
+
+  const _ShimmerLine({
+    super.key,
+    required this.width,
+    this.height = 16,
+  });
+
+  @override
+  State<_ShimmerLine> createState() => _ShimmerLineState();
+}
+
+class _ShimmerLineState extends State<_ShimmerLine>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) => Opacity(
+        opacity: 0.3 + (_controller.value * 0.4),
+        child: child,
+      ),
+      child: Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: const Color(0xFF3A3A3A),
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+    );
+  }
+}
+
+/// The small dot on the notification bell, gently pulsing to draw the
+/// eye without needing a color change.
+class _PulseDot extends StatefulWidget {
+  @override
+  State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _PulseDotState extends State<_PulseDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final scale = 0.9 + (_controller.value * 0.25);
+        return Transform.scale(scale: scale, child: child);
+      },
+      child: Container(
+        width: 14,
+        height: 14,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFFF5F5F5), width: 2),
+        ),
+        child: Container(
+          margin: const EdgeInsets.all(3),
+          decoration: const BoxDecoration(
+            color: Colors.black,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Plays each notification tile in with a slight delay after the one
+/// before it — the same cascade feel as the dashboard's own entrance,
+/// applied to the bottom sheet's list.
+class _AnimatedNotifList extends StatefulWidget {
+  final List<_NotifData> notifications;
+  final Widget Function(_NotifData) tileBuilder;
+
+  const _AnimatedNotifList({
+    required this.notifications,
+    required this.tileBuilder,
+  });
+
+  @override
+  State<_AnimatedNotifList> createState() => _AnimatedNotifListState();
+}
+
+class _AnimatedNotifListState extends State<_AnimatedNotifList>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(
+        milliseconds: 300 + widget.notifications.length * 80,
+      ),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: List.generate(widget.notifications.length, (index) {
+        final start = (index * 0.12).clamp(0.0, 0.8);
+        final animation = CurvedAnimation(
+          parent: _controller,
+          curve: Interval(
+            start,
+            (start + 0.5).clamp(0.0, 1.0),
+            curve: Curves.easeOutCubic,
+          ),
+        );
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.15),
+              end: Offset.zero,
+            ).animate(animation),
+            child: widget.tileBuilder(widget.notifications[index]),
+          ),
+        );
+      }),
     );
   }
 }
