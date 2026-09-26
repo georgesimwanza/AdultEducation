@@ -67,12 +67,12 @@ class _SubjectPageState extends State<SubjectPage> {
   List<subjectModel> get _filtered => _searchQuery.isEmpty
       ? _subjects
       : _subjects
-            .where(
-              (s) =>
-                  s.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                  s.code.toLowerCase().contains(_searchQuery.toLowerCase()),
-            )
-            .toList();
+      .where(
+        (s) =>
+    s.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        s.code.toLowerCase().contains(_searchQuery.toLowerCase()),
+  )
+      .toList();
 
   @override
   void dispose() {
@@ -94,23 +94,55 @@ class _SubjectPageState extends State<SubjectPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Subjects',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.black,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Explore and enrol in a course below',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w400,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Matches the "Browse Courses" card's icon on the
+                      // dashboard (same tag) — flies in and grows into
+                      // this badge when the page is opened from there.
+                      Hero(
+                        tag: 'browse-courses-icon',
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.menu_book_rounded,
+                            color: Colors.black,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Subjects',
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.black,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Explore and enrol in a course below',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   // ── Search bar ──────────────────────────────
