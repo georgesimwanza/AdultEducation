@@ -635,7 +635,7 @@ class DashboardState extends State<Dashboard>
       ),
       child: Row(
         children: [
-          // Hero'd on the "Browse Courses" card so the icon visibly
+          // Herod on the "Browse Courses" card so the icon visibly
           // flies into SubjectPage's header icon on navigation.
           heroTag != null ? Hero(tag: heroTag, child: iconBadge) : iconBadge,
           const SizedBox(width: 12),
