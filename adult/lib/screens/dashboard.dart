@@ -526,12 +526,6 @@ class DashboardState extends State<Dashboard>
               _buildStatChipDark(Icons.access_time, '6 mo', 'Duration'),
               const SizedBox(width: 8),
               _buildStatChipDark(Icons.hourglass_bottom, '2 mo', 'Time Left'),
-              const SizedBox(width: 8),
-              _buildStatChipDark(
-                Icons.play_arrow_rounded,
-                '$_modulesCompleted/$_modulesTotal',
-                'Complete',
-              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -546,38 +540,6 @@ class DashboardState extends State<Dashboard>
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: _TapScale(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  _fadeRoute(
-                    ChangeNotifierProvider.value(
-                      value: context.read<AuthController>(),
-                      child: SubjectPage(),
-                    ),
-                  ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: const Text(
-                  'See More',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-            ),
           ),
         ],
       ),
@@ -673,7 +635,7 @@ class DashboardState extends State<Dashboard>
       ),
       child: Row(
         children: [
-          // Hero'd on the "Browse Courses" card so the icon visibly
+          // Herod on the "Browse Courses" card so the icon visibly
           // flies into SubjectPage's header icon on navigation.
           heroTag != null ? Hero(tag: heroTag, child: iconBadge) : iconBadge,
           const SizedBox(width: 12),
