@@ -31,6 +31,7 @@ void main() async {
 
   // ScheduleService needs the same local db so schedules can be
   // cached/read offline like everything else.
+  //also record quizes
   final scheduleService = ScheduleService(db: syncService.db!);
 
   runApp(
