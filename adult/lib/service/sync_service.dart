@@ -4,6 +4,8 @@ import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart';
 import 'package:adult/Controller/auth_controller.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class SyncService {
   final AuthController authController;
@@ -82,7 +84,8 @@ class SyncService {
             title TEXT,
             type TEXT,
             fileUrl TEXT,
-            courseId INTEGER
+            courseId INTEGER,
+            localPath TEXT
           )
         ''');
         await db.execute('''
@@ -221,9 +224,11 @@ class SyncService {
       _syncSubjects(lastSync, onProgress),
       _syncContent(lastSync, onProgress),
       _syncProgrammes(lastSync, onProgress),
-      _syncAnnouncements(lastSync, onProgress), // ← added
-      _syncQuizzes(lastSync, onProgress), // ← added
+      _syncAnnouncements(lastSync, onProgress),
+      _syncQuizzes(lastSync, onProgress),
     ]);
+
+    await downloadContentFiles(onProgress: onProgress); // ← new line
 
     onProgress?.call('Finishing up...');
     await saveLastSyncTimestamp();
@@ -399,5 +404,80 @@ class SyncService {
     } catch (e) {
       print('❌ Error syncing quizzes: $e');
     }
+  }
+  Future<Directory> _contentDir() async {
+    final base = await getApplicationDocumentsDirectory();
+    final dir = Directory(join(base.path, 'content'));
+    if (!await dir.exists()) await dir.create(recursive: true);
+    return dir;
+  }
+
+  /// Deterministic name: same content id + url => same file, so re-syncs
+  /// (and DB drops on upgrade) never cause duplicate downloads.
+  String _localFileName(int id, String url) {
+    final segments = Uri.parse(url).pathSegments;
+    final raw = segments.isNotEmpty ? Uri.decodeComponent(segments.last) : 'file';
+    final safe = raw.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    return '${id}_$safe';
+  }
+
+  Future<String?> _downloadFile(int id, String url) async {
+    final dir = await _contentDir();
+    final file = File(join(dir.path, _localFileName(id, url)));
+
+    if (await file.exists() && await file.length() > 0) return file.path;
+
+    final tmp = File('${file.path}.part');
+    try {
+      // Separate Dio on purpose: the main one carries your Bearer token,
+      // which shouldn't be sent to Supabase's public CDN.
+      await Dio().download(url, tmp.path);
+      await tmp.rename(file.path); // only appears once fully downloaded
+      return file.path;
+    } catch (e) {
+      print('❌ Download failed for $url: $e');
+      if (await tmp.exists()) await tmp.delete();
+      return null;
+    }
+  }
+
+  Future<void> downloadContentFiles({void Function(String)? onProgress}) async {
+    final rows = await db!.query(
+      'content',
+      columns: ['id', 'title', 'fileUrl'],
+      where: "fileUrl IS NOT NULL AND fileUrl != ''",
+    );
+
+    final validNames = <String>{};
+    int done = 0;
+
+    // 3 downloads at a time
+    for (var i = 0; i < rows.length; i += 3) {
+      final batch = rows.skip(i).take(3);
+      await Future.wait(batch.map((row) async {
+        final id = row['id'] as int;
+        final url = row['fileUrl'] as String;
+        validNames.add(_localFileName(id, url));
+
+        final path = await _downloadFile(id, url);
+        if (path != null) {
+          await db!.update('content', {'localPath': path},
+              where: 'id = ?', whereArgs: [id]);
+        }
+        done++;
+        onProgress?.call('Downloading files ($done/${rows.length})...');
+      }));
+    }
+
+    // Remove files for content that no longer exists on the server
+    final dir = await _contentDir();
+    await for (final entity in dir.list()) {
+      if (entity is File &&
+          !entity.path.endsWith('.part') &&
+          !validNames.contains(basename(entity.path))) {
+        await entity.delete();
+      }
+    }
+    print('✅ Content files ready — $done processed');
   }
 }

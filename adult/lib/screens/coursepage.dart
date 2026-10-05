@@ -1,3 +1,4 @@
+import 'dart:io'; // ← added (for File)
 import 'package:adult/Model/content.dart';
 import 'package:flutter/material.dart';
 import '../service/contentService.dart';
@@ -63,6 +64,45 @@ class _CoursePageState extends State<CoursePage> {
     super.didChangeDependencies();
     final db = context.read<SyncService>().db;
     _coursePageFuture = contentService(db: db).getContent(subjectId);
+  }
+
+  // ── Open a lesson: prefer the downloaded local file, fall back to the
+  // network URL if it hasn't been downloaded (or was deleted) ──
+  Future<String?> _resolveSource(ContentModel lesson) async {
+    final local = lesson.localPath;
+    if (local != null && await File(local).exists()) return local;
+    return lesson.fileUrl; // fall back to network
+  }
+
+  Future<void> _openLesson(ContentModel lesson) async {
+    final source = await _resolveSource(lesson);
+    if (!mounted) return;
+
+    if (source == null || source.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This file is not available.')),
+      );
+      return;
+    }
+
+    final isNetwork = source.startsWith('http');
+    print('📂 Opening "${lesson.title}" from ${isNetwork ? 'network' : 'local'}: $source');
+
+    switch (lesson.type.toLowerCase()) {
+      case 'pdf':
+      // TODO: local   -> PDFView(filePath: source)
+      //       network -> your existing network PDF viewer
+        break;
+      case 'video':
+      // TODO: isNetwork
+      //   ? VideoPlayerController.networkUrl(Uri.parse(source))
+      //   : VideoPlayerController.file(File(source))
+        break;
+      default:
+      // TODO: images etc.
+      //   isNetwork ? Image.network(source) : Image.file(File(source))
+        break;
+    }
   }
 
   @override
@@ -349,59 +389,67 @@ class _CoursePageState extends State<CoursePage> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
+              // Material (not Container) owns the white fill + border so the
+              // InkWell ripple is visible and clipped to the rounded corners.
+              child: Material(
+                color: Colors.white,
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE4E4E4)),
+                  side: const BorderSide(color: Color(0xFFE4E4E4)),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF111111),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        _iconFor(lesson.type),
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            lesson.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: Color(0xFF111111),
-                            ),
+                child: InkWell(
+                  onTap: () => _openLesson(lesson),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF111111),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(height: 3),
-                          Text(
-                            lesson.type,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
+                          child: Icon(
+                            _iconFor(lesson.type),
+                            size: 18,
+                            color: Colors.white,
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                lesson.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: Color(0xFF111111),
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                lesson.type,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.grey.shade400,
+                        ),
+                      ],
                     ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.grey.shade400,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -486,7 +534,7 @@ class _CoursePageState extends State<CoursePage> {
                     ),
                     subtitle: Text(
                       '${quiz.questionCount} question${quiz.questionCount == 1 ? '' : 's'} · ${quiz.totalPoints} points'
-                      '${quiz.timeLimitMinutes != null ? ' · ${quiz.timeLimitMinutes} min' : ''}',
+                          '${quiz.timeLimitMinutes != null ? ' · ${quiz.timeLimitMinutes} min' : ''}',
                       style: TextStyle(color: Colors.grey.shade600),
                     ),
                     trailing: Icon(
