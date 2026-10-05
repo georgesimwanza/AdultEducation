@@ -2,12 +2,15 @@ class ContentModel {
   final String title;
   final String type;
   final String fileUrl;
+  final String? localPath; // ← new
   final int id;
   final int institutionId;
+
   ContentModel({
     required this.title,
     required this.type,
     required this.fileUrl,
+    this.localPath, // ← new
     required this.id,
     required this.institutionId,
   });
@@ -18,7 +21,8 @@ class ContentModel {
       title: json['title'] ?? 'Untitled',
       type: json['type'] ?? 'unknown',
       fileUrl: json['fileUrl'] ?? '',
-      institutionId: json['institutionId'],
+      localPath: json['localPath'], // ← new
+      institutionId: json['institutionId'] ?? 0, // ← null-safe
     );
   }
 }
