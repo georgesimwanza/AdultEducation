@@ -94,7 +94,7 @@ class _CoursePageState extends State<CoursePage> {
       //       network -> your existing network PDF viewer
         break;
       case 'video':
-      // TODO: isNetwork
+      // TODO: isNetwork loading
       //   ? VideoPlayerController.networkUrl(Uri.parse(source))
       //   : VideoPlayerController.file(File(source))
         break;
