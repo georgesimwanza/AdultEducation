@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:adult/screens/color.dart';
 import '../Controller/auth_controller.dart';
 import '../Controller/schedule_controller.dart';
 import '../model/schedule_model.dart';
@@ -56,13 +57,80 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     setState(() => _selectedDay = day);
   }
 
-  /// Builds a full 6-row month grid, padding with the trailing days of the
-  /// previous month and the leading days of the next month, Monday-first.
+  /// Full 6-row month grid, padded with neighbouring months, Monday-first.
   List<DateTime> _buildMonthGrid(DateTime month) {
     final firstOfMonth = DateTime(month.year, month.month, 1);
     final leadingBlanks = (firstOfMonth.weekday - DateTime.monday) % 7;
     final gridStart = firstOfMonth.subtract(Duration(days: leadingBlanks));
     return List.generate(42, (i) => gridStart.add(Duration(days: i)));
+  }
+
+  String _formatDay(DateTime d) =>
+      '${d.day} ${_monthNames[d.month - 1].substring(0, 3)} ${d.year}';
+
+  Future<String?> _pickTime(BuildContext context) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: EduColors.primary,
+              onPrimary: EduColors.onPrimary,
+              onSurface: EduColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked == null) return null;
+    return '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _timeButton({
+    required IconData icon,
+    required String label,
+    required bool filled,
+    required VoidCallback onPressed,
+  }) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: filled ? EduColors.primarySoft : EduColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: filled ? EduColors.primary : EduColors.border,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon,
+                size: 18,
+                color: filled ? EduColors.primary : EduColors.textSecondary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: filled
+                      ? EduColors.primary
+                      : EduColors.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showAddScheduleSheet(DateTime day) {
@@ -71,17 +139,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     String? endTime;
 
     final email = context.read<AuthController>().currentUser?.email ?? '';
-    // Captured here, before the sheet's own local `context` shadows it —
-    // this is what lets the success message show on the main screen
-    // after the sheet has already closed.
+    // Captured before the sheet's own `context` shadows it, so the success
+    // message can show on the main screen after the sheet closes.
     final rootMessenger = ScaffoldMessenger.of(context);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: EduColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) {
         return StatefulBuilder(
@@ -90,35 +157,83 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               padding: EdgeInsets.only(
                 left: 20,
                 right: 20,
-                top: 24,
+                top: 12,
                 bottom: MediaQuery.of(context).viewInsets.bottom + 24,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Add Schedule — ${day.day}/${day.month}/${day.year}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Poppins',
-                      color: Colors.black,
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: EduColors.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Add schedule',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Poppins',
+                      color: EduColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: EduColors.primarySoft,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.event_rounded,
+                            size: 14, color: EduColors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          _formatDay(day),
+                          style: const TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: EduColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
 
                   // Title
                   TextField(
                     controller: titleController,
-                    cursorColor: Colors.black,
-                    style: const TextStyle(color: Colors.black),
-                    decoration: const InputDecoration(
+                    cursorColor: EduColors.primary,
+                    style: const TextStyle(
+                        color: EduColors.textPrimary, fontFamily: 'Poppins'),
+                    decoration: InputDecoration(
                       labelText: 'Title',
-                      labelStyle: TextStyle(color: Colors.black54),
-                      border: OutlineInputBorder(),
+                      labelStyle:
+                      const TextStyle(color: EduColors.textSecondary),
+                      floatingLabelStyle:
+                      const TextStyle(color: EduColors.primary),
+                      filled: true,
+                      fillColor: EduColors.background,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: EduColors.border),
+                      ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.black, width: 2),
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(
+                            color: EduColors.primary, width: 1.6),
                       ),
                     ),
                   ),
@@ -128,81 +243,25 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(
-                            Icons.access_time,
-                            color: Colors.black,
-                          ),
-                          label: Text(
-                            startTime ?? 'Start Time',
-                            style: const TextStyle(color: Colors.black),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.black,
-                            side: const BorderSide(color: Colors.black),
-                          ),
+                        child: _timeButton(
+                          icon: Icons.access_time_rounded,
+                          label: startTime ?? 'Start time',
+                          filled: startTime != null,
                           onPressed: () async {
-                            final picked = await showTimePicker(
-                              context: context,
-                              initialTime: TimeOfDay.now(),
-                              builder: (context, child) {
-                                return Theme(
-                                  data: ThemeData.light().copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: Colors.black,
-                                      onPrimary: Colors.white,
-                                      onSurface: Colors.black,
-                                    ),
-                                  ),
-                                  child: child!,
-                                );
-                              },
-                            );
-                            if (picked != null) {
-                              final formatted =
-                                  '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-                              setSheetState(() => startTime = formatted);
-                            }
+                            final t = await _pickTime(context);
+                            if (t != null) setSheetState(() => startTime = t);
                           },
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(
-                            Icons.access_time_filled,
-                            color: Colors.black,
-                          ),
-                          label: Text(
-                            endTime ?? 'End Time',
-                            style: const TextStyle(color: Colors.black),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.black,
-                            side: const BorderSide(color: Colors.black),
-                          ),
+                        child: _timeButton(
+                          icon: Icons.access_time_filled_rounded,
+                          label: endTime ?? 'End time',
+                          filled: endTime != null,
                           onPressed: () async {
-                            final picked = await showTimePicker(
-                              context: context,
-                              initialTime: TimeOfDay.now(),
-                              builder: (context, child) {
-                                return Theme(
-                                  data: ThemeData.light().copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: Colors.black,
-                                      onPrimary: Colors.white,
-                                      onSurface: Colors.black,
-                                    ),
-                                  ),
-                                  child: child!,
-                                );
-                              },
-                            );
-                            if (picked != null) {
-                              final formatted =
-                                  '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-                              setSheetState(() => endTime = formatted);
-                            }
+                            final t = await _pickTime(context);
+                            if (t != null) setSheetState(() => endTime = t);
                           },
                         ),
                       ),
@@ -215,10 +274,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     builder: (context, ctrl, _) {
                       if (ctrl.errorMessage != null) {
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            ctrl.errorMessage!,
-                            style: const TextStyle(color: Colors.red),
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded,
+                                  color: EduColors.danger, size: 16),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  ctrl.errorMessage!,
+                                  style: const TextStyle(
+                                      color: EduColors.danger, fontSize: 12),
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }
@@ -233,76 +302,74 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: EduColors.primary,
+                            foregroundColor: EduColors.onPrimary,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                           onPressed: ctrl.isLoading
                               ? null
                               : () async {
-                                  if (titleController.text.trim().isEmpty ||
-                                      startTime == null ||
-                                      endTime == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        backgroundColor: Colors.black,
-                                        content: Text(
-                                          'Please fill in all fields',
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
+                            if (titleController.text.trim().isEmpty ||
+                                startTime == null ||
+                                endTime == null) {
+                              _showSnack(
+                                ScaffoldMessenger.of(context),
+                                'Please fill in all fields',
+                                isError: true,
+                              );
+                              return;
+                            }
 
-                                  final entry = ScheduleEntry(
-                                    title: titleController.text.trim(),
-                                    userEmail: email,
-                                    date: day,
-                                    startTime: startTime!,
-                                    endTime: endTime!,
-                                  );
+                            // "HH:mm" strings compare correctly as text.
+                            if (endTime!.compareTo(startTime!) <= 0) {
+                              _showSnack(
+                                ScaffoldMessenger.of(context),
+                                'End time must be after start time',
+                                isError: true,
+                              );
+                              return;
+                            }
 
-                                  await ctrl.addEntry(entry);
+                            final entry = ScheduleEntry(
+                              title: titleController.text.trim(),
+                              userEmail: email,
+                              date: day,
+                              startTime: startTime!,
+                              endTime: endTime!,
+                            );
 
-                                  if (ctrl.errorMessage == null &&
-                                      context.mounted) {
-                                    Navigator.pop(context);
-                                    rootMessenger.showSnackBar(
-                                      const SnackBar(
-                                        backgroundColor: Colors.black,
-                                        content: Row(
-                                          children: [
-                                            Icon(Icons.check_circle,
-                                                color: Colors.white, size: 18),
-                                            SizedBox(width: 10),
-                                            Text(
-                                              'Schedule added successfully',
-                                              style: TextStyle(color: Colors.white),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
+                            await ctrl.addEntry(entry);
+
+                            if (ctrl.errorMessage == null &&
+                                context.mounted) {
+                              Navigator.pop(context);
+                              _showSnack(
+                                rootMessenger,
+                                'Schedule added successfully',
+                              );
+                            }
+                          },
                           child: ctrl.isLoading
                               ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: EduColors.onPrimary,
+                              strokeWidth: 2,
+                            ),
+                          )
                               : const Text(
-                                  'Save Schedule',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: 'Poppins',
-                                    fontSize: 16,
-                                  ),
-                                ),
+                            'Save schedule',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -316,6 +383,33 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
+  void _showSnack(ScaffoldMessengerState messenger, String text,
+      {bool isError = false}) {
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: isError ? EduColors.danger : EduColors.textPrimary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline_rounded : Icons.check_circle_rounded,
+              color: isError ? EduColors.onPrimary : EduColors.success,
+              size: 18,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(color: EduColors.onPrimary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ScheduleController>();
@@ -326,242 +420,395 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final today = DateTime.now();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: EduColors.background,
       body: controller.isLoading && controller.entries.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: Colors.black))
+          ? const Center(
+          child: CircularProgressIndicator(color: EduColors.primary))
           : SafeArea(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          children: [
+            _buildTopBar(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: _buildCalendarCard(controller, grid, today),
+            ),
+            const SizedBox(height: 22),
+            if (_selectedDay != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _isSameDay(_selectedDay!, today)
+                          ? 'Today'
+                          : _formatDay(_selectedDay!),
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w800,
+                        fontSize: 17,
+                        color: EduColors.textPrimary,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: EduColors.primarySoft,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${dayEntries.length} ${dayEntries.length == 1 ? 'event' : 'events'}',
+                        style: const TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: EduColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: dayEntries.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                itemCount: dayEntries.length,
+                itemBuilder: (context, index) {
+                  return _buildEntryCard(
+                      dayEntries[index], controller);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: EduColors.primary,
+        foregroundColor: EduColors.onPrimary,
+        elevation: 4,
+        onPressed: () => _showAddScheduleSheet(_selectedDay ?? DateTime.now()),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text(
+          'Add',
+          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.maybePop(context),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: EduColors.surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: EduColors.border),
+              ),
+              child: const Icon(Icons.arrow_back_rounded,
+                  color: EduColors.textPrimary, size: 20),
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Text(
+              'Schedule',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: EduColors.textPrimary,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: _goToToday,
+            child: Container(
+              padding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: EduColors.primarySoft,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Today',
+                style: TextStyle(
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: EduColors.primary,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCalendarCard(
+      ScheduleController controller,
+      List<DateTime> grid,
+      DateTime today,
+      ) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+      decoration: BoxDecoration(
+        color: EduColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: EduColors.cardShadow,
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left_rounded,
+                    color: EduColors.textPrimary),
+                onPressed: () => _changeMonth(-1),
+              ),
+              Text(
+                '${_monthNames[_visibleMonth.month - 1]} ${_visibleMonth.year}',
+                style: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: EduColors.textPrimary,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right_rounded,
+                    color: EduColors.textPrimary),
+                onPressed: () => _changeMonth(1),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: _weekdayLabels
+                  .map((d) => Expanded(
+                child: Center(
+                  child: Text(
+                    d,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: EduColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ))
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: 4),
+          GridView.builder(
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              childAspectRatio: 1,
+            ),
+            itemCount: grid.length,
+            itemBuilder: (context, index) {
+              final day = grid[index];
+              final inCurrentMonth = day.month == _visibleMonth.month;
+              final isSelected =
+                  _selectedDay != null && _isSameDay(day, _selectedDay!);
+              final isToday = _isSameDay(day, today);
+              final hasEntries = controller.entriesForDay(day).isNotEmpty;
+
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _onDayTapped(day),
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? EduColors.primary
+                          : isToday
+                          ? EduColors.primarySoft
+                          : Colors.transparent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.chevron_left, color: Colors.black),
-                              onPressed: () => _changeMonth(-1),
-                            ),
-                            Text(
-                              '${_monthNames[_visibleMonth.month - 1]} ${_visibleMonth.year}',
-                              style: const TextStyle(
-                                fontFamily: 'Poppins',
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.chevron_right, color: Colors.black),
-                              onPressed: () => _changeMonth(1),
-                            ),
-                          ],
+                        Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected
+                                ? EduColors.onPrimary
+                                : isToday
+                                ? EduColors.primary
+                                : inCurrentMonth
+                                ? EduColors.textPrimary
+                                : EduColors.border,
+                          ),
                         ),
-                        Row(
-                          children: [
-                            TextButton(
-                              onPressed: _goToToday,
-                              style: TextButton.styleFrom(
-                                backgroundColor: const Color(0xFFF0F0F0),
-                                foregroundColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              ),
-                              child: const Text(
-                                'Today',
-                                style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
+                        if (hasEntries)
+                          Positioned(
+                            bottom: 4,
+                            child: Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? EduColors.onPrimary
+                                    : EduColors.accent,
+                                shape: BoxShape.circle,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: _weekdayLabels
-                          .map((d) => Expanded(
-                                child: Center(
-                                  child: Text(
-                                    d,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: EduColors.primarySoft,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(Icons.event_available_rounded,
+                color: EduColors.primary, size: 30),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Nothing scheduled',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              color: EduColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Tap Add to plan something for this day.',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 12,
+              color: EduColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEntryCard(dynamic entry, ScheduleController controller) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: EduColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: EduColors.cardShadow,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 5, color: EduColors.primary),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 6, 14),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.title,
+                              style: const TextStyle(
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: EduColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: EduColors.primarySoft,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.access_time_rounded,
+                                      size: 13, color: EduColors.primary),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    '${entry.startTime} – ${entry.endTime}',
                                     style: const TextStyle(
                                       fontFamily: 'Poppins',
-                                      fontSize: 12,
+                                      color: EduColors.primary,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.black45,
+                                      fontSize: 11,
                                     ),
                                   ),
-                                ),
-                              ))
-                          .toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 7,
-                        childAspectRatio: 1,
-                      ),
-                      itemCount: grid.length,
-                      itemBuilder: (context, index) {
-                        final day = grid[index];
-                        final inCurrentMonth = day.month == _visibleMonth.month;
-                        final isSelected = _selectedDay != null && _isSameDay(day, _selectedDay!);
-                        final isToday = _isSameDay(day, today);
-                        final hasEntries = controller.entriesForDay(day).isNotEmpty;
-
-                        return GestureDetector(
-                          onTap: () => _onDayTapped(day),
-                          child: Padding(
-                            padding: const EdgeInsets.all(3),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: isSelected ? Colors.black : Colors.transparent,
-                                shape: BoxShape.circle,
-                                border: isToday && !isSelected
-                                    ? Border.all(color: Colors.black, width: 1.4)
-                                    : null,
-                              ),
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  Text(
-                                    '${day.day}',
-                                    style: TextStyle(
-                                      fontFamily: 'Poppins',
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : inCurrentMonth
-                                              ? Colors.black
-                                              : Colors.black26,
-                                    ),
-                                  ),
-                                  if (hasEntries && !isSelected)
-                                    Positioned(
-                                      bottom: 4,
-                                      child: Container(
-                                        width: 4,
-                                        height: 4,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.black45,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                    ),
                                 ],
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const Divider(color: Colors.black12, height: 24),
-                  if (_selectedDay != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Schedule for ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year}',
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: Colors.black,
-                          ),
+                          ],
                         ),
                       ),
-                    ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: dayEntries.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No schedule for this day.\nTap the + button to add one.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                color: Colors.grey,
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
-                            itemCount: dayEntries.length,
-                            itemBuilder: (context, index) {
-                              final entry = dayEntries[index];
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 10),
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF7F7F7),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border(
-                                    left: BorderSide(color: Colors.black, width: 4),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            entry.title,
-                                            style: const TextStyle(
-                                              fontFamily: 'Poppins',
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 14,
-                                              color: Colors.black,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            '${entry.startTime} - ${entry.endTime}',
-                                            style: const TextStyle(
-                                              fontFamily: 'Poppins',
-                                              color: Colors.black54,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.delete_outline,
-                                        color: Colors.black45,
-                                      ),
-                                      onPressed: () => entry.id != null
-                                          ? controller.deleteEntry(entry.id!)
-                                          : null,
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          color: EduColors.textSecondary,
+                        ),
+                        onPressed: () => entry.id != null
+                            ? controller.deleteEntry(entry.id!)
+                            : null,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        onPressed: () => _showAddScheduleSheet(_selectedDay ?? DateTime.now()),
-        child: const Icon(Icons.add),
+            ],
+          ),
+        ),
       ),
     );
   }
