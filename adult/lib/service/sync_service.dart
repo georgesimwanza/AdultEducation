@@ -21,7 +21,7 @@ class SyncService {
     final dbPath = await getDatabasesPath();
     db = await openDatabase(
       join(dbPath, 'app.db'),
-      version: 7, // ← bumped to 7 (added activity_log)
+      version: 8, // ← bumped to 8 (added content.localPath)
       onCreate: (db, version) async {
         print('🗄️ Creating tables...');
         await db.execute('''
@@ -40,7 +40,8 @@ class SyncService {
             type TEXT,
             fileUrl TEXT,
             courseId INTEGER,
-            institutionId INTEGER
+            institutionId INTEGER,
+            localPath TEXT
           )
         ''');
         await db.execute('''
@@ -85,6 +86,7 @@ class SyncService {
             type TEXT,
             fileUrl TEXT,
             courseId INTEGER,
+            institutionId INTEGER,
             localPath TEXT
           )
         ''');
@@ -228,7 +230,7 @@ class SyncService {
       _syncQuizzes(lastSync, onProgress),
     ]);
 
-    await downloadContentFiles(onProgress: onProgress); // ← new line
+    await downloadContentFiles(onProgress: onProgress);
 
     onProgress?.call('Finishing up...');
     await saveLastSyncTimestamp();
@@ -236,9 +238,9 @@ class SyncService {
   }
 
   Future<void> _syncSubjects(
-    int? since,
-    void Function(String)? onProgress,
-  ) async {
+      int? since,
+      void Function(String)? onProgress,
+      ) async {
     try {
       print(
         '📚 Fetching subjects${since != null ? ' since $since' : ' (full)'}...',
@@ -268,9 +270,9 @@ class SyncService {
   }
 
   Future<void> _syncContent(
-    int? since,
-    void Function(String)? onProgress,
-  ) async {
+      int? since,
+      void Function(String)? onProgress,
+      ) async {
     try {
       print(
         '📄 Fetching content${since != null ? ' since $since' : ' (full)'}...',
@@ -300,9 +302,9 @@ class SyncService {
   }
 
   Future<void> _syncProgrammes(
-    int? since,
-    void Function(String)? onProgress,
-  ) async {
+      int? since,
+      void Function(String)? onProgress,
+      ) async {
     try {
       print(
         '🎓 Fetching programmes${since != null ? ' since $since' : ' (full)'}...',
@@ -332,9 +334,9 @@ class SyncService {
   }
 
   Future<void> _syncAnnouncements(
-    int? since,
-    void Function(String)? onProgress,
-  ) async {
+      int? since,
+      void Function(String)? onProgress,
+      ) async {
     try {
       print(
         '📢 Fetching announcements${since != null ? ' since $since' : ' (full)'}...',
@@ -369,9 +371,9 @@ class SyncService {
   }
 
   Future<void> _syncQuizzes(
-    int? since,
-    void Function(String)? onProgress,
-  ) async {
+      int? since,
+      void Function(String)? onProgress,
+      ) async {
     try {
       print(
         '🧩 Fetching quizzes${since != null ? ' since $since' : ' (full)'}...',
@@ -405,6 +407,9 @@ class SyncService {
       print('❌ Error syncing quizzes: $e');
     }
   }
+
+  // ── Offline file storage ──
+
   Future<Directory> _contentDir() async {
     final base = await getApplicationDocumentsDirectory();
     final dir = Directory(join(base.path, 'content'));
@@ -479,5 +484,16 @@ class SyncService {
       }
     }
     print('✅ Content files ready — $done processed');
+  }
+
+  /// Download a single file on demand (e.g. when a student taps a lesson
+  /// that wasn't saved during startup sync) and record its local path.
+  Future<String?> ensureLocalFile(int id, String url) async {
+    final path = await _downloadFile(id, url);
+    if (path != null && db != null) {
+      await db!.update('content', {'localPath': path},
+          where: 'id = ?', whereArgs: [id]);
+    }
+    return path;
   }
 }
