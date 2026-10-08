@@ -21,10 +21,12 @@ class DashboardState extends State<Dashboard>
   bool _isLoadingTitle = true;
   int _selectedFilter = 0;
 
-  static const List<String> _filters = ['All', 'Courses', 'Schedule'];
+  // Term window for the current programme. Progress is time-based:
+  // (today - start) / (end - start). Null until dates are found.
+  DateTime? _termStart;
+  DateTime? _termEnd;
 
-  int? _modulesCompleted;
-  int? _modulesTotal; // null = still loading
+  static const List<String> _filters = ['All', 'Courses', 'Schedule'];
 
   late final AnimationController _entranceController;
 
@@ -49,30 +51,21 @@ class DashboardState extends State<Dashboard>
     if (!_titleFetched) {
       _titleFetched = true;
       _fetchTitle();
-      _fetchProgress();
     }
   }
 
-  Future<void> _fetchProgress() async {
-    try {
-      final programmeId = context.read<AuthController>().programmeId;
-      final db = context.read<SyncService>().db;
-      if (programmeId == null || db == null) return;
-
-      // ⚠️ adapt table/column names to your schema
-      final rows = await db.rawQuery(
-        'SELECT COUNT(*) AS total, COALESCE(SUM(completed), 0) AS done '
-            'FROM modules WHERE programme_id = ?',
-        [programmeId],
-      );
-      if (!mounted) return;
-      setState(() {
-        _modulesTotal = (rows.first['total'] as num?)?.toInt() ?? 0;
-        _modulesCompleted = (rows.first['done'] as num?)?.toInt() ?? 0;
-      });
-    } catch (_) {
-      // leave as loading/unknown
+  /// Reads a date from a DB row, trying several possible column names.
+  /// Accepts ISO strings or millisecond timestamps.
+  DateTime? _readDate(Map<String, Object?> row, List<String> keys) {
+    for (final k in keys) {
+      final v = row[k];
+      if (v is String && v.isNotEmpty) {
+        final d = DateTime.tryParse(v);
+        if (d != null) return d;
+      }
+      if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
     }
+    return null;
   }
 
   Future<void> _fetchTitle() async {
@@ -97,16 +90,20 @@ class DashboardState extends State<Dashboard>
           whereArgs: [programmeId],
         );
         if (results.isNotEmpty) {
+          final row = results.first;
           if (!mounted) return;
           setState(() {
-            _programmeTitle = results.first['name'] as String;
+            _programmeTitle = row['name'] as String;
+            // ⚠️ adapt these column names to your `programmes` table
+            _termStart = _readDate(row, ['start_date', 'startDate']);
+            _termEnd = _readDate(row, ['end_date', 'endDate']);
             _isLoadingTitle = false;
           });
           return;
         }
       }
 
-      // Fall back to server
+      // Fall back to server (title only — no term dates available here)
       final title = await DashboardService().getProgramTitle(programmeId);
       if (!mounted) return;
       setState(() {
@@ -122,40 +119,83 @@ class DashboardState extends State<Dashboard>
     }
   }
 
-  static const List<BoxShadow> _cardShadow = [
-    BoxShadow(
-      color: Color(0x143D5CFF),
-      blurRadius: 20,
-      offset: Offset(0, 8),
-    ),
-  ];
+  // ───────────────────────── Term progress helpers ─────────────────────────
 
-  final List<_NotifData> _notifications = [
+  /// 0.0–1.0, or null if term dates aren't known.
+  double? get _termProgress {
+    final s = _termStart, e = _termEnd;
+    if (s == null || e == null || !e.isAfter(s)) return null;
+    final total = e.difference(s).inSeconds;
+    final done = DateTime.now().difference(s).inSeconds;
+    return (done / total).clamp(0.0, 1.0);
+  }
+
+  String _formatSpan(Duration d) {
+    final days = d.inDays < 0 ? 0 : d.inDays;
+    if (days >= 30) return '${(days / 30).round()} mo';
+    return '$days d';
+  }
+
+  String get _durationLabel => (_termStart != null && _termEnd != null)
+      ? _formatSpan(_termEnd!.difference(_termStart!))
+      : '—';
+
+  String get _timeLeftLabel => _termEnd != null
+      ? _formatSpan(_termEnd!.difference(DateTime.now()))
+      : '—';
+
+  String _progressMessage(double p) {
+    if (p >= 1) return 'Term complete — well done!';
+    if (p >= 0.9) return 'Almost there, finish strong';
+    if (p >= 0.5) return "You're making great progress";
+    if (p >= 0.25) return 'Building momentum';
+    return "You've just started — keep going";
+  }
+
+  // ───────────────────────── Data ─────────────────────────
+
+  // Getter (not a field) so hot reload picks up changes to _NotifData.
+  List<_NotifData> get _notifications => [
     _NotifData(
-      icon: Icons.check_circle_rounded,
+      icon: Icons.check_rounded,
       iconColor: EduColors.success,
-      tint: const Color(0xFFE3F6EC),
-      title: 'Assignment Graded',
-      subtitle: 'Social Media Campaign – Score: 95/100',
-      time: '2 hours ago',
+      tint: EduColors.successSoft,
+      title: 'Assignment graded',
+      subtitle: 'Business Communication · 86%',
+      time: '2h',
     ),
     _NotifData(
       icon: Icons.alarm_rounded,
       iconColor: EduColors.accent,
       tint: EduColors.accentSoft,
-      title: 'Upcoming Deadline',
-      subtitle: 'Module 4 quiz due in 3 days',
-      time: '5 hours ago',
+      title: 'Assignment due tomorrow',
+      subtitle: 'Principles of Marketing',
+      time: '5h',
     ),
     _NotifData(
       icon: Icons.play_circle_rounded,
       iconColor: EduColors.primary,
       tint: EduColors.primarySoft,
-      title: 'New Content Available',
+      title: 'New content available',
       subtitle: 'Video lectures for Module 5 uploaded',
-      time: '1 day ago',
+      time: '1d',
     ),
   ];
+
+  /// Up to two initials from the signed-in user's email (e.g. "tm" → "TM").
+  /// Swap for the user's real name if AuthController exposes one.
+  String _initials() {
+    final email = context.read<AuthController>().currentUser?.email ?? '';
+    final local = email.split('@').first;
+    final parts =
+    local.split(RegExp(r'[._\-\s]+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) {
+      final p = parts.first;
+      return (p.length >= 2 ? p.substring(0, 2) : p).toUpperCase();
+    }
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
 
   String _timeGreeting() {
     final hour = DateTime.now().hour;
@@ -163,6 +203,8 @@ class DashboardState extends State<Dashboard>
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
   }
+
+  // ───────────────────────── Animation / navigation ─────────────────────────
 
   Widget _fadeSlideIn({
     required Widget child,
@@ -293,6 +335,8 @@ class DashboardState extends State<Dashboard>
   bool get _showCourses => _selectedFilter == 0 || _selectedFilter == 1;
   bool get _showSchedule => _selectedFilter == 0 || _selectedFilter == 2;
 
+  // ───────────────────────── Build ─────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -302,7 +346,7 @@ class DashboardState extends State<Dashboard>
           color: EduColors.primary,
           onRefresh: () async {
             setState(() => _isLoadingTitle = true);
-            await Future.wait([_fetchTitle(), _fetchProgress()]);
+            await _fetchTitle();
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -311,24 +355,15 @@ class DashboardState extends State<Dashboard>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _fadeSlideIn(start: 0.0, end: 0.5, child: _buildHeader()),
-                const SizedBox(height: 22),
-                _fadeSlideIn(
-                  start: 0.08,
-                  end: 0.55,
-                  child: _buildSearchBar(),
-                ),
                 const SizedBox(height: 20),
                 _fadeSlideIn(
-                  start: 0.12,
-                  end: 0.6,
-                  child: _buildFilterChips(),
-                ),
+                    start: 0.08, end: 0.55, child: _buildSearchBar()),
+                const SizedBox(height: 18),
+                _fadeSlideIn(
+                    start: 0.12, end: 0.6, child: _buildFilterChips()),
                 const SizedBox(height: 20),
                 _fadeSlideIn(
-                  start: 0.18,
-                  end: 0.75,
-                  child: _buildCurrentProgramCard(),
-                ),
+                    start: 0.18, end: 0.75, child: _buildCurrentProgramCard()),
                 const SizedBox(height: 26),
                 _fadeSlideIn(
                   start: 0.28,
@@ -336,46 +371,49 @@ class DashboardState extends State<Dashboard>
                   child: _buildSectionTitle('Quick access'),
                 ),
                 const SizedBox(height: 12),
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOut,
-                  alignment: Alignment.topCenter,
-                  child: Column(
-                    children: [
-                      if (_showCourses)
-                        _fadeSlideIn(
-                          start: 0.32,
-                          end: 0.9,
-                          child: _TapScale(
-                            onTap: _goToSubjects,
-                            child: _buildEntryCard(
-                              icon: Icons.menu_book_rounded,
-                              iconColor: EduColors.primary,
-                              tint: EduColors.primarySoft,
-                              title: 'Browse Courses',
-                              subtitle: 'Explore new programs',
-                              heroTag: 'browse-courses-icon',
+                _fadeSlideIn(
+                  start: 0.32,
+                  end: 0.9,
+                  child: AnimatedSize(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOut,
+                    alignment: Alignment.topCenter,
+                    child: IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (_showCourses)
+                            Expanded(
+                              child: _TapScale(
+                                onTap: _goToSubjects,
+                                child: _buildQuickCard(
+                                  icon: Icons.menu_book_rounded,
+                                  iconColor: EduColors.primary,
+                                  tint: EduColors.primarySoft,
+                                  title: 'Browse Courses',
+                                  subtitle: 'Explore new skills',
+                                  heroTag: 'browse-courses-icon',
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      if (_showCourses && _showSchedule)
-                        const SizedBox(height: 12),
-                      if (_showSchedule)
-                        _fadeSlideIn(
-                          start: 0.38,
-                          end: 0.95,
-                          child: _TapScale(
-                            onTap: _goToSchedule,
-                            child: _buildEntryCard(
-                              icon: Icons.calendar_month_rounded,
-                              iconColor: EduColors.accent,
-                              tint: EduColors.accentSoft,
-                              title: 'Schedule',
-                              subtitle: 'View your timetable',
+                          if (_showCourses && _showSchedule)
+                            const SizedBox(width: 12),
+                          if (_showSchedule)
+                            Expanded(
+                              child: _TapScale(
+                                onTap: _goToSchedule,
+                                child: _buildQuickCard(
+                                  icon: Icons.calendar_month_rounded,
+                                  iconColor: EduColors.accent,
+                                  tint: EduColors.accentSoft,
+                                  title: 'Schedule',
+                                  subtitle: 'Plan your week',
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                    ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 26),
@@ -393,7 +431,8 @@ class DashboardState extends State<Dashboard>
                   start: 0.5,
                   end: 1.0,
                   child: Column(
-                    children: _notifications.take(2).map(_buildNotifTile).toList(),
+                    children:
+                    _notifications.take(2).map(_buildNotifTile).toList(),
                   ),
                 ),
               ],
@@ -404,7 +443,7 @@ class DashboardState extends State<Dashboard>
     );
   }
 
-  // ───────────────────────── Header ─────────────────────────
+  // ───────────────────────── Header, search, chips ─────────────────────────
 
   Widget _buildHeader() {
     return Row(
@@ -412,16 +451,23 @@ class DashboardState extends State<Dashboard>
         Container(
           width: 48,
           height: 48,
+          alignment: Alignment.center,
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [EduColors.primary, EduColors.primaryDark],
+              colors: [EduColors.accent, Color(0xFFE5622B)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.person_rounded,
-              color: EduColors.onPrimary, size: 24),
+          child: Text(
+            _initials(),
+            style: const TextStyle(
+              color: EduColors.onPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -429,7 +475,7 @@ class DashboardState extends State<Dashboard>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${_timeGreeting()} 👋',
+                _timeGreeting(),
                 style: const TextStyle(
                   color: EduColors.textSecondary,
                   fontSize: 13,
@@ -468,7 +514,7 @@ class DashboardState extends State<Dashboard>
                 ),
               ),
               if (_notifications.isNotEmpty)
-                const Positioned(top: 0, right: 0, child: _PulseDot()),
+                const Positioned(top: 2, right: 2, child: _PulseDot()),
             ],
           ),
         ),
@@ -480,11 +526,11 @@ class DashboardState extends State<Dashboard>
     return _TapScale(
       onTap: _goToSubjects,
       child: Container(
-        height: 52,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        height: 54,
+        padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
         decoration: BoxDecoration(
           color: EduColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(27),
           border: Border.all(color: EduColors.border),
         ),
         child: Row(
@@ -494,16 +540,16 @@ class DashboardState extends State<Dashboard>
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
-                'Search courses, modules…',
+                'Search courses, lessons…',
                 style: TextStyle(color: EduColors.textSecondary, fontSize: 14),
               ),
             ),
             Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
                 color: EduColors.primarySoft,
-                borderRadius: BorderRadius.circular(10),
+                shape: BoxShape.circle,
               ),
               child: const Icon(Icons.tune_rounded,
                   color: EduColors.primary, size: 18),
@@ -516,7 +562,7 @@ class DashboardState extends State<Dashboard>
 
   Widget _buildFilterChips() {
     return SizedBox(
-      height: 38,
+      height: 40,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _filters.length,
@@ -528,7 +574,7 @@ class DashboardState extends State<Dashboard>
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeOut,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 22),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isSelected ? EduColors.primary : EduColors.surface,
@@ -542,9 +588,9 @@ class DashboardState extends State<Dashboard>
                 style: TextStyle(
                   color: isSelected
                       ? EduColors.onPrimary
-                      : EduColors.textSecondary,
+                      : EduColors.textPrimary,
                   fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
                 child: Text(_filters[index]),
               ),
@@ -595,7 +641,7 @@ class DashboardState extends State<Dashboard>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
         boxShadow: const [
           BoxShadow(
             color: Color(0x403D5CFF),
@@ -607,65 +653,72 @@ class DashboardState extends State<Dashboard>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: EduColors.onPrimaryFaint,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'Current Program',
-                  style: TextStyle(
-                    color: EduColors.onPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: EduColors.onPrimaryFaint,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.school_rounded,
-                    color: EduColors.onPrimary, size: 22),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: _isLoadingTitle
-                ? const _ShimmerLine(
-                key: ValueKey('shimmer'), width: 180, height: 22)
-                : Text(
-              _programmeTitle,
-              key: const ValueKey('title'),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: EduColors.onPrimaryFaint,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: EduColors.onPrimaryFaint),
+            ),
+            child: const Text(
+              'Current Program',
+              style: TextStyle(
                 color: EduColors.onPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                height: 1.25,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: EduColors.onPrimaryFaint,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.school_rounded,
+                    color: EduColors.onPrimary, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _isLoadingTitle
+                      ? const Align(
+                    alignment: Alignment.centerLeft,
+                    child: _ShimmerLine(
+                        key: ValueKey('shimmer'), width: 160, height: 22),
+                  )
+                      : Text(
+                    _programmeTitle,
+                    key: const ValueKey('title'),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: EduColors.onPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      height: 1.25,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 20),
-          _buildProgressSection(),
-          const SizedBox(height: 18),
+          _buildTermProgress(),
+          const SizedBox(height: 16),
           Row(
             children: [
-              _buildStatChip(Icons.access_time_rounded, '6 mo', 'Duration'),
+              _buildStatChip(
+                  Icons.calendar_today_rounded, _durationLabel, 'Duration'),
               const SizedBox(width: 10),
-              _buildStatChip(Icons.hourglass_bottom_rounded, '2 mo', 'Time left'),
+              _buildStatChip(
+                  Icons.schedule_rounded, _timeLeftLabel, 'Time left'),
             ],
           ),
         ],
@@ -673,84 +726,91 @@ class DashboardState extends State<Dashboard>
     );
   }
 
-  Widget _buildProgressSection() {
-    final total = _modulesTotal;
-    final done = _modulesCompleted ?? 0;
-
-    if (total == null) {
+  /// "Program progress  67%" + thin bar + encouragement strip.
+  Widget _buildTermProgress() {
+    if (_isLoadingTitle) {
       return const _ShimmerLine(
-          key: ValueKey('p-shimmer'), width: 220, height: 40);
+          key: ValueKey('p-shimmer'), width: double.infinity, height: 64);
     }
-    if (total == 0) {
+
+    final p = _termProgress;
+    if (p == null) {
       return _statusStrip(
-        Icons.inbox_rounded,
-        EduColors.onPrimary,
-        'No modules added to this programme yet',
+        Icons.event_busy_rounded,
+        'Term dates not available yet',
       );
     }
 
-    final remaining = total - done;
-    final percent = (done / total * 100).round();
-
+    final percent = (p * 100).round();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Modules completed',
-              style: TextStyle(color: EduColors.onPrimaryMuted, fontSize: 13),
+              'Program progress',
+              style: TextStyle(color: EduColors.onPrimaryMuted, fontSize: 12),
             ),
+            const SizedBox(width: 8),
             Text(
-              '$done/$total  •  $percent%',
+              '$percent%',
               style: const TextStyle(
                 color: EduColors.onPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
         ),
         const SizedBox(height: 10),
-        _buildSegmentedProgress(done, total),
-        const SizedBox(height: 14),
-        remaining > 0
-            ? _statusStrip(
-          Icons.pending_actions_rounded,
-          EduColors.accent,
-          remaining == 1
-              ? '1 module left to complete'
-              : '$remaining modules left to complete',
-        )
-            : _statusStrip(
-          Icons.check_circle_rounded,
-          EduColors.success,
-          'All caught up — no work pending',
+        TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: p),
+          duration: const Duration(milliseconds: 900),
+          curve: Curves.easeOutCubic,
+          builder: (context, v, _) => ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: v,
+              minHeight: 6,
+              color: EduColors.onPrimary,
+              backgroundColor: EduColors.onPrimaryFaint,
+            ),
+          ),
         ),
+        const SizedBox(height: 14),
+        _statusStrip(Icons.auto_awesome_rounded, _progressMessage(p)),
       ],
     );
   }
 
-  Widget _statusStrip(IconData icon, Color iconColor, String text) {
+  Widget _statusStrip(IconData icon, String text) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: EduColors.onPrimaryFaint,
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0x26000000), // black @ 15% — darker inset strip
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: EduColors.onPrimaryFaint),
       ),
       child: Row(
         children: [
-          Icon(icon, color: iconColor, size: 18),
-          const SizedBox(width: 8),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: EduColors.accentSoft,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: EduColors.accent, size: 18),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
               style: const TextStyle(
                 color: EduColors.onPrimary,
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
@@ -759,59 +819,14 @@ class DashboardState extends State<Dashboard>
     );
   }
 
-  Widget _buildSegmentedProgress(int completed, int total) {
-    // Too many modules → segments get too thin, use a plain bar instead.
-    if (total > 24) {
-      return TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: completed / total),
-        duration: const Duration(milliseconds: 900),
-        curve: Curves.easeOutCubic,
-        builder: (context, v, _) => ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: v,
-            minHeight: 8,
-            color: EduColors.onPrimary,
-            backgroundColor: EduColors.onPrimaryFaint,
-          ),
-        ),
-      );
-    }
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: completed / total),
-      duration: const Duration(milliseconds: 900),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, _) {
-        final filledCount = (value * total).round();
-        return Row(
-          children: List.generate(total, (i) {
-            final isFilled = i < filledCount;
-            return Expanded(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                height: 8,
-                margin: EdgeInsets.only(right: i == total - 1 ? 0 : 3),
-                decoration: BoxDecoration(
-                  color: isFilled
-                      ? EduColors.onPrimary
-                      : EduColors.onPrimaryFaint,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            );
-          }),
-        );
-      },
-    );
-  }
-
   Widget _buildStatChip(IconData icon, String value, String label) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         decoration: BoxDecoration(
-          color: EduColors.onPrimaryFaint,
-          borderRadius: BorderRadius.circular(14),
+          color: const Color(0x1AFFFFFF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: EduColors.onPrimaryFaint),
         ),
         child: Row(
           children: [
@@ -841,9 +856,9 @@ class DashboardState extends State<Dashboard>
     );
   }
 
-  // ───────────────────────── Entry cards & notifications ─────────────────────────
+  // ───────────────────────── Quick access & notifications ─────────────────────────
 
-  Widget _buildEntryCard({
+  Widget _buildQuickCard({
     required IconData icon,
     required Color iconColor,
     required Color tint,
@@ -852,8 +867,8 @@ class DashboardState extends State<Dashboard>
     String? heroTag,
   }) {
     final iconBadge = Container(
-      width: 48,
-      height: 48,
+      width: 46,
+      height: 46,
       decoration: BoxDecoration(
         color: tint,
         borderRadius: BorderRadius.circular(14),
@@ -861,46 +876,44 @@ class DashboardState extends State<Dashboard>
       child: Icon(icon, color: iconColor, size: 24),
     );
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: EduColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: _cardShadow,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: EduColors.cardShadow,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           heroTag != null ? Hero(tag: heroTag, child: iconBadge) : iconBadge,
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: EduColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                      color: EduColors.textSecondary, fontSize: 12),
-                ),
-              ],
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(
+              color: EduColors.textPrimary,
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
             ),
           ),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-              color: EduColors.primary,
-              shape: BoxShape.circle,
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: const TextStyle(
+                color: EduColors.textSecondary, fontSize: 11),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: const BoxDecoration(
+                color: EduColors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.chevron_right_rounded,
+                  color: EduColors.onPrimary, size: 20),
             ),
-            child: const Icon(Icons.arrow_forward_rounded,
-                color: EduColors.onPrimary, size: 18),
           ),
         ],
       ),
@@ -909,24 +922,24 @@ class DashboardState extends State<Dashboard>
 
   Widget _buildNotifTile(_NotifData n) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: EduColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: EduColors.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: n.tint,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(n.icon, color: n.iconColor, size: 20),
+            child: Icon(n.icon, color: n.iconColor, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -941,19 +954,22 @@ class DashboardState extends State<Dashboard>
                     fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   n.subtitle,
                   style: const TextStyle(
                       color: EduColors.textSecondary, fontSize: 12),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  n.time,
-                  style: const TextStyle(
-                      color: EduColors.textSecondary, fontSize: 11),
-                ),
               ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            n.time,
+            style: const TextStyle(
+              color: EduColors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -995,7 +1011,7 @@ class _TapScaleState extends State<_TapScale> {
   }
 }
 
-/// Pulsing placeholder block shown while the programme title loads.
+/// Pulsing placeholder block shown while data loads.
 class _ShimmerLine extends StatefulWidget {
   final double width;
   final double height;
@@ -1038,7 +1054,7 @@ class _ShimmerLineState extends State<_ShimmerLine>
         height: widget.height,
         decoration: BoxDecoration(
           color: EduColors.onPrimaryFaint,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
     );
@@ -1081,12 +1097,12 @@ class _PulseDotState extends State<_PulseDot>
         child: child,
       ),
       child: Container(
-        width: 14,
-        height: 14,
+        width: 11,
+        height: 11,
         decoration: BoxDecoration(
           color: EduColors.accent,
           shape: BoxShape.circle,
-          border: Border.all(color: EduColors.background, width: 2),
+          border: Border.all(color: EduColors.surface, width: 2),
         ),
       ),
     );
