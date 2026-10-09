@@ -4,6 +4,7 @@ import '../Model/subject_model.dart';
 import '../service/subject_service.dart';
 import 'package:adult/Controller/auth_controller.dart';
 import 'package:adult/service/sync_service.dart';
+import 'package:adult/screens/color.dart';
 
 class SubjectPage extends StatefulWidget {
   const SubjectPage({super.key});
@@ -40,9 +41,10 @@ class _SubjectPageState extends State<SubjectPage> {
       final controller = Provider.of<AuthController>(context, listen: false);
       final programmeId = controller.programmeId;
 
-      print('>>> SubjectPage programmeId: $programmeId');
+      debugPrint('>>> SubjectPage programmeId: $programmeId');
 
       if (programmeId == null) {
+        if (!mounted) return;
         setState(() {
           _errorMessage = 'No programme selected. Please log in again.';
           _isLoading = false;
@@ -51,12 +53,14 @@ class _SubjectPageState extends State<SubjectPage> {
       }
 
       final data = await _service.getSubjectsByProgramme(programmeId);
+      if (!mounted) return;
       setState(() {
         _subjects = data;
         _isLoading = false;
       });
     } catch (e) {
-      print('>>> SubjectPage error: $e');
+      debugPrint('>>> SubjectPage error: $e');
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Failed to load subjects. Please try again.';
         _isLoading = false;
@@ -83,101 +87,12 @@ class _SubjectPageState extends State<SubjectPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: EduColors.background,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header ──────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Matches the "Browse Courses" card's icon on the
-                      // dashboard (same tag) — flies in and grows into
-                      // this badge when the page is opened from there.
-                      Hero(
-                        tag: 'browse-courses-icon',
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.menu_book_rounded,
-                            color: Colors.black,
-                            size: 22,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Subjects',
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.black,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Explore and enrol in a course below',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // ── Search bar ──────────────────────────────
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE4E4E4)),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (v) => setState(() => _searchQuery = v),
-                      decoration: InputDecoration(
-                        hintText: 'What do you want to learn?',
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade400,
-                          fontSize: 13.5,
-                        ),
-                        prefixIcon: Icon(
-                          Icons.search_rounded,
-                          color: Colors.grey.shade400,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                          horizontal: 4,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Body ────────────────────────────────────────────
+            _buildHeader(),
             Expanded(child: _buildBody()),
           ],
         ),
@@ -185,86 +100,259 @@ class _SubjectPageState extends State<SubjectPage> {
     );
   }
 
+  // ── Header ─────────────────────────────────────────────────────────────
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.maybePop(context),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: EduColors.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: EduColors.border),
+                  ),
+                  child: const Icon(Icons.arrow_back_rounded,
+                      color: EduColors.textPrimary, size: 20),
+                ),
+              ),
+              const SizedBox(width: 14),
+              // Matches the "Browse Courses" card icon on the dashboard
+              // (same tag) so it flies into this badge on navigation.
+              Hero(
+                tag: 'browse-courses-icon',
+                child: Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: EduColors.primarySoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.menu_book_rounded,
+                    color: EduColors.primary,
+                    size: 24,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Subjects',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: EduColors.textPrimary,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    Text(
+                      _isLoading
+                          ? 'Loading…'
+                          : '${_subjects.length} ${_subjects.length == 1 ? 'course' : 'courses'} available',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: EduColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _buildSearchBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      height: 54,
+      decoration: BoxDecoration(
+        color: EduColors.surface,
+        borderRadius: BorderRadius.circular(27),
+        border: Border.all(color: EduColors.border),
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (v) => setState(() => _searchQuery = v),
+        cursorColor: EduColors.primary,
+        style: const TextStyle(color: EduColors.textPrimary, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: 'What do you want to learn?',
+          hintStyle: const TextStyle(
+            color: EduColors.textSecondary,
+            fontSize: 14,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: EduColors.textSecondary,
+          ),
+          suffixIcon: _searchQuery.isEmpty
+              ? null
+              : IconButton(
+            icon: const Icon(Icons.close_rounded,
+                color: EduColors.textSecondary, size: 20),
+            onPressed: () {
+              _searchController.clear();
+              setState(() => _searchQuery = '');
+            },
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+      ),
+    );
+  }
+
+  // ── Body ───────────────────────────────────────────────────────────────
+
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: Colors.black),
+        child: CircularProgressIndicator(color: EduColors.primary),
       );
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey.shade300),
-            const SizedBox(height: 12),
-            Text(
-              _errorMessage!,
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _loadSubjects,
-              icon: const Icon(Icons.refresh_rounded, size: 16),
-              label: const Text('Retry'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ),
+      return _buildMessageState(
+        icon: Icons.cloud_off_rounded,
+        title: 'Something went wrong',
+        message: _errorMessage!,
+        showRetry: true,
+      );
+    }
+
+    if (_subjects.isEmpty) {
+      return _buildMessageState(
+        icon: Icons.menu_book_rounded,
+        title: 'No subjects yet',
+        message: 'Courses for your programme will appear here.',
       );
     }
 
     if (_filtered.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search_off_rounded,
-              size: 48,
-              color: Colors.grey.shade300,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'No courses found',
-              style: TextStyle(color: Colors.grey.shade400),
-            ),
-          ],
-        ),
+      return _buildMessageState(
+        icon: Icons.search_off_rounded,
+        title: 'No courses found',
+        message: 'Try a different name or course code.',
       );
     }
 
     return RefreshIndicator(
-      color: Colors.black,
+      color: EduColors.primary,
       onRefresh: _loadSubjects,
       child: GridView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           mainAxisSpacing: 14,
           crossAxisSpacing: 14,
-          childAspectRatio: 0.82,
+          childAspectRatio: 0.85,
         ),
         itemCount: _filtered.length,
-        itemBuilder: (context, index) => _SubjectCard(subject: _filtered[index]),
+        itemBuilder: (context, index) => _EntranceFade(
+          index: index,
+          child: _SubjectCard(subject: _filtered[index], colorIndex: index),
+        ),
+      ),
+    );
+  }
+
+  /// Error / empty states live in a ListView so pull-to-refresh still works.
+  Widget _buildMessageState({
+    required IconData icon,
+    required String title,
+    required String message,
+    bool showRetry = false,
+  }) {
+    return RefreshIndicator(
+      color: EduColors.primary,
+      onRefresh: _loadSubjects,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        children: [
+          const SizedBox(height: 70),
+          Center(
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: EduColors.primarySoft,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Icon(icon, color: EduColors.primary, size: 34),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: EduColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: EduColors.textSecondary,
+            ),
+          ),
+          if (showRetry) ...[
+            const SizedBox(height: 18),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: _loadSubjects,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Try again'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EduColors.primary,
+                  foregroundColor: EduColors.onPrimary,
+                  elevation: 0,
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
 }
 
-// ── Subject Card ──────────────────────────────────────────────────────────────
+// ── Subject Card ─────────────────────────────────────────────────────────
 
 class _SubjectCard extends StatefulWidget {
   final subjectModel subject;
-  const _SubjectCard({required this.subject});
+  final int colorIndex;
+  const _SubjectCard({required this.subject, required this.colorIndex});
 
   @override
   State<_SubjectCard> createState() => _SubjectCardState();
@@ -272,6 +360,18 @@ class _SubjectCard extends StatefulWidget {
 
 class _SubjectCardState extends State<_SubjectCard> {
   bool _pressed = false;
+
+  // Cycles through the palette so the grid isn't one flat colour.
+  static const List<Color> _fgColors = [
+    EduColors.primary,
+    EduColors.accent,
+    EduColors.success,
+  ];
+  static const List<Color> _bgColors = [
+    EduColors.primarySoft,
+    EduColors.accentSoft,
+    EduColors.successSoft,
+  ];
 
   void _enter() {
     Navigator.pushNamed(
@@ -284,8 +384,9 @@ class _SubjectCardState extends State<_SubjectCard> {
         content: Text('Entering ${widget.subject.name}...'),
         duration: const Duration(seconds: 1),
         behavior: SnackBarBehavior.floating,
+        backgroundColor: EduColors.textPrimary,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(14),
         ),
       ),
     );
@@ -294,6 +395,9 @@ class _SubjectCardState extends State<_SubjectCard> {
   @override
   Widget build(BuildContext context) {
     final s = widget.subject;
+    final fg = _fgColors[widget.colorIndex % _fgColors.length];
+    final bg = _bgColors[widget.colorIndex % _bgColors.length];
+
     return AnimatedScale(
       scale: _pressed ? 0.96 : 1.0,
       duration: const Duration(milliseconds: 120),
@@ -304,47 +408,22 @@ class _SubjectCardState extends State<_SubjectCard> {
         onTap: _enter,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE4E4E4)),
+            color: EduColors.surface,
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: EduColors.cardShadow,
           ),
           padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: const Icon(
-                      Icons.menu_book_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _enter,
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_forward_rounded,
-                        color: Colors.white,
-                        size: 15,
-                      ),
-                    ),
-                  ),
-                ],
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(Icons.menu_book_rounded, color: fg, size: 24),
               ),
               const Spacer(),
               Text(
@@ -353,24 +432,79 @@ class _SubjectCardState extends State<_SubjectCard> {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black,
+                  fontWeight: FontWeight.w800,
+                  color: EduColors.textPrimary,
                   height: 1.25,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                s.code,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: EduColors.background,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        s.code,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          color: EduColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: const BoxDecoration(
+                      color: EduColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
+                      color: EduColors.onPrimary,
+                      size: 16,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Fades + slides each card in with a small stagger.
+class _EntranceFade extends StatelessWidget {
+  final int index;
+  final Widget child;
+
+  const _EntranceFade({required this.index, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final delay = (index * 50).clamp(0, 350);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 350 + delay),
+      curve: Curves.easeOutCubic,
+      builder: (context, v, child) => Opacity(
+        opacity: v,
+        child: Transform.translate(
+          offset: Offset(0, (1 - v) * 16),
+          child: child,
+        ),
+      ),
+      child: child,
     );
   }
 }

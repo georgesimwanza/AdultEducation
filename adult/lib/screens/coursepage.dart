@@ -1,4 +1,4 @@
-import 'dart:io'; // ← added (for File)
+import 'dart:io';
 import 'package:adult/Model/content.dart';
 import 'package:flutter/material.dart';
 import '../service/contentService.dart';
@@ -7,7 +7,9 @@ import 'package:adult/service/sync_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:adult/Model/quiz.dart';
 import 'package:adult/service/quiz_service.dart';
+import 'package:adult/screens/color.dart';
 import 'quiz_taking_screen.dart'; // adjust path to wherever you place it
+import 'pdf_viewer.dart'; // adjust path to wherever you place it
 
 typedef Content = ContentModel;
 
@@ -36,13 +38,14 @@ class _CoursePageState extends State<CoursePage> {
   late Future<List<ContentModel>> _coursePageFuture;
   Future<List<Quiz>>? _quizzesFuture;
   int _selectedTab = 0;
+  bool _contentRequested = false; // didChangeDependencies can fire often
 
   int get subjectId => widget.subjectId;
 
   @override
   void initState() {
     super.initState();
-    print('>>> CoursePage subjectId: $subjectId');
+    debugPrint('>>> CoursePage subjectId: $subjectId');
     _loadQuizzes();
   }
 
@@ -50,6 +53,7 @@ class _CoursePageState extends State<CoursePage> {
     final prefs = await SharedPreferences.getInstance();
     final institutionId = prefs.getInt('institution') ?? 0;
     final programmeId = prefs.getInt('programme_id');
+    if (!mounted) return;
     setState(() {
       _quizzesFuture = QuizService().fetchQuizzes(
         subjectId: subjectId,
@@ -62,85 +66,142 @@ class _CoursePageState extends State<CoursePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final db = context.read<SyncService>().db;
-    _coursePageFuture = contentService(db: db).getContent(subjectId);
+    if (!_contentRequested) {
+      _contentRequested = true;
+      final db = context.read<SyncService>().db;
+      _coursePageFuture = contentService(db: db).getContent(subjectId);
+    }
   }
 
-  // ── Open a lesson: prefer the downloaded local file, fall back to the
-  // network URL if it hasn't been downloaded (or was deleted) ──
+  void _toast(String text, {bool isError = false, Duration? duration}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          duration: duration ?? const Duration(seconds: 3),
+          backgroundColor: isError ? EduColors.danger : EduColors.textPrimary,
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          content: Text(
+            text,
+            style: const TextStyle(color: EduColors.onPrimary),
+          ),
+        ),
+      );
+  }
+
+  // ── Open a lesson ──
+  // 1. use the downloaded file if it exists
+  // 2. otherwise download it now (and record the path in the DB)
+  // 3. if that fails (offline), return the URL so the caller can tell the user
+
   Future<String?> _resolveSource(ContentModel lesson) async {
     final local = lesson.localPath;
     if (local != null && await File(local).exists()) return local;
-    return lesson.fileUrl; // fall back to network
+
+    if (lesson.fileUrl.isEmpty) return null;
+    if (!mounted) return null;
+
+    _toast('Downloading...', duration: const Duration(seconds: 30));
+
+    final sync = context.read<SyncService>(); // read before the await
+    final path = await sync.ensureLocalFile(lesson.id, lesson.fileUrl);
+    return path ?? lesson.fileUrl;
   }
 
   Future<void> _openLesson(ContentModel lesson) async {
+    debugPrint('🔎 Tapped "${lesson.title}" localPath=${lesson.localPath}');
     final source = await _resolveSource(lesson);
     if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
     if (source == null || source.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This file is not available.')),
-      );
+      _toast('This file is not available.', isError: true);
       return;
     }
 
     final isNetwork = source.startsWith('http');
-    print('📂 Opening "${lesson.title}" from ${isNetwork ? 'network' : 'local'}: $source');
+    debugPrint(
+        '📂 Opening "${lesson.title}" from ${isNetwork ? 'network' : 'local'}: $source');
 
-    switch (lesson.type.toLowerCase()) {
-      case 'pdf':
-      // TODO: local   -> PDFView(filePath: source)
-      //       network -> your existing network PDF viewer
-        break;
-      case 'video':
-      // TODO: isNetwork loading
-      //   ? VideoPlayerController.networkUrl(Uri.parse(source))
-      //   : VideoPlayerController.file(File(source))
-        break;
-      default:
-      // TODO: images etc.
-      //   isNetwork ? Image.network(source) : Image.file(File(source))
-        break;
+    final type = lesson.type.toLowerCase();
+    // Decide by the file extension as well as the stored type, because the
+    // server's type string may not be exactly "pdf" (e.g. "document").
+    final isPdf = type.contains('pdf') || source.toLowerCase().endsWith('.pdf');
+    debugPrint('🔎 type="${lesson.type}" isPdf=$isPdf');
+
+    if (isPdf) {
+      if (isNetwork) {
+        // Download failed, so there is no local file to show.
+        _toast(
+          'Could not download the file. Check your connection and try again.',
+          isError: true,
+        );
+        return;
+      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PdfViewerScreen(path: source, title: lesson.title),
+        ),
+      );
+    } else if (type.contains('video')) {
+      // TODO: VideoPlayerController.file(File(source))
+      _toast('Video playback is coming soon.');
+    } else {
+      _toast('Can\'t open "${lesson.type}" files yet.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: EduColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeaderCard(),
-                    const SizedBox(height: 20),
-                    _buildTabBar(),
-                    const SizedBox(height: 16),
-                    _selectedTab == 0 ? _buildLessonList() : _buildAssignments(),
-                  ],
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeaderCard(),
+              const SizedBox(height: 20),
+              _buildTabBar(),
+              const SizedBox(height: 18),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: KeyedSubtree(
+                  key: ValueKey(_selectedTab),
+                  child:
+                  _selectedTab == 0 ? _buildLessonList() : _buildAssignments(),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ── Header card — dark rounded card with back/settings, title,
-  // description, and stat chips, mirroring the mockup's top section ──
+  // ── Header card ────────────────────────────────────────────────────────
+
   Widget _buildHeaderCard() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 22),
       decoration: BoxDecoration(
-        color: const Color(0xFF111111),
+        gradient: const LinearGradient(
+          colors: [EduColors.primary, EduColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x403D5CFF),
+            blurRadius: 24,
+            offset: Offset(0, 12),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,7 +220,7 @@ class _CoursePageState extends State<CoursePage> {
           Text(
             widget.subjectTitle ?? 'Subject $subjectId',
             style: const TextStyle(
-              color: Colors.white,
+              color: EduColors.onPrimary,
               fontSize: 24,
               fontWeight: FontWeight.w800,
               height: 1.15,
@@ -172,26 +233,39 @@ class _CoursePageState extends State<CoursePage> {
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Color(0xFFB3B3B3),
+                color: EduColors.onPrimaryMuted,
                 fontSize: 13,
-                height: 1.4,
+                height: 1.45,
               ),
             ),
           ],
           const SizedBox(height: 18),
-          FutureBuilder<List<ContentModel>>(
-            future: _coursePageFuture,
-            builder: (context, snapshot) {
-              final count = snapshot.data?.length ?? 0;
-              return Row(
-                children: [
-                  _statChip(
-                    icon: Icons.play_circle_outline,
+          Row(
+            children: [
+              FutureBuilder<List<ContentModel>>(
+                future: _coursePageFuture,
+                builder: (context, snapshot) {
+                  final count = snapshot.data?.length ?? 0;
+                  return _statChip(
+                    icon: Icons.play_circle_outline_rounded,
                     label: '$count Lesson${count == 1 ? '' : 's'}',
-                  ),
-                ],
-              );
-            },
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+              if (_quizzesFuture != null)
+                FutureBuilder<List<Quiz>>(
+                  future: _quizzesFuture,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const SizedBox.shrink();
+                    final count = snapshot.data!.length;
+                    return _statChip(
+                      icon: Icons.assignment_outlined,
+                      label: '$count Assignment${count == 1 ? '' : 's'}',
+                    );
+                  },
+                ),
+            ],
           ),
         ],
       ),
@@ -202,13 +276,13 @@ class _CoursePageState extends State<CoursePage> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: const Color(0xFF262626),
+        width: 40,
+        height: 40,
+        decoration: const BoxDecoration(
+          color: EduColors.onPrimaryFaint,
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, size: 16, color: Colors.white),
+        child: Icon(icon, size: 17, color: EduColors.onPrimary),
       ),
     );
   }
@@ -217,21 +291,21 @@ class _CoursePageState extends State<CoursePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: const Color(0x1AFFFFFF),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF2E2E2E)),
+        border: Border.all(color: EduColors.onPrimaryFaint),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: Colors.white),
+          Icon(icon, size: 15, color: EduColors.onPrimary),
           const SizedBox(width: 6),
           Text(
             label,
             style: const TextStyle(
-              color: Colors.white,
+              color: EduColors.onPrimary,
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -239,14 +313,17 @@ class _CoursePageState extends State<CoursePage> {
     );
   }
 
+  // ── Tabs ───────────────────────────────────────────────────────────────
+
   Widget _buildTabBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: const Color(0xFFEFEFEF),
-          borderRadius: BorderRadius.circular(14),
+          color: EduColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: EduColors.border),
         ),
         child: Row(
           children: [
@@ -266,10 +343,11 @@ class _CoursePageState extends State<CoursePage> {
         onTap: () => setState(() => _selectedTab = index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(vertical: 11),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF111111) : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            color: isSelected ? EduColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Center(
             child: Text(
@@ -277,7 +355,9 @@ class _CoursePageState extends State<CoursePage> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: isSelected ? Colors.white : const Color(0xFF111111),
+                color: isSelected
+                    ? EduColors.onPrimary
+                    : EduColors.textSecondary,
               ),
             ),
           ),
@@ -286,37 +366,83 @@ class _CoursePageState extends State<CoursePage> {
     );
   }
 
-  // ── Lesson list — timeline-style rows, connector line on the left,
-  // circular markers, matching the mockup's left rail ──
+  // ── Shared states ──────────────────────────────────────────────────────
+
+  Widget _loadingState() => const Padding(
+    padding: EdgeInsets.all(48),
+    child: Center(
+      child: CircularProgressIndicator(color: EduColors.primary),
+    ),
+  );
+
+  Widget _messageState({
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(32, 40, 32, 40),
+      child: Column(
+        children: [
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              color: EduColors.primarySoft,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Icon(icon, color: EduColors.primary, size: 32),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: EduColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: EduColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Lesson list ────────────────────────────────────────────────────────
+
   Widget _buildLessonList() {
     return FutureBuilder<List<ContentModel>>(
       future: _coursePageFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: CircularProgressIndicator(color: Colors.black)),
-          );
+          return _loadingState();
         }
 
         if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.all(32),
-            child: Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
+          return _messageState(
+            icon: Icons.cloud_off_rounded,
+            title: "Couldn't load lessons",
+            message: 'Check your connection and try again.\n${snapshot.error}',
           );
         }
 
         final lessons = snapshot.data ?? [];
 
         if (lessons.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: Text('No Content available.')),
+          return _messageState(
+            icon: Icons.menu_book_rounded,
+            title: 'No content yet',
+            message: 'Lessons for this subject will appear here.',
           );
         }
 
@@ -325,33 +451,15 @@ class _CoursePageState extends State<CoursePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Lesson Library',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF111111),
-                      ),
-                    ),
-                    Text(
-                      'See More',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 4),
               for (int i = 0; i < lessons.length; i++)
-                _buildLessonRow(lessons[i], isLast: i == lessons.length - 1),
+                _EntranceFade(
+                  index: i,
+                  child: _buildLessonRow(
+                    lessons[i],
+                    number: i + 1,
+                    isLast: i == lessons.length - 1,
+                  ),
+                ),
             ],
           ),
         );
@@ -359,63 +467,82 @@ class _CoursePageState extends State<CoursePage> {
     );
   }
 
-  Widget _buildLessonRow(ContentModel lesson, {required bool isLast}) {
+  Widget _buildLessonRow(
+      ContentModel lesson, {
+        required int number,
+        required bool isLast,
+      }) {
+    final fg = _fgFor(lesson.type);
+    final bg = _bgFor(lesson.type);
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Timeline rail: dot + connecting line
-          Column(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                margin: const EdgeInsets.only(top: 22),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF111111),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              if (!isLast)
-                Expanded(
-                  child: Container(
-                    width: 2,
-                    color: const Color(0xFFDDDDDD),
+          // Timeline rail: numbered marker + connecting line
+          SizedBox(
+            width: 28,
+            child: Column(
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  margin: const EdgeInsets.only(top: 18),
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: EduColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$number',
+                    style: const TextStyle(
+                      color: EduColors.onPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-            ],
+                if (!isLast)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.only(top: 4),
+                      color: EduColors.primarySoft,
+                    ),
+                  ),
+              ],
+            ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              // Material (not Container) owns the white fill + border so the
-              // InkWell ripple is visible and clipped to the rounded corners.
+              // Material owns the fill so the InkWell ripple is visible
+              // and clipped to the rounded corners.
               child: Material(
-                color: Colors.white,
+                color: EduColors.surface,
+                elevation: 0,
                 clipBehavior: Clip.antiAlias,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Color(0xFFE4E4E4)),
+                  borderRadius: BorderRadius.circular(20),
+                  side: const BorderSide(color: EduColors.border),
                 ),
                 child: InkWell(
                   onTap: () => _openLesson(lesson),
+                  splashColor: EduColors.primarySoft,
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Row(
                       children: [
                         Container(
-                          width: 40,
-                          height: 40,
+                          width: 46,
+                          height: 46,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF111111),
-                            borderRadius: BorderRadius.circular(12),
+                            color: bg,
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Icon(
-                            _iconFor(lesson.type),
-                            size: 18,
-                            color: Colors.white,
-                          ),
+                          child: Icon(_iconFor(lesson.type),
+                              size: 22, color: fg),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -424,28 +551,48 @@ class _CoursePageState extends State<CoursePage> {
                             children: [
                               Text(
                                 lesson.title,
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 14,
-                                  color: Color(0xFF111111),
+                                  height: 1.3,
+                                  color: EduColors.textPrimary,
                                 ),
                               ),
-                              const SizedBox(height: 3),
-                              Text(
-                                lesson.type,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: bg,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  lesson.type,
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: fg,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: Colors.grey.shade400,
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: EduColors.primarySoft,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.chevron_right_rounded,
+                            color: EduColors.primary,
+                            size: 20,
+                          ),
                         ),
                       ],
                     ),
@@ -462,99 +609,228 @@ class _CoursePageState extends State<CoursePage> {
   IconData _iconFor(String type) {
     switch (type.toLowerCase()) {
       case 'video':
-        return Icons.play_circle_fill;
+        return Icons.play_circle_fill_rounded;
       case 'pdf':
-        return Icons.picture_as_pdf;
+        return Icons.picture_as_pdf_rounded;
       case 'quiz':
-        return Icons.quiz;
+        return Icons.quiz_rounded;
       default:
-        return Icons.article;
+        return Icons.article_rounded;
     }
   }
 
-  Widget _buildAssignments() {
-    if (_quizzesFuture == null) {
-      return const Padding(
-        padding: EdgeInsets.all(32),
-        child: Center(child: CircularProgressIndicator(color: Colors.black)),
-      );
+  Color _fgFor(String type) {
+    switch (type.toLowerCase()) {
+      case 'video':
+        return EduColors.primary;
+      case 'pdf':
+        return EduColors.accent;
+      case 'quiz':
+        return EduColors.success;
+      default:
+        return EduColors.primary;
     }
+  }
+
+  Color _bgFor(String type) {
+    switch (type.toLowerCase()) {
+      case 'video':
+        return EduColors.primarySoft;
+      case 'pdf':
+        return EduColors.accentSoft;
+      case 'quiz':
+        return EduColors.successSoft;
+      default:
+        return EduColors.primarySoft;
+    }
+  }
+
+  // ── Assignments ────────────────────────────────────────────────────────
+
+  Widget _buildAssignments() {
+    if (_quizzesFuture == null) return _loadingState();
+
     return FutureBuilder<List<Quiz>>(
       future: _quizzesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: CircularProgressIndicator(color: Colors.black)),
-          );
+          return _loadingState();
         }
         if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.all(32),
-            child: Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            ),
+          return _messageState(
+            icon: Icons.cloud_off_rounded,
+            title: "Couldn't load assignments",
+            message: 'Check your connection and try again.\n${snapshot.error}',
           );
         }
         final quizzes = snapshot.data ?? [];
         if (quizzes.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: Text('No assignments yet')),
+          return _messageState(
+            icon: Icons.assignment_turned_in_outlined,
+            title: 'No assignments yet',
+            message: 'Quizzes and assignments will show up here.',
           );
         }
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           child: Column(
             children: [
-              for (final quiz in quizzes)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: const Color(0xFFE4E4E4)),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF111111),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.quiz, size: 18, color: Colors.white),
-                    ),
-                    title: Text(
-                      quiz.title,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    subtitle: Text(
-                      '${quiz.questionCount} question${quiz.questionCount == 1 ? '' : 's'} · ${quiz.totalPoints} points'
-                          '${quiz.timeLimitMinutes != null ? ' · ${quiz.timeLimitMinutes} min' : ''}',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                    trailing: Icon(
-                      Icons.chevron_right_rounded,
-                      color: Colors.grey.shade400,
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => QuizTakingScreen(quiz: quiz),
-                        ),
-                      );
-                    },
-                  ),
+              for (int i = 0; i < quizzes.length; i++)
+                _EntranceFade(
+                  index: i,
+                  child: _buildQuizCard(quizzes[i]),
                 ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _metaChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: EduColors.background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: EduColors.textSecondary),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+              color: EduColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuizCard(Quiz quiz) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      // Material owns the fill + border so the ink splash isn't hidden.
+      child: Material(
+        color: EduColors.surface,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: EduColors.border),
+        ),
+        child: InkWell(
+          splashColor: EduColors.primarySoft,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => QuizTakingScreen(quiz: quiz),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: EduColors.successSoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.quiz_rounded,
+                      size: 22, color: EduColors.success),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        quiz.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          height: 1.3,
+                          color: EduColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _metaChip(
+                            Icons.help_outline_rounded,
+                            '${quiz.questionCount} question${quiz.questionCount == 1 ? '' : 's'}',
+                          ),
+                          _metaChip(
+                            Icons.stars_rounded,
+                            '${quiz.totalPoints} points',
+                          ),
+                          if (quiz.timeLimitMinutes != null)
+                            _metaChip(
+                              Icons.timer_outlined,
+                              '${quiz.timeLimitMinutes} min',
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: EduColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: EduColors.onPrimary,
+                    size: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Fades + slides each row in with a small stagger.
+class _EntranceFade extends StatelessWidget {
+  final int index;
+  final Widget child;
+
+  const _EntranceFade({required this.index, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final delay = (index * 50).clamp(0, 350);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 350 + delay),
+      curve: Curves.easeOutCubic,
+      builder: (context, v, child) => Opacity(
+        opacity: v,
+        child: Transform.translate(
+          offset: Offset(0, (1 - v) * 16),
+          child: child,
+        ),
+      ),
+      child: child,
     );
   }
 }
