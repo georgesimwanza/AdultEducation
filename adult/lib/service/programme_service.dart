@@ -7,7 +7,7 @@ class ProgrammeService {
   final String baseUrl = 'http://10.0.2.2:8080/api/programmes';
 
   Future<List<ProgrammeModel>> getProgrammes() async {
-    final response = await http.get(Uri.parse(baseUrl));
+    final response = await http.get(Uri.parse('$baseUrl/allProgrammes'));
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);

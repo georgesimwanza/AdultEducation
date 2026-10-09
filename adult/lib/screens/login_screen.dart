@@ -1,6 +1,8 @@
 import 'package:adult/screens/register_institution.dart';
 import 'package:adult/screens/register_screen.dart';
 import 'package:adult/screens/loading_screen.dart';
+import 'package:adult/screens/auth_widget.dart';
+import 'package:adult/screens/color.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:adult/Controller/auth_controller.dart';
@@ -24,319 +26,190 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  Future<void> _login(AuthController controller) async {
+    if (emailController.text.trim().isEmpty ||
+        passwordController.text.trim().isEmpty) {
+      showAuthSnack(
+        ScaffoldMessenger.of(context),
+        'Please fill in all fields',
+        isError: true,
+      );
+      return;
+    }
+
+    final success = await controller.login(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+    );
+
+    if (success && mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoadingScreen()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<AuthController>(context);
 
-    return Scaffold(
-      // Solid black background layer behind the wave form
-      backgroundColor: Colors.black,
-      body: Stack(
+    return AuthScaffold(
+      title: 'Welcome back 👋',
+      subtitle: 'Sign in to continue learning',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Wave-Clipped Form Sheet Container
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: ClipPath(
-              clipper:
-                  TopWaveClipper(), // Cuts the container into a custom wave shape
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.75,
-                color: Colors.white,
-                padding: const EdgeInsets.only(
-                  left: 28,
-                  right: 28,
-                  top: 70,
-                  bottom: 24,
+          AuthField(
+            label: 'Email',
+            hint: 'demo@email.com',
+            icon: Icons.mail_outline_rounded,
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: 18),
+          AuthField(
+            label: 'Password',
+            hint: 'Enter your password',
+            icon: Icons.lock_outline_rounded,
+            controller: passwordController,
+            isPassword: true,
+            textInputAction: TextInputAction.done,
+          ),
+          const SizedBox(height: 14),
+
+          if (controller.errorMessage != null) ...[
+            AuthErrorBanner(controller.errorMessage!),
+            const SizedBox(height: 12),
+          ],
+
+          // Remember Me & Forgot Password
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: () => setState(() => _rememberMe = !_rememberMe),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: _rememberMe,
+                        activeColor: EduColors.primary,
+                        side: const BorderSide(
+                            color: EduColors.textSecondary, width: 1.4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        onChanged: (val) =>
+                            setState(() => _rememberMe = val ?? false),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Remember me',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: EduColors.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Sign In Heading
-                      const Text(
-                        'Sign in',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Email Field Label
-                      const Text(
-                        'Email',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      TextField(
-                        controller: emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        style: const TextStyle(color: Colors.black),
-                        decoration: InputDecoration(
-                          hintText: 'demo@email.com',
-                          hintStyle: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.mail_outline,
-                            color: Colors.grey,
-                            size: 20,
-                          ),
-                          prefixIconConstraints: const BoxConstraints(
-                            minWidth: 30,
-                            minHeight: 20,
-                          ),
-                          enabledBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.black,
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Password Field Label
-                      const Text(
-                        'Password',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      TextField(
-                        controller: passwordController,
-                        obscureText: true,
-                        style: const TextStyle(color: Colors.black),
-                        decoration: InputDecoration(
-                          hintText: 'I enter your password',
-                          hintStyle: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.lock_outline,
-                            color: Colors.grey,
-                            size: 20,
-                          ),
-                          prefixIconConstraints: const BoxConstraints(
-                            minWidth: 30,
-                            minHeight: 20,
-                          ),
-                          suffixIcon: const Icon(
-                            Icons.visibility_off_outlined,
-                            color: Colors.grey,
-                            size: 20,
-                          ),
-                          enabledBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: const UnderlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Colors.black,
-                              width: 2,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Error Message Display
-                      if (controller.errorMessage != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            controller.errorMessage!,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-
-                      // Remember Me & Forgot Password Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: Checkbox(
-                                  value: _rememberMe,
-                                  activeColor: Colors.black,
-                                  onChanged: (val) => setState(
-                                    () => _rememberMe = val ?? false,
-                                  ),
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Remember Me',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              // TODO: Add Forgot Password Route
-                            },
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                            ),
-                            child: const Text(
-                              'Forgot Password?',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Primary Login Button (Black)
-                      SizedBox(
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: controller.isLoading
-                              ? null
-                              : () async {
-                                  if (emailController.text.trim().isEmpty ||
-                                      passwordController.text.trim().isEmpty) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Please fill in all fields',
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
-
-                                  final success = await controller.login(
-                                    emailController.text.trim(),
-                                    passwordController.text.trim(),
-                                  );
-
-                                  if (success && context.mounted) {
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const LoadingScreen(),
-                                      ),
-                                    );
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          child: controller.isLoading
-                              ? const SizedBox(
-                                  height: 22,
-                                  width: 22,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : const Text('Login'),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Secondary Button: Register Institution (White Outline)
-                      SizedBox(
-                        height: 52,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const RegisterInstitutionScreen(),
-                              ),
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: Colors.black,
-                              width: 1.5,
-                            ),
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          child: const Text('Register Institution'),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // Footer Navigation Links
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Don't have an Account? ",
-                            style: TextStyle(color: Colors.grey, fontSize: 14),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const RegisterScreen(),
-                                ),
-                              );
-                            },
-                            child: const Text(
-                              'Sign up',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+              ),
+              TextButton(
+                onPressed: () {
+                  // TODO: Add Forgot Password Route
+                },
+                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                child: const Text(
+                  'Forgot password?',
+                  style: TextStyle(
+                    color: EduColors.primary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-            ),
+            ],
+          ),
+          const SizedBox(height: 22),
+
+          AuthPrimaryButton(
+            label: 'Login',
+            loading: controller.isLoading,
+            onPressed: () => _login(controller),
+          ),
+          const SizedBox(height: 18),
+
+          // "or" divider
+          Row(
+            children: const [
+              Expanded(child: Divider(color: EduColors.border)),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'or',
+                  style: TextStyle(
+                    color: EduColors.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Expanded(child: Divider(color: EduColors.border)),
+            ],
+          ),
+          const SizedBox(height: 18),
+
+          AuthSecondaryButton(
+            label: 'Register Institution',
+            icon: Icons.apartment_rounded,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RegisterInstitutionScreen(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 26),
+
+          // Footer
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                "Don't have an account? ",
+                style: TextStyle(
+                  color: EduColors.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RegisterScreen(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'Sign up',
+                  style: TextStyle(
+                    color: EduColors.primary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -344,7 +217,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-// Custom Clipper path to draw the smooth top wave layout
+// Kept (unused here) in case another screen, e.g. register_institution.dart,
+// imports TopWaveClipper from this file. Delete if nothing references it.
 class TopWaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -354,7 +228,6 @@ class TopWaveClipper extends CustomClipper<Path> {
     var firstControlPoint = Offset(size.width * 0.35, 0);
     var firstEndPoint = Offset(size.width * 0.65, 45);
 
-    var secondControlPoint = Offset(size.width * 0.85, 75);
     var secondEndPoint = Offset(size.width, 50);
 
     path.cubicTo(

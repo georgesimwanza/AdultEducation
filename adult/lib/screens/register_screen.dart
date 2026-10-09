@@ -1,5 +1,7 @@
 import 'package:adult/Model/insititution.dart';
 import 'package:adult/service/institution_service.dart';
+import 'package:adult/screens/auth_widget.dart';
+import 'package:adult/screens/color.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'programmes.dart';
@@ -14,11 +16,11 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-// Fixed state class name pairing to match best practices
 class _RegisterScreenState extends State<RegisterScreen> {
   ProgrammeModel? selectedCourse;
   Institution? selectedInstitution;
   List<Institution> _institution = [];
+  bool _loadingInstitutions = true;
   final InstitutionService _institutionService = InstitutionService();
 
   final TextEditingController firstnameController = TextEditingController();
@@ -42,492 +44,210 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _loadInstitutions() async {
-    final institutions = await _institutionService.getInstitutions();
-    setState(() => _institution = institutions);
+    try {
+      final institutions = await _institutionService.getInstitutions();
+      if (!mounted) return;
+      setState(() {
+        _institution = institutions;
+        _loadingInstitutions = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingInstitutions = false);
+      showAuthSnack(
+        ScaffoldMessenger.of(context),
+        'Could not load institutions. Check your connection.',
+        isError: true,
+      );
+    }
+  }
+
+  Future<void> _pickProgramme() async {
+    final navigator = Navigator.of(context);
+    final course = await navigator.push<ProgrammeModel>(
+      MaterialPageRoute(builder: (context) => const ProgrammePage()),
+    );
+
+    if (course != null && mounted) {
+      setState(() => selectedCourse = course);
+    }
+  }
+
+  Future<void> _register(AuthController controller) async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    if (firstnameController.text.trim().isEmpty ||
+        lastnameController.text.trim().isEmpty ||
+        emailController.text.trim().isEmpty ||
+        passwordController.text.trim().isEmpty) {
+      showAuthSnack(messenger, 'Please fill in all fields', isError: true);
+      return;
+    }
+
+    if (selectedCourse == null) {
+      showAuthSnack(messenger, 'Please select a course', isError: true);
+      return;
+    }
+
+    if (selectedInstitution == null) {
+      showAuthSnack(messenger, 'Please select an institution', isError: true);
+      return;
+    }
+
+    final success = await controller.register(
+      firstName: firstnameController.text.trim(),
+      lastName: lastnameController.text.trim(),
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
+      programmeId: selectedCourse!.id,
+      institutionId: selectedInstitution!.id,
+    );
+
+    if (success && navigator.mounted) {
+      showAuthSnack(messenger, 'Registration successful');
+      // Same post-auth flow as LoginPage: LoadingScreen runs the initial
+      // sync then redirects to '/dashboard', which resolves to the correct
+      // student/admin shell based on the stored role.
+      navigator.pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoadingScreen()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthController>(
       builder: (context, controller, _) {
-        return Scaffold(
-          // Solid black matching top layer
-          backgroundColor: Colors.black,
-          resizeToAvoidBottomInset: true,
-          body: Stack(
+        return AuthScaffold(
+          title: 'Create account',
+          subtitle: 'Join and learn at your own pace',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Wave-Clipped Form Sheet Container
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: ClipPath(
-                  clipper: TopWaveClipper(), // Replicated top wave design cut
-                  child: Container(
-                    height: MediaQuery.of(context).size.height * 0.82,
-                    color: Colors.white,
-                    padding: const EdgeInsets.only(
-                      left: 28,
-                      right: 28,
-                      top: 65,
-                      bottom: 24,
+              // First + last name side by side
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: AuthField(
+                      label: 'First name',
+                      hint: 'John',
+                      icon: Icons.badge_outlined,
+                      controller: firstnameController,
+                      keyboardType: TextInputType.name,
+                      textInputAction: TextInputAction.next,
                     ),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Sign Up Page Title Heading
-                          const Text(
-                            'Sign up',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AuthField(
+                      label: 'Last name',
+                      hint: 'Doe',
+                      icon: Icons.person_outline_rounded,
+                      controller: lastnameController,
+                      keyboardType: TextInputType.name,
+                      textInputAction: TextInputAction.next,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              AuthField(
+                label: 'Email',
+                hint: 'demo@email.com',
+                icon: Icons.mail_outline_rounded,
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 18),
+              AuthField(
+                label: 'Password',
+                hint: 'Enter your password',
+                icon: Icons.lock_outline_rounded,
+                controller: passwordController,
+                isPassword: true,
+                textInputAction: TextInputAction.done,
+              ),
+              const SizedBox(height: 18),
 
-                          // Firstname Field Label & Underline Input
-                          const Text(
-                            'First Name',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          TextField(
-                            controller: firstnameController,
-                            keyboardType: TextInputType.text,
-                            style: const TextStyle(color: Colors.black),
-                            decoration: InputDecoration(
-                              hintText: 'John',
-                              hintStyle: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.badge_outlined,
-                                color: Colors.grey,
-                                size: 20,
-                              ),
-                              prefixIconConstraints: const BoxConstraints(
-                                minWidth: 30,
-                                minHeight: 20,
-                              ),
-                              enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              focusedBorder: const UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.black,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
+              AuthPickerField(
+                label: 'Programme',
+                placeholder: 'Choose programme',
+                value: selectedCourse?.name,
+                icon: Icons.menu_book_rounded,
+                onTap: _pickProgramme,
+              ),
+              const SizedBox(height: 18),
 
-                          // Lastname Field Label & Underline Input
-                          const Text(
-                            'Last Name',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          TextField(
-                            controller: lastnameController,
-                            keyboardType: TextInputType.text,
-                            style: const TextStyle(color: Colors.black),
-                            decoration: InputDecoration(
-                              hintText: 'Doe',
-                              hintStyle: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.person_outline,
-                                color: Colors.grey,
-                                size: 20,
-                              ),
-                              prefixIconConstraints: const BoxConstraints(
-                                minWidth: 30,
-                                minHeight: 20,
-                              ),
-                              enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              focusedBorder: const UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.black,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
+              // Institution dropdown
+              const AuthLabel('Institution'),
+              DropdownButtonFormField<Institution>(
+                value: selectedInstitution,
+                isExpanded: true,
+                icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                    color: EduColors.textSecondary),
+                dropdownColor: EduColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                style: const TextStyle(
+                  color: EduColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                items: _institution
+                    .map(
+                      (inst) => DropdownMenuItem(
+                    value: inst,
+                    child: Text(inst.name, overflow: TextOverflow.ellipsis),
+                  ),
+                )
+                    .toList(),
+                onChanged: (val) => setState(() => selectedInstitution = val),
+                decoration: authInputDecoration(
+                  hint: _loadingInstitutions
+                      ? 'Loading institutions…'
+                      : 'Select institution',
+                  icon: Icons.school_outlined,
+                ),
+              ),
+              const SizedBox(height: 18),
 
-                          // Email Field Label & Underline Input
-                          const Text(
-                            'Email',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          TextField(
-                            controller: emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            style: const TextStyle(color: Colors.black),
-                            decoration: InputDecoration(
-                              hintText: 'demo@email.com',
-                              hintStyle: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.mail_outline,
-                                color: Colors.grey,
-                                size: 20,
-                              ),
-                              prefixIconConstraints: const BoxConstraints(
-                                minWidth: 30,
-                                minHeight: 20,
-                              ),
-                              enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              focusedBorder: const UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.black,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
+              if (controller.errorMessage != null) ...[
+                AuthErrorBanner(controller.errorMessage!),
+                const SizedBox(height: 14),
+              ],
 
-                          // Password Field Label & Underline Input
-                          const Text(
-                            'Password',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          TextField(
-                            controller: passwordController,
-                            obscureText: true,
-                            style: const TextStyle(color: Colors.black),
-                            decoration: InputDecoration(
-                              hintText: 'Enter your password',
-                              hintStyle: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.lock_outline,
-                                color: Colors.grey,
-                                size: 20,
-                              ),
-                              prefixIconConstraints: const BoxConstraints(
-                                minWidth: 30,
-                                minHeight: 20,
-                              ),
-                              enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              focusedBorder: const UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.black,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
+              AuthPrimaryButton(
+                label: 'Register',
+                loading: controller.isLoading,
+                onPressed: () => _register(controller),
+              ),
+              const SizedBox(height: 22),
 
-                          // Monochromatic Black-Border Course Picker Button
-                          const Text(
-                            'Programme',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            height: 52,
-                            child: OutlinedButton(
-                              onPressed: () async {
-                                final navigator = Navigator.of(context);
-                                final course = await navigator
-                                    .push<ProgrammeModel>(
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const ProgrammePage(),
-                                      ),
-                                    );
-
-                                if (course != null) {
-                                  setState(() => selectedCourse = course);
-                                }
-                              },
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(
-                                  color: Colors.black,
-                                  width: 1.5,
-                                ),
-                                foregroundColor: Colors.black,
-                                alignment: Alignment.centerLeft,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    selectedCourse?.name ?? 'Choose Programme',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.arrow_drop_down,
-                                    color: Colors.black,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Institution',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          DropdownButtonFormField<Institution>(
-                            value: selectedInstitution,
-                            items: _institution
-                                .map(
-                                  (inst) => DropdownMenuItem(
-                                    value: inst,
-                                    child: Text(inst.name),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (val) =>
-                                setState(() => selectedInstitution = val),
-                            decoration: InputDecoration(
-                              hintText: 'Select Institution',
-                              hintStyle: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.school_outlined,
-                                color: Colors.grey,
-                                size: 20,
-                              ),
-                              enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.grey.shade300,
-                                ),
-                              ),
-                              focusedBorder: const UnderlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: Colors.black,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // Dynamic Error Message Widget
-                          if (controller.errorMessage != null)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Text(
-                                controller.errorMessage!,
-                                style: const TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 13,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-
-                          // Solid Black Primary Register Action Button
-                          SizedBox(
-                            height: 52,
-                            child: ElevatedButton(
-                              onPressed: controller.isLoading
-                                  ? null
-                                  : () async {
-                                      final navigator = Navigator.of(context);
-                                      final messenger = ScaffoldMessenger.of(
-                                        context,
-                                      );
-
-                                      if (firstnameController.text
-                                              .trim()
-                                              .isEmpty ||
-                                          lastnameController.text
-                                              .trim()
-                                              .isEmpty ||
-                                          emailController.text.trim().isEmpty ||
-                                          passwordController.text
-                                              .trim()
-                                              .isEmpty) {
-                                        messenger.showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Please fill in all fields',
-                                            ),
-                                          ),
-                                        );
-                                        return;
-                                      }
-
-                                      if (selectedCourse == null) {
-                                        messenger.showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Please select a course',
-                                            ),
-                                          ),
-                                        );
-                                        return;
-                                      }
-
-                                      if (selectedInstitution == null) {
-                                        messenger.showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Please select an institution',
-                                            ),
-                                          ),
-                                        );
-                                        return;
-                                      }
-
-                                      final success = await controller.register(
-                                        firstName: firstnameController.text
-                                            .trim(),
-                                        lastName: lastnameController.text
-                                            .trim(),
-                                        email: emailController.text.trim(),
-                                        password: passwordController.text
-                                            .trim(),
-                                        programmeId: selectedCourse!.id,
-                                        institutionId: selectedInstitution!.id,
-                                      );
-
-                                      if (success && navigator.mounted) {
-                                        messenger.showSnackBar(
-                                          const SnackBar(
-                                            backgroundColor: Colors.black,
-                                            content: Row(
-                                              children: [
-                                                Icon(Icons.check_circle,
-                                                    color: Colors.white, size: 18),
-                                                SizedBox(width: 10),
-                                                Text(
-                                                  'Registration successful',
-                                                  style: TextStyle(color: Colors.white),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                        // Same post-auth flow as LoginPage:
-                                        // LoadingScreen runs the initial sync
-                                        // then redirects to '/dashboard', which
-                                        // resolves to the correct student/admin
-                                        // shell based on the stored role.
-                                        navigator.pushReplacement(
-                                          MaterialPageRoute(
-                                            builder: (_) => const LoadingScreen(),
-                                          ),
-                                        );
-                                      }
-                                    },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                textStyle: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              child: controller.isLoading
-                                  ? const SizedBox(
-                                      height: 22,
-                                      width: 22,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2.5,
-                                      ),
-                                    )
-                                  : const Text('Register'),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Back to Sign In Link Footer
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                "Already have an Account? ",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.pop(context);
-                                },
-                                child: const Text(
-                                  'Sign in',
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+              // Back to Sign In
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Already have an account? ',
+                    style: TextStyle(
+                      color: EduColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Text(
+                      'Sign in',
+                      style: TextStyle(
+                        color: EduColors.primary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -537,7 +257,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-// Shared Top Wave Clipper configuration matching login structure
+// Kept (unused here) in case another screen, e.g. register_institution.dart,
+// imports TopWaveClipper from this file. Delete if nothing references it.
 class TopWaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -547,7 +268,6 @@ class TopWaveClipper extends CustomClipper<Path> {
     var firstControlPoint = Offset(size.width * 0.35, 0);
     var firstEndPoint = Offset(size.width * 0.65, 45);
 
-    var secondControlPoint = Offset(size.width * 0.85, 75);
     var secondEndPoint = Offset(size.width, 50);
 
     path.cubicTo(
