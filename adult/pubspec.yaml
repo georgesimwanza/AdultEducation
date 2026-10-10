@@ -108,10 +108,10 @@ flutter:
 # assets/logo.png — change the path below if it's named differently or
 # sits in a subfolder.
 flutter_native_splash:
-  color: "#FFFFFF"
-  image: assets/logo.jpg
+  color: "#3D5CFF"
+  image: assets/logo.png
   android_gravity: center
   ios_content_mode: center
   android_12:
-    color: "#FFFFFF"
-    image: assets/logo.jpg
+    color: "#3D5CFF"
+    image: assets/logo.png
