@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../Controller/auth_controller.dart';
+import 'package:adult/service/sync_service.dart';
+import 'package:adult/service/user_profile_service.dart';
 import 'package:adult/screens/color.dart'; // EduColors (same import as AccountDetailsPage)
 import 'package:adult/screens/account_settings.dart'; // adjust if the file name differs
 
@@ -22,11 +24,16 @@ class _NotificationPageState extends State<NotificationPage> {
   // Stores whether application notifications are currently enabled.
   bool _notificationsEnabled = true;
 
-  void _openAccountDetails() {
-    Navigator.push(
+  // Bumped after editing account details so the profile card reloads
+  // from local storage and shows the new values.
+  int _profileVersion = 0;
+
+  Future<void> _openAccountDetails() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AccountDetailsPage()),
     );
+    if (mounted) setState(() => _profileVersion++);
   }
 
   @override
@@ -43,7 +50,7 @@ class _NotificationPageState extends State<NotificationPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _ProfileCard(),
+                    _ProfileCard(key: ValueKey(_profileVersion)),
                     const SizedBox(height: 26),
 
                     // ── Preferences ──────────────────────────────────
@@ -243,6 +250,9 @@ class _NotificationPageState extends State<NotificationPage> {
     // Only perform logout when the user confirms.
     if (confirm == true && context.mounted) {
       final navigator = Navigator.of(context);
+      // Don't leave the previous user's details on the device.
+      await UserProfileService(db: context.read<SyncService>().db).clear();
+      if (!context.mounted) return;
       await context.read<AuthController>().logout();
 
       // Remove previous navigation history and send the user back
@@ -254,26 +264,45 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 }
 
-/// Displays the signed-in user's profile information.
-class _ProfileCard extends StatelessWidget {
-  const _ProfileCard();
+/// Displays the signed-in user's profile information, loaded from the
+/// local database (falls back to the AuthController's email).
+class _ProfileCard extends StatefulWidget {
+  const _ProfileCard({super.key});
 
-  /// Up to two initials from the email's local part ("tm.user@…" → "TM").
-  String _initials(String email) {
-    final local = email.split('@').first;
-    final parts =
-    local.split(RegExp(r'[._\-\s]+')).where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) {
-      final p = parts.first;
-      return (p.length >= 2 ? p.substring(0, 2) : p).toUpperCase();
+  @override
+  State<_ProfileCard> createState() => _ProfileCardState();
+}
+
+class _ProfileCardState extends State<_ProfileCard> {
+  UserProfile? _profile;
+  bool _loaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_loaded) {
+      _loaded = true;
+      _load();
     }
-    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  Future<void> _load() async {
+    final profile =
+    await UserProfileService(db: context.read<SyncService>().db).getCurrent();
+    if (!mounted) return;
+    setState(() => _profile = profile);
   }
 
   @override
   Widget build(BuildContext context) {
-    final email = context.watch<AuthController>().currentUser?.email ?? '';
+    final fallbackEmail =
+        context.read<AuthController>().currentUser?.email ?? '';
+    final profile = _profile ?? UserProfile(email: fallbackEmail);
+
+    final hasName = profile.fullName.isNotEmpty;
+    final title = hasName
+        ? profile.fullName
+        : (profile.email.isEmpty ? 'Your account' : profile.email);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -303,7 +332,7 @@ class _ProfileCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Text(
-              _initials(email),
+              profile.initials,
               style: const TextStyle(
                 color: EduColors.onPrimary,
                 fontWeight: FontWeight.w800,
@@ -317,15 +346,27 @@ class _ProfileCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  email.isEmpty ? 'Your account' : email,
+                  title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: EduColors.onPrimary,
                   ),
                 ),
+                if (hasName && profile.email.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    profile.email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: EduColors.onPrimaryMuted,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Container(
                   padding:
@@ -334,9 +375,9 @@ class _ProfileCard extends StatelessWidget {
                     color: EduColors.accent,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
-                    'Student',
-                    style: TextStyle(
+                  child: Text(
+                    profile.isAdmin ? 'Admin' : 'Student',
+                    style: const TextStyle(
                       color: EduColors.onPrimary,
                       fontSize: 10,
                       fontWeight: FontWeight.w800,

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:adult/screens/color.dart';
+import 'package:provider/provider.dart';
+import 'package:adult/screens/color.dart'; // EduColors
+import 'package:adult/service/sync_service.dart';
+import 'package:adult/service/user_profile_service.dart';
 
 class AccountDetailsPage extends StatefulWidget {
   const AccountDetailsPage({super.key});
@@ -14,11 +17,34 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
   bool _passwordVisible = false;
   bool _confirmVisible = false;
 
-  // Controllers
-  // TODO: prefill these from the signed-in user instead of hardcoded values.
-  final _nameController = TextEditingController(text: 'George Simwanza');
-  final _emailController = TextEditingController(text: 'george@zuco.ac.zm');
-  final _phoneController = TextEditingController(text: '+260 97 123 4567');
+  // Controllers — prefilled from the local database in _loadProfile().
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  UserProfile? _profile;
+  bool _profileLoaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_profileLoaded) {
+      _profileLoaded = true;
+      _loadProfile();
+    }
+  }
+
+  Future<void> _loadProfile() async {
+    final profile =
+    await UserProfileService(db: context.read<SyncService>().db).getCurrent();
+    if (!mounted || profile == null) return;
+    setState(() {
+      _profile = profile;
+      _nameController.text = profile.fullName;
+      _emailController.text = profile.email;
+      _phoneController.text = profile.phone ?? '';
+    });
+  }
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
 
@@ -47,13 +73,37 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
-    await Future.delayed(
-      const Duration(seconds: 1),
-    ); // replace with real API call
-    if (!mounted) return;
-    setState(() => _isSaving = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    // Read everything we need from `context` before any await.
+    final service = UserProfileService(db: context.read<SyncService>().db);
+    final messenger = ScaffoldMessenger.of(context);
+
+    final parts = _nameController.text.trim().split(RegExp(r'\s+'));
+    final firstName = parts.first;
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
+    final base = _profile ?? UserProfile(email: _emailController.text.trim());
+    final updated = base.copyWith(
+      email: _emailController.text.trim(),
+      firstName: firstName,
+      lastName: lastName,
+      phone: _phoneController.text.trim(),
+    );
+
+    // Saved locally first so every page shows the change immediately,
+    // marked "not synced" until it's pushed to the server.
+    await service.saveLocalEdit(updated);
+
+    // TODO: push `updated` to the server (and the new password, if one was
+    // entered), then mark the local row as synced.
+
+    if (!mounted) return;
+    setState(() {
+      _isSaving = false;
+      _profile = updated.copyWith(synced: false);
+    });
+
+    messenger.showSnackBar(
       SnackBar(
         content: const Row(
           children: [
@@ -61,7 +111,7 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                 color: EduColors.success, size: 18),
             SizedBox(width: 10),
             Text(
-              'Account updated successfully',
+              'Changes saved on this device',
               style: TextStyle(color: EduColors.onPrimary),
             ),
           ],
