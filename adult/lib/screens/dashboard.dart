@@ -6,6 +6,7 @@ import './subject.dart';
 import 'schedule_screen.dart';
 import 'package:adult/service/sync_service.dart';
 import 'package:adult/screens/color.dart';
+import 'package:adult/Model/school_term.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -20,11 +21,6 @@ class DashboardState extends State<Dashboard>
   bool _titleFetched = false;
   bool _isLoadingTitle = true;
   int _selectedFilter = 0;
-
-  // Term window for the current programme. Progress is time-based:
-  // (today - start) / (end - start). Null until dates are found.
-  DateTime? _termStart;
-  DateTime? _termEnd;
 
   static const List<String> _filters = ['All', 'Courses', 'Schedule'];
 
@@ -54,20 +50,6 @@ class DashboardState extends State<Dashboard>
     }
   }
 
-  /// Reads a date from a DB row, trying several possible column names.
-  /// Accepts ISO strings or millisecond timestamps.
-  DateTime? _readDate(Map<String, Object?> row, List<String> keys) {
-    for (final k in keys) {
-      final v = row[k];
-      if (v is String && v.isNotEmpty) {
-        final d = DateTime.tryParse(v);
-        if (d != null) return d;
-      }
-      if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
-    }
-    return null;
-  }
-
   Future<void> _fetchTitle() async {
     try {
       final controller = Provider.of<AuthController>(context, listen: false);
@@ -94,16 +76,13 @@ class DashboardState extends State<Dashboard>
           if (!mounted) return;
           setState(() {
             _programmeTitle = row['name'] as String;
-            // ⚠️ adapt these column names to your `programmes` table
-            _termStart = _readDate(row, ['start_date', 'startDate']);
-            _termEnd = _readDate(row, ['end_date', 'endDate']);
             _isLoadingTitle = false;
           });
           return;
         }
       }
 
-      // Fall back to server (title only — no term dates available here)
+      // Fall back to server
       final title = await DashboardService().getProgramTitle(programmeId);
       if (!mounted) return;
       setState(() {
@@ -120,29 +99,15 @@ class DashboardState extends State<Dashboard>
   }
 
   // ───────────────────────── Term progress helpers ─────────────────────────
+  // Term dates come from `zambia2026TermsBestEffort` (Model/school_term.dart),
+  // evaluated by computeTermProgress() — the same source the admin
+  // dashboard uses, so both screens always agree.
 
-  /// 0.0–1.0, or null if term dates aren't known.
-  double? get _termProgress {
-    final s = _termStart, e = _termEnd;
-    if (s == null || e == null || !e.isAfter(s)) return null;
-    final total = e.difference(s).inSeconds;
-    final done = DateTime.now().difference(s).inSeconds;
-    return (done / total).clamp(0.0, 1.0);
+  String _formatSpan(int days) {
+    final d = days < 0 ? 0 : days;
+    if (d >= 30) return '${(d / 30).round()} mo';
+    return '$d d';
   }
-
-  String _formatSpan(Duration d) {
-    final days = d.inDays < 0 ? 0 : d.inDays;
-    if (days >= 30) return '${(days / 30).round()} mo';
-    return '$days d';
-  }
-
-  String get _durationLabel => (_termStart != null && _termEnd != null)
-      ? _formatSpan(_termEnd!.difference(_termStart!))
-      : '—';
-
-  String get _timeLeftLabel => _termEnd != null
-      ? _formatSpan(_termEnd!.difference(DateTime.now()))
-      : '—';
 
   String _progressMessage(double p) {
     if (p >= 1) return 'Term complete — well done!';
@@ -633,6 +598,16 @@ class DashboardState extends State<Dashboard>
   // ───────────────────────── Hero program card ─────────────────────────
 
   Widget _buildCurrentProgramCard() {
+    final term = computeTermProgress(
+      zambia2026TermsBestEffort,
+      DateTime.now(),
+    );
+    final bool isHoliday = term.isHoliday;
+    final String termLabel = term.label;
+    final int daysLeft = (term.daysLeft as num).toInt();
+    final double progress =
+    isHoliday ? 0.0 : (term.percentComplete as num).toDouble();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -710,15 +685,26 @@ class DashboardState extends State<Dashboard>
             ],
           ),
           const SizedBox(height: 20),
-          _buildTermProgress(),
+          _buildTermProgress(
+            label: termLabel,
+            progress: progress,
+            isHoliday: isHoliday,
+            daysLeft: daysLeft,
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
               _buildStatChip(
-                  Icons.calendar_today_rounded, _durationLabel, 'Duration'),
+                Icons.event_available_rounded,
+                isHoliday ? 'Holiday' : 'Active',
+                'Status',
+              ),
               const SizedBox(width: 10),
               _buildStatChip(
-                  Icons.schedule_rounded, _timeLeftLabel, 'Time left'),
+                Icons.schedule_rounded,
+                _formatSpan(daysLeft),
+                isHoliday ? 'Until term starts' : 'Time left',
+              ),
             ],
           ),
         ],
@@ -726,34 +712,36 @@ class DashboardState extends State<Dashboard>
     );
   }
 
-  /// "Program progress  67%" + thin bar + encouragement strip.
-  Widget _buildTermProgress() {
+  /// Term label + percent, thin bar, and an encouragement strip.
+  Widget _buildTermProgress({
+    required String label,
+    required double progress,
+    required bool isHoliday,
+    required int daysLeft,
+  }) {
     if (_isLoadingTitle) {
       return const _ShimmerLine(
           key: ValueKey('p-shimmer'), width: double.infinity, height: 64);
     }
 
-    final p = _termProgress;
-    if (p == null) {
-      return _statusStrip(
-        Icons.event_busy_rounded,
-        'Term dates not available yet',
-      );
-    }
-
-    final percent = (p * 100).round();
+    final percent = (progress * 100).round();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Text(
-              'Program progress',
-              style: TextStyle(color: EduColors.onPrimaryMuted, fontSize: 12),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: EduColors.onPrimaryMuted, fontSize: 12),
+              ),
             ),
             const SizedBox(width: 8),
             Text(
-              '$percent%',
+              isHoliday ? 'On holiday' : '$percent%',
               style: const TextStyle(
                 color: EduColors.onPrimary,
                 fontSize: 12,
@@ -764,7 +752,7 @@ class DashboardState extends State<Dashboard>
         ),
         const SizedBox(height: 10),
         TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: p),
+          tween: Tween(begin: 0, end: progress),
           duration: const Duration(milliseconds: 900),
           curve: Curves.easeOutCubic,
           builder: (context, v, _) => ClipRRect(
@@ -778,7 +766,12 @@ class DashboardState extends State<Dashboard>
           ),
         ),
         const SizedBox(height: 14),
-        _statusStrip(Icons.auto_awesome_rounded, _progressMessage(p)),
+        _statusStrip(
+          isHoliday ? Icons.beach_access_rounded : Icons.auto_awesome_rounded,
+          isHoliday
+              ? '$daysLeft days until term starts'
+              : _progressMessage(progress),
+        ),
       ],
     );
   }
@@ -832,23 +825,29 @@ class DashboardState extends State<Dashboard>
           children: [
             Icon(icon, color: EduColors.onPrimary, size: 18),
             const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    color: EduColors.onPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: EduColors.onPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                Text(
-                  label,
-                  style: const TextStyle(
-                      color: EduColors.onPrimaryMuted, fontSize: 10),
-                ),
-              ],
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: EduColors.onPrimaryMuted, fontSize: 10),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
