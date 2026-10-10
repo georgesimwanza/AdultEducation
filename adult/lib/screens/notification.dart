@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../Controller/auth_controller.dart';
+import 'package:adult/screens/color.dart'; // EduColors (same import as AccountDetailsPage)
+import 'package:adult/screens/account_settings.dart'; // adjust if the file name differs
 
 /// Displays application settings for the current user.
 ///
-/// The screen currently provides:
+/// The screen provides:
 /// - Profile information.
 /// - Notification preferences.
-/// - Account details navigation placeholder.
+/// - Navigation to the Account Details page.
 /// - Logout functionality.
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -17,169 +19,169 @@ class NotificationPage extends StatefulWidget {
 }
 
 class _NotificationPageState extends State<NotificationPage> {
-  // Stores whether application notifications
-  // are currently enabled.
+  // Stores whether application notifications are currently enabled.
   bool _notificationsEnabled = true;
+
+  void _openAccountDetails() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AccountDetailsPage()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-
-      // Settings page header.
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        titleSpacing: 0,
-
-        // Allows the user to return to the previous page.
-        leading: const BackButton(),
-
-        title: Row(
-          children: [
-            // Settings icon.
-            CircleAvatar(
-              radius: 17,
-              backgroundColor: Colors.white24,
-              child: const Icon(
-                Icons.settings_outlined,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-
-            const SizedBox(width: 10),
-
-            // Settings title and description.
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Settings',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                ),
-
-                Text(
-                  'Manage your account',
-                  style: TextStyle(fontSize: 11, color: Colors.white70),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-
-      // Scrollable settings content.
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-
+      backgroundColor: EduColors.background,
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-
           children: [
-            // Profile information card.
-            _ProfileCard(),
+            _buildTopBar(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _ProfileCard(),
+                    const SizedBox(height: 26),
 
-            const SizedBox(height: 20),
+                    // ── Preferences ──────────────────────────────────
+                    _sectionLabel('Preferences'),
+                    const SizedBox(height: 10),
+                    _SettingsCard(
+                      children: [
+                        _ToggleTile(
+                          icon: Icons.notifications_none_rounded,
+                          tint: EduColors.accentSoft,
+                          fg: EduColors.accent,
+                          title: 'Notifications',
+                          subtitle: 'Receive alerts for new notices',
+                          value: _notificationsEnabled,
+                          onChanged: (val) =>
+                              setState(() => _notificationsEnabled = val),
+                        ),
+                      ],
+                    ),
 
-            // Preferences section.
-            _sectionLabel('Preferences'),
+                    const SizedBox(height: 24),
 
-            const SizedBox(height: 8),
+                    // ── Account ──────────────────────────────────────
+                    _sectionLabel('Account'),
+                    const SizedBox(height: 10),
+                    _SettingsCard(
+                      children: [
+                        _ActionTile(
+                          icon: Icons.person_outline_rounded,
+                          tint: EduColors.primarySoft,
+                          fg: EduColors.primary,
+                          title: 'Account Details',
+                          subtitle: 'Update your name, email & photo',
+                          onTap: _openAccountDetails,
+                        ),
+                      ],
+                    ),
 
-            // Notification settings.
-            _SettingsCard(
-              children: [
-                _ToggleTile(
-                  icon: Icons.notifications_outlined,
-                  title: 'Notifications',
-                  subtitle: 'Receive alerts for new notices',
+                    const SizedBox(height: 24),
 
-                  // Current notification state.
-                  value: _notificationsEnabled,
+                    // ── Danger zone ──────────────────────────────────
+                    _sectionLabel('Danger zone'),
+                    const SizedBox(height: 10),
+                    _SettingsCard(
+                      children: [
+                        _ActionTile(
+                          icon: Icons.logout_rounded,
+                          tint: const Color(0xFFFDECEC),
+                          fg: EduColors.danger,
+                          title: 'Logout',
+                          subtitle: 'Sign out of your account',
+                          destructive: true,
+                          onTap: () => _confirmLogout(context),
+                        ),
+                      ],
+                    ),
 
-                  // Update notification state when
-                  // the switch is changed.
-                  onChanged: (val) =>
-                      setState(() => _notificationsEnabled = val),
+                    const SizedBox(height: 28),
+
+                    const Center(
+                      child: Text(
+                        'Adult Education App · v1.0.0',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: EduColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Account section.
-            _sectionLabel('Account'),
-
-            const SizedBox(height: 8),
-
-            _SettingsCard(
-              children: [
-                _ActionTile(
-                  icon: Icons.person_outline,
-                  title: 'Account Details',
-                  subtitle: 'Update your name, email & photo',
-
-                  // Account details navigation is
-                  // currently a placeholder.
-                  onTap: () {
-                    // TODO: navigate to account details page
-                  },
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Destructive account actions.
-            _sectionLabel('Danger zone'),
-
-            const SizedBox(height: 8),
-
-            _SettingsCard(
-              children: [
-                _ActionTile(
-                  icon: Icons.logout,
-                  title: 'Logout',
-                  subtitle: 'Sign out of your account',
-                  destructive: true,
-
-                  // Show a confirmation dialog before logging out.
-                  onTap: () => _confirmLogout(context),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Application version information.
-            Center(
-              child: Text(
-                'Adult Education App · v1.0.0',
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
               ),
             ),
-
-            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  /// Builds a small uppercase section heading.
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.maybePop(context),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: EduColors.surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: EduColors.border),
+              ),
+              child: const Icon(Icons.arrow_back_rounded,
+                  color: EduColors.textPrimary, size: 20),
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Settings',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: EduColors.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                Text(
+                  'Manage your account',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: EduColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds a section heading.
   Widget _sectionLabel(String label) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
-
       child: Text(
-        label.toUpperCase(),
-
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.1,
-          color: Colors.grey.shade500,
+        label,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+          color: EduColors.textPrimary,
         ),
       ),
     );
@@ -187,40 +189,52 @@ class _NotificationPageState extends State<NotificationPage> {
 
   /// Displays a confirmation dialog before logging out.
   ///
-  /// If the user confirms, the authentication controller
-  /// performs the logout and the user is redirected to
-  /// the login page.
+  /// If the user confirms, the authentication controller performs the
+  /// logout and the user is redirected to the login page.
   Future<void> _confirmLogout(BuildContext context) async {
-    // Display the confirmation dialog.
     final confirm = await showDialog<bool>(
       context: context,
-
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-
+        backgroundColor: EduColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text(
           'Logout',
-          style: TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 18,
+            color: EduColors.textPrimary,
+          ),
         ),
-
-        content: const Text('Are you sure you want to sign out?'),
-
+        content: const Text(
+          'Are you sure you want to sign out?',
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.4,
+            color: EduColors.textSecondary,
+          ),
+        ),
         actions: [
-          // Cancel the logout operation.
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-
-          // Confirm logout.
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-
             child: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+              'Cancel',
+              style: TextStyle(
+                color: EduColors.textSecondary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: EduColors.danger,
+              foregroundColor: EduColors.onPrimary,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Text('Logout'),
           ),
         ],
       ),
@@ -228,89 +242,105 @@ class _NotificationPageState extends State<NotificationPage> {
 
     // Only perform logout when the user confirms.
     if (confirm == true && context.mounted) {
-      // Clear authentication state through
-      // the application's AuthController.
+      final navigator = Navigator.of(context);
       await context.read<AuthController>().logout();
 
-      // Remove previous navigation history and
-      // send the user back to the login screen.
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      // Remove previous navigation history and send the user back
+      // to the login screen. (Change '/login' if you use a welcome route.)
+      if (navigator.mounted) {
+        navigator.pushNamedAndRemoveUntil('/login', (route) => false);
+      }
     }
   }
 }
 
-/// Displays the user's profile information.
+/// Displays the signed-in user's profile information.
 class _ProfileCard extends StatelessWidget {
+  const _ProfileCard();
+
+  /// Up to two initials from the email's local part ("tm.user@…" → "TM").
+  String _initials(String email) {
+    final local = email.split('@').first;
+    final parts =
+    local.split(RegExp(r'[._\-\s]+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) {
+      final p = parts.first;
+      return (p.length >= 2 ? p.substring(0, 2) : p).toUpperCase();
+    }
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final email = context.watch<AuthController>().currentUser?.email ?? '';
+
     return Container(
-      padding: const EdgeInsets.all(16),
-
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        gradient: const LinearGradient(
+          colors: [EduColors.primary, EduColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x403D5CFF),
+            blurRadius: 24,
+            offset: Offset(0, 12),
+          ),
+        ],
       ),
-
       child: Row(
         children: [
-          // User avatar.
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: Colors.black,
-
-            child: const Text(
-              'GS',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
+          Container(
+            width: 60,
+            height: 60,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: EduColors.onPrimaryFaint,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              _initials(email),
+              style: const TextStyle(
+                color: EduColors.onPrimary,
+                fontWeight: FontWeight.w800,
+                fontSize: 20,
               ),
             ),
           ),
-
           const SizedBox(width: 14),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-
               children: [
-                // User name.
-                const Text(
-                  'George Simwanza',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                ),
-
-                const SizedBox(height: 2),
-
-                // User email.
                 Text(
-                  'george@zuco.ac.zm',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  email.isEmpty ? 'Your account' : email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: EduColors.onPrimary,
+                  ),
                 ),
-
-                const SizedBox(height: 6),
-
-                // User role badge.
+                const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(6),
+                    color: EduColors.accent,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-
                   child: const Text(
                     'Student',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
+                      color: EduColors.onPrimary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
@@ -333,24 +363,27 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        color: EduColors.surface,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: EduColors.cardShadow,
       ),
-
-      // Allows multiple settings items to be
-      // displayed inside the same card.
-      child: Column(children: children),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        // Material so the InkWell ripple shows inside the card.
+        child: Material(
+          color: EduColors.surface,
+          child: Column(children: children),
+        ),
+      ),
     );
   }
 }
 
 /// Displays a settings item containing a switch.
-///
-/// This widget is reusable for boolean preferences
-/// such as notification settings.
 class _ToggleTile extends StatelessWidget {
   final IconData icon;
+  final Color tint;
+  final Color fg;
   final String title;
   final String subtitle;
   final bool value;
@@ -358,6 +391,8 @@ class _ToggleTile extends StatelessWidget {
 
   const _ToggleTile({
     required this.icon,
+    required this.tint,
+    required this.fg,
     required this.title,
     required this.subtitle,
     required this.value,
@@ -368,53 +403,45 @@ class _ToggleTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-
       child: Row(
         children: [
-          // Settings icon.
           Container(
-            width: 38,
-            height: 38,
-
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(10),
+              color: tint,
+              borderRadius: BorderRadius.circular(14),
             ),
-
-            child: Icon(icon, size: 20, color: Colors.black87),
+            child: Icon(icon, size: 22, color: fg),
           ),
-
           const SizedBox(width: 14),
-
-          // Setting title and description.
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-
               children: [
                 Text(
                   title,
                   style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w700,
+                    color: EduColors.textPrimary,
                   ),
                 ),
-
-                const SizedBox(height: 1),
-
+                const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: EduColors.textSecondary,
+                  ),
                 ),
               ],
             ),
           ),
-
-          // Switch used to change the setting.
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.black,
+            activeTrackColor: EduColors.primary,
           ),
         ],
       ),
@@ -424,10 +451,12 @@ class _ToggleTile extends StatelessWidget {
 
 /// Displays an action that can be tapped by the user.
 ///
-/// [destructive] changes the styling to indicate a
-/// potentially destructive operation such as logout.
+/// [destructive] changes the styling to indicate a potentially
+/// destructive operation such as logout.
 class _ActionTile extends StatelessWidget {
   final IconData icon;
+  final Color tint;
+  final Color fg;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
@@ -435,6 +464,8 @@ class _ActionTile extends StatelessWidget {
 
   const _ActionTile({
     required this.icon,
+    required this.tint,
+    required this.fg,
     required this.title,
     required this.subtitle,
     required this.onTap,
@@ -443,65 +474,62 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use red for destructive actions and black
-    // for normal actions.
-    final color = destructive ? Colors.red : Colors.black87;
-
     return InkWell(
       onTap: onTap,
-
-      borderRadius: BorderRadius.circular(14),
-
+      splashColor: tint,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-
         child: Row(
           children: [
-            // Action icon.
             Container(
-              width: 38,
-              height: 38,
-
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: destructive ? Colors.red.shade50 : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(10),
+                color: tint,
+                borderRadius: BorderRadius.circular(14),
               ),
-
-              child: Icon(icon, size: 20, color: color),
+              child: Icon(icon, size: 22, color: fg),
             ),
-
             const SizedBox(width: 14),
-
-            // Action title and description.
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-
                 children: [
                   Text(
                     title,
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: color,
+                      fontWeight: FontWeight.w700,
+                      color: destructive
+                          ? EduColors.danger
+                          : EduColors.textPrimary,
                     ),
                   ),
-
-                  const SizedBox(height: 1),
-
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: EduColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
             ),
-
-            // Indicates that the item can be opened.
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: Colors.grey.shade400,
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: destructive
+                    ? const Color(0xFFFDECEC)
+                    : EduColors.primarySoft,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: destructive ? EduColors.danger : EduColors.primary,
+              ),
             ),
           ],
         ),
