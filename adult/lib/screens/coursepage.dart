@@ -10,6 +10,7 @@ import 'package:adult/service/quiz_service.dart';
 import 'package:adult/screens/color.dart';
 import 'quiz_taking_screen.dart'; // adjust path to wherever you place it
 import 'pdf_viewer.dart'; // adjust path to wherever you place it
+import 'video_player.dart'; // adjust path to wherever you place it
 
 typedef Content = ContentModel;
 
@@ -146,9 +147,23 @@ class _CoursePageState extends State<CoursePage> {
           builder: (_) => PdfViewerScreen(path: source, title: lesson.title),
         ),
       );
-    } else if (type.contains('video')) {
-      // TODO: VideoPlayerController.file(File(source))
-      _toast('Video playback is coming soon.');
+    } else if (type.contains('video') ||
+        RegExp(r'\.(mp4|mov|mkv|webm|3gp|m4v)$')
+            .hasMatch(source.toLowerCase())) {
+      if (isNetwork) {
+        // Download failed, so there is no local file to play.
+        _toast(
+          'Could not download the video. Check your connection and try again.',
+          isError: true,
+        );
+        return;
+      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VideoPlayerScreen(path: source, title: lesson.title),
+        ),
+      );
     } else {
       _toast('Can\'t open "${lesson.type}" files yet.');
     }
