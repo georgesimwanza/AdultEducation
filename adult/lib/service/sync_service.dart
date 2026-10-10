@@ -6,7 +6,7 @@ import 'package:path/path.dart';
 import 'package:adult/Controller/auth_controller.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-
+import 'package:adult/service/user_profile_service.dart';
 class SyncService {
   final AuthController authController;
   final Dio dio = Dio();

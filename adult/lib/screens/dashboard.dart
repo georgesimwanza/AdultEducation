@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import './subject.dart';
 import 'schedule_screen.dart';
 import 'package:adult/service/sync_service.dart';
+import 'package:adult/service/user_profile_service.dart';
 import 'package:adult/screens/color.dart';
 import 'package:adult/Model/school_term.dart';
 
@@ -21,6 +22,9 @@ class DashboardState extends State<Dashboard>
   bool _titleFetched = false;
   bool _isLoadingTitle = true;
   int _selectedFilter = 0;
+
+  // Loaded from the local database (see UserProfileService).
+  UserProfile? _profile;
 
   static const List<String> _filters = ['All', 'Courses', 'Schedule'];
 
@@ -47,7 +51,15 @@ class DashboardState extends State<Dashboard>
     if (!_titleFetched) {
       _titleFetched = true;
       _fetchTitle();
+      _loadProfile();
     }
+  }
+
+  Future<void> _loadProfile() async {
+    final profile =
+    await UserProfileService(db: context.read<SyncService>().db).getCurrent();
+    if (!mounted) return;
+    setState(() => _profile = profile);
   }
 
   Future<void> _fetchTitle() async {
@@ -147,19 +159,19 @@ class DashboardState extends State<Dashboard>
     ),
   ];
 
-  /// Up to two initials from the signed-in user's email (e.g. "tm" → "TM").
-  /// Swap for the user's real name if AuthController exposes one.
+  /// Initials from the locally stored profile; falls back to the
+  /// AuthController's email until the profile has been synced.
   String _initials() {
+    final profile = _profile;
+    if (profile != null) return profile.initials;
     final email = context.read<AuthController>().currentUser?.email ?? '';
-    final local = email.split('@').first;
-    final parts =
-    local.split(RegExp(r'[._\-\s]+')).where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) {
-      final p = parts.first;
-      return (p.length >= 2 ? p.substring(0, 2) : p).toUpperCase();
-    }
-    return (parts[0][0] + parts[1][0]).toUpperCase();
+    return UserProfile(email: email).initials;
+  }
+
+  /// "Good morning" or "Good morning, George" once we know the name.
+  String _greetingLine() {
+    final first = _profile?.firstName.trim() ?? '';
+    return first.isEmpty ? _timeGreeting() : '${_timeGreeting()}, $first';
   }
 
   String _timeGreeting() {
@@ -311,7 +323,7 @@ class DashboardState extends State<Dashboard>
           color: EduColors.primary,
           onRefresh: () async {
             setState(() => _isLoadingTitle = true);
-            await _fetchTitle();
+            await Future.wait([_fetchTitle(), _loadProfile()]);
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -440,7 +452,9 @@ class DashboardState extends State<Dashboard>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _timeGreeting(),
+                _greetingLine(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: EduColors.textSecondary,
                   fontSize: 13,
