@@ -7,6 +7,7 @@ import 'package:adult/Controller/auth_controller.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:adult/service/user_profile_service.dart';
+
 class SyncService {
   final AuthController authController;
   final Dio dio = Dio();
@@ -387,20 +388,25 @@ class SyncService {
       print('🧩 Received ${data.length} quizzes from server');
       onProgress?.call('Loading quizzes...');
 
-      for (var item in data) {
-        await db!.insert('quizzes', {
-          'id': item['id'],
-          'courseId': item['course'] != null ? item['course']['id'] : null,
-          'institutionId': item['institution'] != null
-              ? item['institution']['id']
-              : null,
-          'programmeId': item['programme'] != null
-              ? item['programme']['id']
-              : null,
-          'data': jsonEncode(item),
-        }, conflictAlgorithm: ConflictAlgorithm.replace);
-        print('💾 Saved quiz: ${item['title']}');
-      }
+      // /api/sync/quizzes returns QuizDto (String id, flat courseId /
+      // institutionId / programmeId) — the same shape as /api/quizzes, so
+      // Quiz.fromJson can read the stored JSON when offline.
+      await db!.transaction((txn) async {
+        // Full sync: drop quizzes deleted on the server so they don't linger.
+        if (since == null) await txn.delete('quizzes');
+        for (var item in data) {
+          final id = int.tryParse('${item['id']}');
+          if (id == null) continue;
+          await txn.insert('quizzes', {
+            'id': id,
+            'courseId': item['courseId'],
+            'institutionId': item['institutionId'],
+            'programmeId': item['programmeId'],
+            'data': jsonEncode(item),
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+          print('💾 Saved quiz: ${item['title']}');
+        }
+      });
 
       print('✅ Quizzes sync done — ${data.length} records saved');
     } catch (e) {

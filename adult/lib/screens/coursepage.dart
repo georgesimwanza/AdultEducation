@@ -51,12 +51,14 @@ class _CoursePageState extends State<CoursePage> {
   }
 
   Future<void> _loadQuizzes() async {
+    // Read before the first await — context isn't safe to use after it.
+    final db = context.read<SyncService>().db;
     final prefs = await SharedPreferences.getInstance();
     final institutionId = prefs.getInt('institution') ?? 0;
     final programmeId = prefs.getInt('programme_id');
     if (!mounted) return;
     setState(() {
-      _quizzesFuture = QuizService().fetchQuizzes(
+      _quizzesFuture = QuizService(db: db).fetchQuizzes(
         subjectId: subjectId,
         institutionId: institutionId,
         programmeId: programmeId,
