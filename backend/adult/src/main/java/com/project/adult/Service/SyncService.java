@@ -1,6 +1,7 @@
 package com.project.adult.Service;
 
 import com.project.adult.DTO.ContentDTO;
+import com.project.adult.DTO.QuizDto;
 import com.project.adult.DTO.SubjectDTO;
 import com.project.adult.Model.Announcement;
 import com.project.adult.Model.Course;
@@ -11,6 +12,7 @@ import com.project.adult.Repository.ContentRepository;
 import com.project.adult.Repository.ProgrammeRepository;
 import com.project.adult.Repository.QuizRepository;
 import com.project.adult.Repository.subjectRepository;
+import com.project.adult.Utilities.QuizMapper;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -182,7 +184,10 @@ public class SyncService {
      * @param since accepted for API symmetry with the other sync endpoints, currently unused
      * @return every quiz, including its questions
      */
-    public List<Quiz> getSyncedQuizzes(Long since) {
-        return quizRepository.findAll();
+    public List<QuizDto> getSyncedQuizzes(Long since) {
+        // Same DTO that /api/quizzes returns, so no entity serialization.
+        return quizRepository.findAll().stream()
+                .map(QuizMapper::toDto)
+                .collect(Collectors.toList());
     }
 }

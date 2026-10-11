@@ -1,5 +1,6 @@
 package com.project.adult.Controller;
 
+import com.project.adult.DTO.QuizDto;
 import com.project.adult.Model.Announcement;
 import com.project.adult.Model.Quiz;
 import com.project.adult.Model.QuizSubmission;
@@ -34,7 +35,7 @@ public class AnnouncementQuizController {
     }
 
     @GetMapping("/sync/quizzes")
-    public List<Quiz> getQuizzes(@RequestParam(required = false) Long since) {
+    public List<QuizDto> getQuizzes(@RequestParam(required = false) Long since) {
         return syncService.getSyncedQuizzes(since);
     }
 
