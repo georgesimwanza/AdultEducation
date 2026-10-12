@@ -23,6 +23,12 @@ class SyncService {
     db = await openDatabase(
       join(dbPath, 'app.db'),
       version: 8, // ← bumped to 8 (added content.localPath)
+      // Runs on every open (after create/upgrade), so user_profile exists on
+      // fresh installs AND on databases created before it existed. It is never
+      // dropped: it can hold edits that haven't been pushed to the server.
+      onOpen: (db) async {
+        await db.execute(UserProfileService.createSql);
+      },
       onCreate: (db, version) async {
         print('🗄️ Creating tables...');
         await db.execute('''
@@ -229,6 +235,7 @@ class SyncService {
       _syncProgrammes(lastSync, onProgress),
       _syncAnnouncements(lastSync, onProgress),
       _syncQuizzes(lastSync, onProgress),
+      _syncUserProfile(onProgress),
     ]);
 
     await downloadContentFiles(onProgress: onProgress);
@@ -411,6 +418,54 @@ class SyncService {
       print('✅ Quizzes sync done — ${data.length} records saved');
     } catch (e) {
       print('❌ Error syncing quizzes: $e');
+    }
+  }
+
+  // ── Signed-in user's profile ──
+
+  /// Endpoint that returns the signed-in user's details. Set this to whatever
+  /// your backend exposes (the one your app already calls online to get the
+  /// current user).
+  static const String _profilePath = '/api/users/me';
+
+  Future<void> _syncUserProfile(void Function(String)? onProgress) async {
+    final profiles = UserProfileService(db: db);
+    try {
+      print('👤 Fetching user profile...');
+      final res = await dio.get('$_baseUrl$_profilePath');
+      final data = res.data;
+      if (data is Map) {
+        onProgress?.call('Loading your profile...');
+        await profiles.saveFromServer(
+          UserProfile.fromServerJson(Map<String, dynamic>.from(data)),
+        );
+        print('✅ User profile saved locally');
+        return;
+      }
+      print('⚠️ Unexpected profile response: ${data.runtimeType}');
+    } catch (e) {
+      print('❌ Error syncing user profile: $e');
+    }
+
+    // Server unreachable (or the endpoint differs): keep at least the email
+    // from the login token so pages still have something to show offline.
+    final email = _emailFromToken(authController.token);
+    if (email != null) await profiles.seedIfEmpty(email);
+  }
+
+  /// Best effort: reads the email / username claim from the JWT payload.
+  String? _emailFromToken(String? token) {
+    if (token == null) return null;
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      final payload =
+      utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+      final claims = jsonDecode(payload) as Map<String, dynamic>;
+      final value = claims['email'] ?? claims['sub'];
+      return value is String && value.contains('@') ? value : null;
+    } catch (_) {
+      return null;
     }
   }
 
