@@ -36,7 +36,9 @@ class QuizService {
       final uri = Uri.parse(
         '$baseUrl/quizzes',
       ).replace(queryParameters: query.isEmpty ? null : query);
-      final response = await http.get(uri);
+      // Timeout so a weak connection falls back to the cache instead of
+      // spinning forever.
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
       _checkOk(response);
       final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
 
@@ -84,12 +86,12 @@ class QuizService {
   }
 
   Future<Quiz> createQuiz(
-    String title, {
-    required int subjectId,
-    required int institutionId,
-    required int programmeId,
-    String description = '',
-  }) async {
+      String title, {
+        required int subjectId,
+        required int institutionId,
+        required int programmeId,
+        String description = '',
+      }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/quizzes'),
       headers: {'Content-Type': 'application/json'},
@@ -135,13 +137,15 @@ class QuizService {
   // ---------- local cache (only used when db is provided) ----------
 
   Future<void> _cacheQuiz(Map<String, dynamic> json) async {
+    // The API returns QuizDto: id is a String and the foreign keys are flat
+    // (courseId / institutionId / programmeId), not nested objects.
+    final id = int.tryParse('${json['id']}');
+    if (id == null) return;
     await db!.insert('quizzes', {
-      'id': json['id'],
-      'courseId': json['course'] != null ? json['course']['id'] : null,
-      'institutionId': json['institution'] != null
-          ? json['institution']['id']
-          : null,
-      'programmeId': json['programme'] != null ? json['programme']['id'] : null,
+      'id': id,
+      'courseId': json['courseId'],
+      'institutionId': json['institutionId'],
+      'programmeId': json['programmeId'],
       'data': jsonEncode(json),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
@@ -174,9 +178,9 @@ class QuizService {
     return rows
         .map(
           (r) => Quiz.fromJson(
-            jsonDecode(r['data'] as String) as Map<String, dynamic>,
-          ),
-        )
+        jsonDecode(r['data'] as String) as Map<String, dynamic>,
+      ),
+    )
         .toList();
   }
 }

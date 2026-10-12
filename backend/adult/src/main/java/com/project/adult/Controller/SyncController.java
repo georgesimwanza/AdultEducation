@@ -1,6 +1,7 @@
 package com.project.adult.Controller;
 
 import com.project.adult.DTO.ContentDTO;
+import com.project.adult.DTO.QuizDto;
 import com.project.adult.DTO.SubjectDTO;
 import com.project.adult.Service.SyncService;
 import org.springframework.http.ResponseEntity;
