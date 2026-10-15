@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:adult/screens/color.dart'; // EduColors
+import 'package:adult/service/account_service.dart';
 import 'package:adult/service/sync_service.dart';
 import 'package:adult/service/user_profile_service.dart';
 
@@ -14,6 +15,7 @@ class AccountDetailsPage extends StatefulWidget {
 class _AccountDetailsPageState extends State<AccountDetailsPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isSaving = false;
+  bool _currentVisible = false;
   bool _passwordVisible = false;
   bool _confirmVisible = false;
 
@@ -45,6 +47,8 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
       _phoneController.text = profile.phone ?? '';
     });
   }
+
+  final _currentPasswordController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
 
@@ -53,6 +57,7 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _currentPasswordController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
@@ -70,13 +75,69 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
     return (parts.first[0] + parts.last[0]).toUpperCase();
   }
 
+  void _showMessage(
+      ScaffoldMessengerState messenger,
+      String text, {
+        bool isError = false,
+      }) {
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                isError
+                    ? Icons.error_outline_rounded
+                    : Icons.check_circle_rounded,
+                color: isError ? EduColors.danger : EduColors.success,
+                size: 18,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  text,
+                  style: const TextStyle(color: EduColors.onPrimary),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: EduColors.textPrimary,
+          behavior: SnackBarBehavior.floating,
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          margin: const EdgeInsets.all(12),
+        ),
+      );
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
     setState(() => _isSaving = true);
 
     // Read everything we need from `context` before any await.
     final service = UserProfileService(db: context.read<SyncService>().db);
     final messenger = ScaffoldMessenger.of(context);
+
+    final changingPassword = _passwordController.text.isNotEmpty;
+
+    // The password lives on the server, so change it there first. If that
+    // fails (wrong current password, offline, ...) nothing else is saved and
+    // the user can fix it and tap Save again.
+    if (changingPassword) {
+      try {
+        await AccountService().changePassword(
+          currentPassword: _currentPasswordController.text,
+          newPassword: _passwordController.text,
+        );
+      } on AccountException catch (e) {
+        if (!mounted) return;
+        setState(() => _isSaving = false);
+        _showMessage(messenger, e.message, isError: true);
+        return;
+      }
+    }
 
     final parts = _nameController.text.trim().split(RegExp(r'\s+'));
     final firstName = parts.first;
@@ -94,8 +155,8 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
     // marked "not synced" until it's pushed to the server.
     await service.saveLocalEdit(updated);
 
-    // TODO: push `updated` to the server (and the new password, if one was
-    // entered), then mark the local row as synced.
+    // TODO: push the name / email / phone changes to the server, then mark
+    // the local row as synced. (Password is already handled above.)
 
     if (!mounted) return;
     setState(() {
@@ -103,24 +164,17 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
       _profile = updated.copyWith(synced: false);
     });
 
-    messenger.showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle_rounded,
-                color: EduColors.success, size: 18),
-            SizedBox(width: 10),
-            Text(
-              'Changes saved on this device',
-              style: TextStyle(color: EduColors.onPrimary),
-            ),
-          ],
-        ),
-        backgroundColor: EduColors.textPrimary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        margin: const EdgeInsets.all(12),
-      ),
+    if (changingPassword) {
+      _currentPasswordController.clear();
+      _passwordController.clear();
+      _confirmController.clear();
+    }
+
+    _showMessage(
+      messenger,
+      changingPassword
+          ? 'Password updated. Other changes saved on this device'
+          : 'Changes saved on this device',
     );
   }
 
@@ -202,15 +256,39 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                       const Padding(
                         padding: EdgeInsets.only(left: 4, bottom: 10),
                         child: Text(
-                          'Leave blank to keep your current password',
+                          'Leave blank to keep your current password. '
+                              'Changing it needs your current password and '
+                              'an internet connection.',
                           style: TextStyle(
                             fontSize: 11.5,
+                            height: 1.4,
                             color: EduColors.textSecondary,
                           ),
                         ),
                       ),
                       _FormCard(
                         children: [
+                          _buildField(
+                            controller: _currentPasswordController,
+                            label: 'Current password',
+                            icon: Icons.lock_open_rounded,
+                            tint: EduColors.primarySoft,
+                            fg: EduColors.primary,
+                            obscure: !_currentVisible,
+                            suffixIcon: _eyeButton(
+                              visible: _currentVisible,
+                              onTap: () => setState(
+                                      () => _currentVisible = !_currentVisible),
+                            ),
+                            validator: (v) {
+                              if (_passwordController.text.isNotEmpty &&
+                                  (v == null || v.isEmpty)) {
+                                return 'Enter your current password';
+                              }
+                              return null;
+                            },
+                          ),
+                          _cardDivider(),
                           _buildField(
                             controller: _passwordController,
                             label: 'New password',
@@ -224,8 +302,12 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                                       () => _passwordVisible = !_passwordVisible),
                             ),
                             validator: (v) {
-                              if (v != null && v.isNotEmpty && v.length < 6) {
-                                return 'Password must be at least 6 characters';
+                              if (v == null || v.isEmpty) return null;
+                              if (v.length < 8) {
+                                return 'Password must be at least 8 characters';
+                              }
+                              if (v == _currentPasswordController.text) {
+                                return 'Choose a different password';
                               }
                               return null;
                             },

@@ -193,4 +193,39 @@ public class UserService {
     public Long CountUsersByInstitution(long institutionId){
         return this.userRepository.countByInstitution_id(institutionId);
     }
+
+    /**
+     * Changes the password of an authenticated user after verifying their
+     * current one. The caller identifies the user from the security context,
+     * never from the request body, so users can only change their own password.
+     *
+     * @param email           the authenticated user's email (from the JWT principal)
+     * @param currentPassword the user's current plaintext password
+     * @param newPassword     the new plaintext password
+     * @throws IllegalArgumentException if a field is missing, the current password is
+     *                                  wrong, or the new password is too short / unchanged
+     */
+    @Transactional
+    public void changePassword(String email, String currentPassword, String newPassword) {
+        if (currentPassword == null || currentPassword.isBlank()
+                || newPassword == null || newPassword.isBlank()) {
+            throw new IllegalArgumentException("Current and new password are required");
+        }
+        if (newPassword.length() < 8) {
+            throw new IllegalArgumentException("New password must be at least 8 characters");
+        }
+
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("New password must be different from the current one");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 }
