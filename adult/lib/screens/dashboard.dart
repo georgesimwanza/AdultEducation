@@ -2,6 +2,7 @@ import 'package:provider/provider.dart';
 import 'package:adult/Controller/auth_controller.dart';
 import 'package:adult/service/dashboard_service.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import './subject.dart';
 import 'schedule_screen.dart';
 import 'package:adult/service/sync_service.dart';
@@ -25,6 +26,12 @@ class DashboardState extends State<Dashboard>
 
   // Loaded from the local database (see UserProfileService).
   UserProfile? _profile;
+
+  // Real events, read from the local activity_log table. SyncService writes
+  // "new file / announcement / assignment" rows into it after each sync.
+  List<_NotifData> _notifications = [];
+  int _unreadCount = 0;
+  static const String _lastSeenKey = 'notifications_last_seen';
 
   static const List<String> _filters = ['All', 'Courses', 'Schedule'];
 
@@ -52,6 +59,7 @@ class DashboardState extends State<Dashboard>
       _titleFetched = true;
       _fetchTitle();
       _loadProfile();
+      _loadNotifications();
     }
   }
 
@@ -129,35 +137,125 @@ class DashboardState extends State<Dashboard>
     return "You've just started — keep going";
   }
 
-  // ───────────────────────── Data ─────────────────────────
+  // ───────────────────────── Notifications ─────────────────────────
 
-  // Getter (not a field) so hot reload picks up changes to _NotifData.
-  List<_NotifData> get _notifications => [
-    _NotifData(
-      icon: Icons.check_rounded,
-      iconColor: EduColors.success,
-      tint: EduColors.successSoft,
-      title: 'Assignment graded',
-      subtitle: 'Business Communication · 86%',
-      time: '2h',
-    ),
-    _NotifData(
-      icon: Icons.alarm_rounded,
-      iconColor: EduColors.accent,
-      tint: EduColors.accentSoft,
-      title: 'Assignment due tomorrow',
-      subtitle: 'Principles of Marketing',
-      time: '5h',
-    ),
-    _NotifData(
-      icon: Icons.play_circle_rounded,
-      iconColor: EduColors.primary,
-      tint: EduColors.primarySoft,
-      title: 'New content available',
-      subtitle: 'Video lectures for Module 5 uploaded',
-      time: '1d',
-    ),
-  ];
+  /// Reads the latest events from the local activity_log table.
+  Future<void> _loadNotifications() async {
+    final db = context.read<SyncService>().db; // before any await
+    if (db == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastSeen = prefs.getInt(_lastSeenKey) ?? 0;
+      final rows = await db.query(
+        'activity_log',
+        orderBy: 'timestamp DESC, id DESC',
+        limit: 20,
+      );
+      if (!mounted) return;
+      setState(() {
+        _notifications = rows.map(_notifFromRow).toList();
+        _unreadCount = rows
+            .where((r) => ((r['timestamp'] as int?) ?? 0) > lastSeen)
+            .length;
+      });
+    } catch (_) {
+      // Table missing or db busy — keep whatever is already shown.
+    }
+  }
+
+  /// Remembers that the user has looked at the notifications, which clears
+  /// the dot on the bell until something newer arrives.
+  Future<void> _markNotificationsSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_lastSeenKey, DateTime.now().millisecondsSinceEpoch);
+    if (mounted) setState(() => _unreadCount = 0);
+  }
+
+  _NotifData _notifFromRow(Map<String, Object?> r) {
+    final key = ((r['icon'] as String?) ?? '').toLowerCase();
+    IconData icon;
+    Color fg;
+    Color tint;
+    switch (key) {
+      case 'announcement':
+        icon = Icons.campaign_rounded;
+        fg = EduColors.accent;
+        tint = EduColors.accentSoft;
+        break;
+      case 'content':
+        icon = Icons.insert_drive_file_rounded;
+        fg = EduColors.primary;
+        tint = EduColors.primarySoft;
+        break;
+      case 'quiz':
+        icon = Icons.quiz_rounded;
+        fg = EduColors.success;
+        tint = EduColors.successSoft;
+        break;
+      case 'person':
+        icon = Icons.person_rounded;
+        fg = EduColors.primary;
+        tint = EduColors.primarySoft;
+        break;
+      default:
+        icon = Icons.notifications_rounded;
+        fg = EduColors.primary;
+        tint = EduColors.primarySoft;
+    }
+    return _NotifData(
+      icon: icon,
+      iconColor: fg,
+      tint: tint,
+      title: (r['action'] as String?) ?? 'Update',
+      subtitle: (r['name'] as String?) ?? '',
+      time: _relativeTime((r['timestamp'] as int?) ?? 0),
+    );
+  }
+
+  String _relativeTime(int millis) {
+    final diff = DateTime.now()
+        .difference(DateTime.fromMillisecondsSinceEpoch(millis));
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    if (diff.inDays < 7) return '${diff.inDays}d';
+    return '${(diff.inDays / 7).floor()}w';
+  }
+
+  Widget _emptyActivity() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 20),
+      decoration: BoxDecoration(
+        color: EduColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: EduColors.border),
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.notifications_none_rounded,
+              color: EduColors.textSecondary, size: 28),
+          SizedBox(height: 8),
+          Text(
+            'Nothing new yet',
+            style: TextStyle(
+              color: EduColors.textPrimary,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
+          SizedBox(height: 2),
+          Text(
+            'New files, announcements and assignments will show up here',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: EduColors.textSecondary, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ───────────────────────── Data ─────────────────────────
 
   /// Initials from the locally stored profile; falls back to the
   /// AuthController's email until the profile has been synced.
@@ -249,6 +347,7 @@ class DashboardState extends State<Dashboard>
   }
 
   void _openNotifications() {
+    _markNotificationsSeen();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -298,10 +397,17 @@ class DashboardState extends State<Dashboard>
                 ],
               ),
               const SizedBox(height: 8),
-              _AnimatedNotifList(
-                notifications: _notifications,
-                tileBuilder: _buildNotifTile,
-              ),
+              if (_notifications.isEmpty)
+                _emptyActivity()
+              else
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: _AnimatedNotifList(
+                      notifications: _notifications,
+                      tileBuilder: _buildNotifTile,
+                    ),
+                  ),
+                ),
             ],
           ),
         );
@@ -323,7 +429,11 @@ class DashboardState extends State<Dashboard>
           color: EduColors.primary,
           onRefresh: () async {
             setState(() => _isLoadingTitle = true);
-            await Future.wait([_fetchTitle(), _loadProfile()]);
+            await Future.wait([
+              _fetchTitle(),
+              _loadProfile(),
+              _loadNotifications(),
+            ]);
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -407,9 +517,13 @@ class DashboardState extends State<Dashboard>
                 _fadeSlideIn(
                   start: 0.5,
                   end: 1.0,
-                  child: Column(
-                    children:
-                    _notifications.take(2).map(_buildNotifTile).toList(),
+                  child: _notifications.isEmpty
+                      ? _emptyActivity()
+                      : Column(
+                    children: _notifications
+                        .take(2)
+                        .map(_buildNotifTile)
+                        .toList(),
                   ),
                 ),
               ],
@@ -492,7 +606,7 @@ class DashboardState extends State<Dashboard>
                   size: 22,
                 ),
               ),
-              if (_notifications.isNotEmpty)
+              if (_unreadCount > 0)
                 const Positioned(top: 2, right: 2, child: _PulseDot()),
             ],
           ),
