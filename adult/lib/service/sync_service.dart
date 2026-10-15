@@ -228,6 +228,9 @@ class SyncService {
       print('🔄 Previous sync found — fetching changes since $lastSync');
     }
 
+    // Remember what we already had so we can tell what's new afterwards.
+    final before = await _snapshotIds();
+
     onProgress?.call('Loading content locally...');
     await Future.wait([
       _syncSubjects(lastSync, onProgress),
@@ -237,6 +240,8 @@ class SyncService {
       _syncQuizzes(lastSync, onProgress),
       _syncUserProfile(onProgress),
     ]);
+
+    await _recordNewItems(before);
 
     await downloadContentFiles(onProgress: onProgress);
 
@@ -418,6 +423,156 @@ class SyncService {
       print('✅ Quizzes sync done — ${data.length} records saved');
     } catch (e) {
       print('❌ Error syncing quizzes: $e');
+    }
+  }
+
+  // ── "What's new" notifications ──
+  // After each sync, items that weren't on the device before are written to
+  // the local activity_log table, which the dashboard shows as notifications.
+  // (The server doesn't send created-at times for these, so the time shown is
+  // when this device first saw the item.)
+
+  /// More new items than this in one sync are summarised in a single entry.
+  static const int _maxIndividualEvents = 3;
+
+  Future<Map<String, Set<int>>> _snapshotIds() async {
+    final out = <String, Set<int>>{};
+    for (final table in const ['content', 'announcements', 'quizzes']) {
+      try {
+        final rows = await db!.query(table, columns: ['id']);
+        out[table] = rows.map((r) => r['id']).whereType<int>().toSet();
+      } catch (_) {
+        out[table] = <int>{};
+      }
+    }
+    return out;
+  }
+
+  Future<void> _recordNewItems(Map<String, Set<int>> before) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final institutionId = prefs.getInt('institution');
+      final programmeId = authController.programmeId;
+
+      // Only notify about items meant for this student's institution/programme.
+      bool forUser(Map<String, Object?> r) {
+        final rowInstitution = r['institutionId'] as int?;
+        final rowProgramme = r['programmeId'] as int?;
+        if (institutionId != null &&
+            rowInstitution != null &&
+            rowInstitution != institutionId) {
+          return false;
+        }
+        if (programmeId != null &&
+            rowProgramme != null &&
+            rowProgramme != programmeId) {
+          return false;
+        }
+        return true;
+      }
+
+      // Content only knows its course, so look up which programme that
+      // course belongs to.
+      final subjectRows =
+      await db!.query('subjects', columns: ['id', 'programmeId']);
+      final subjectProgramme = <int, int?>{
+        for (final s in subjectRows)
+          if (s['id'] is int) s['id'] as int: s['programmeId'] as int?,
+      };
+      bool contentForUser(Map<String, Object?> r) {
+        final subjectProgrammeId = subjectProgramme[r['courseId']];
+        return programmeId == null ||
+            subjectProgrammeId == null ||
+            subjectProgrammeId == programmeId;
+      }
+
+      await _recordNew(
+        table: 'content',
+        before: before,
+        keep: contentForUser,
+        titleOf: (r) => (r['title'] as String?) ?? 'New file',
+        single: 'New file uploaded',
+        plural: (n) => '$n new files uploaded',
+        icon: 'content',
+      );
+      await _recordNew(
+        table: 'announcements',
+        before: before,
+        keep: forUser,
+        titleOf: (r) => (r['title'] as String?) ?? 'Announcement',
+        single: 'New announcement posted',
+        plural: (n) => '$n new announcements posted',
+        icon: 'announcement',
+      );
+      await _recordNew(
+        table: 'quizzes',
+        before: before,
+        keep: forUser,
+        titleOf: _quizTitle,
+        single: 'New assignment posted',
+        plural: (n) => '$n new assignments posted',
+        icon: 'quiz',
+      );
+
+      // Keep the feed from growing forever.
+      final cutoff = DateTime.now()
+          .subtract(const Duration(days: 60))
+          .millisecondsSinceEpoch;
+      await db!.delete('activity_log',
+          where: 'timestamp < ?', whereArgs: [cutoff]);
+    } catch (e) {
+      // Notifications are a nice-to-have — never let them break the sync.
+      print('❌ Error recording new items: $e');
+    }
+  }
+
+  Future<void> _recordNew({
+    required String table,
+    required Map<String, Set<int>> before,
+    required bool Function(Map<String, Object?>) keep,
+    required String Function(Map<String, Object?>) titleOf,
+    required String single,
+    required String Function(int) plural,
+    required String icon,
+  }) async {
+    final known = before[table] ?? <int>{};
+    // Nothing was stored before this sync (first login, or the database was
+    // just rebuilt), so everything would look "new" — skip rather than flood.
+    if (known.isEmpty) return;
+
+    final rows = await db!.query(table);
+    final fresh = rows.where((r) {
+      final id = r['id'];
+      return id is int && !known.contains(id) && keep(r);
+    }).toList();
+    if (fresh.isEmpty) return;
+
+    if (fresh.length > _maxIndividualEvents) {
+      await _insertEvent(plural(fresh.length), 'Check the app for details', icon);
+      return;
+    }
+    for (final r in fresh) {
+      await _insertEvent(single, titleOf(r), icon);
+    }
+  }
+
+  Future<void> _insertEvent(String action, String name, String icon) async {
+    await db!.insert('activity_log', {
+      'action': action,
+      'name': name,
+      'icon': icon,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    });
+    print('🔔 $action — $name');
+  }
+
+  /// Quizzes are stored as JSON (QuizDto), so the title lives inside it.
+  String _quizTitle(Map<String, Object?> r) {
+    try {
+      final m = jsonDecode(r['data'] as String) as Map<String, dynamic>;
+      return (m['title'] as String?) ?? 'New assignment';
+    } catch (_) {
+      return 'New assignment';
     }
   }
 
