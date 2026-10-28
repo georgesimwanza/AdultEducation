@@ -3,6 +3,7 @@ import 'package:adult/Model/Announcement_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:adult/service/api_config.dart';
 
 /// Pass [db] (the same local db SyncService/QuizService use) to get offline
 /// support on the read methods: a successful network call caches results
@@ -17,7 +18,7 @@ import 'package:sqflite/sqflite.dart';
 class AnnouncementService {
   AnnouncementService({this.db});
 
-  final String baseUrl = 'http://10.0.2.2:8080';
+  final String baseUrl = '$kBackendHost';
   final Database? db;
 
   Future<Map<String, String>> _headers() async {

@@ -1,7 +1,8 @@
 import 'package:http/http.dart' as http;
+import 'package:adult/service/api_config.dart';
 
 class DashboardService {
-  final String baseUrl = 'http://10.0.2.2:8080/api/programmes';
+  final String baseUrl = '$kBackendHost/api/programmes';
 
   Future<String> getProgramTitle(int id) async {
     // ← add int id here

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:adult/Controller/auth_controller.dart';
+import 'package:adult/service/api_config.dart';
 
 /// Represents a programme available in the system.
 ///
@@ -62,7 +63,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     final token = Provider.of<AuthController>(context, listen: false).token;
 
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8080/api/announcement/allAnnouncements'),
+      Uri.parse('$kBackendHost/api/announcement/allAnnouncements'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -87,7 +88,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     final token = Provider.of<AuthController>(context, listen: false).token;
 
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8080/api/programmes/allProgrammes'),
+      Uri.parse('$kBackendHost/api/programmes/allProgrammes'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -344,7 +345,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                               // Send the new announcement to the backend.
                               final response = await http.post(
                                 Uri.parse(
-                                  'http://10.0.2.2:8080/api/announcement/addAnnouncement',
+                                  '$kBackendHost/api/announcement/addAnnouncement',
                                 ),
                                 headers: {
                                   'Authorization': 'Bearer $token',
@@ -741,7 +742,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                                   // Send the delete request to the backend.
                                   await http.delete(
                                     Uri.parse(
-                                      'http://10.0.2.2:8080/api/announcement/delete/${announcement.id}',
+                                      '$kBackendHost/api/announcement/delete/${announcement.id}',
                                     ),
                                     headers: {'Authorization': 'Bearer $token'},
                                   );

@@ -4,9 +4,10 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:adult/service/activity_log_service.dart';
+import 'package:adult/service/api_config.dart';
 
 class UserService {
-  final String baseUrl = "http://10.0.2.2:8080/api/users";
+  final String baseUrl = "$kBackendHost/api/users";
 
   // Optional — pass the shared local db to also log successful
   // add/delete actions to the local, backend-free activity feed shown on

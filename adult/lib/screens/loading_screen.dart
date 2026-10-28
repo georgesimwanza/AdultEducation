@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:adult/Controller/AuthWrapper.dart';
 import 'package:adult/Controller/auth_controller.dart';
 import 'package:adult/service/sync_service.dart';
 
 /// Shown right after a successful login, while local data syncs.
 /// Displays live staged status text (driven by SyncService's onProgress
-/// callback) instead of a bare spinner, then redirects to '/dashboard' —
-/// same destination the old direct-navigation from LoginPage used, so
-/// whatever role-based routing already lives there is untouched.
+/// callback) instead of a bare spinner, then hands over to AuthWrapper,
+/// which shows the student or admin navbar for the signed-in role.
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
 
@@ -42,7 +42,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
     }
 
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/dashboard');
+    // AuthWrapper picks StudentNavBar / AdminNavBar by role; the bare
+    // '/dashboard' route has no navbar and ignores the role.
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const AuthWrapper()),
+    );
   }
 
   @override

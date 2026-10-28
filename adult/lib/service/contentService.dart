@@ -2,9 +2,10 @@ import 'package:adult/Model/content.dart';
 import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
 import 'dart:convert';
+import 'package:adult/service/api_config.dart';
 
 class contentService {
-  final String baseUrl = 'http://10.0.2.2:8080/api/Content';
+  final String baseUrl = '$kBackendHost/api/Content';
   final Database? db;
   contentService({this.db});
 

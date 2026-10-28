@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'package:adult/service/auth_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:adult/Model/content.dart';
 import 'package:adult/service/contentService.dart';
 import 'package:adult/service/cdn_supabase.dart';
 import 'package:adult/Controller/auth_controller.dart'; // ← added, adjust if getInstitution lives elsewhere
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 class ContentScreen extends StatefulWidget {
@@ -47,7 +47,7 @@ class _ContentScreenState extends State<ContentScreen> {
     String title,
     String type,
     String courseIdText,
-    File? file,
+    PlatformFile? file,
   ) async {
     final courseId = int.tryParse(courseIdText);
     if (courseId == null) {
@@ -134,7 +134,7 @@ class _ContentScreenState extends State<ContentScreen> {
     final titleCtrl = TextEditingController();
     final courseIdCtrl = TextEditingController();
     String selectedType = 'document';
-    File? selectedFile;
+    PlatformFile? selectedFile;
 
     final contentTypes = ['document', 'video', 'image', 'assignment'];
 
@@ -276,12 +276,15 @@ class _ContentScreenState extends State<ContentScreen> {
                         const SizedBox(height: 6),
                         OutlinedButton.icon(
                           onPressed: () async {
+                            // Web has no file paths, so load the bytes there.
                             final result = await FilePicker.platform
-                                .pickFiles();
+                                .pickFiles(withData: kIsWeb);
                             if (result != null &&
-                                result.files.single.path != null) {
+                                (kIsWeb
+                                    ? result.files.single.bytes != null
+                                    : result.files.single.path != null)) {
                               setModalState(() {
-                                selectedFile = File(result.files.single.path!);
+                                selectedFile = result.files.single;
                               });
                             }
                           },
@@ -299,7 +302,7 @@ class _ContentScreenState extends State<ContentScreen> {
                           label: Text(
                             selectedFile == null
                                 ? 'Attach File'
-                                : selectedFile!.path.split('/').last,
+                                : selectedFile!.name,
                             style: const TextStyle(color: Color(0xFF374151)),
                           ),
                         ),

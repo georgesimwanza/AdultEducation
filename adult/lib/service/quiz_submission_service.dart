@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:adult/service/api_config.dart';
 
 /// Handles offline-first submission of quiz answers.
 ///
@@ -24,7 +25,7 @@ class QuizSubmissionService {
   /// `10.0.2.2` is used when running the Flutter application on
   /// an Android emulator because it points to the host machine's
   /// localhost.
-  static const String _base = 'http://10.0.2.2:8080/api';
+  static const String _base = '$kBackendHost/api';
 
   /// Local SQLite database used to store quiz submissions.
   ///

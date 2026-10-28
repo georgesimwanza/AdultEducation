@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:adult/Model/insititution.dart';
 import 'package:http/http.dart' as http;
+import 'package:adult/service/api_config.dart';
 
 class InstitutionService {
   static const String institutionBaseUrl =
-      'http://10.0.2.2:8080/api/institution';
+      '$kBackendHost/api/institution';
 
   Future<List<Institution>> getInstitutions() async {
     final response = await http.get(
@@ -35,7 +36,13 @@ class InstitutionService {
       }),
     );
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return Institution.fromJson(jsonDecode(response.body));
+      // The endpoint answers with the new admin's login payload
+      // (institutionId / institutionName), not an Institution object.
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return Institution(
+        id: (data['institutionId'] ?? data['id']) as int,
+        name: (data['institutionName'] ?? data['name'] ?? name) as String,
+      );
     } else if (response.statusCode == 409) {
       throw Exception('Institution already exists');
     } else {

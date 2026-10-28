@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:adult/Model/content.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../service/contentService.dart';
 import 'package:provider/provider.dart';
@@ -101,7 +102,7 @@ class _CoursePageState extends State<CoursePage> {
 
   Future<String?> _resolveSource(ContentModel lesson) async {
     final local = lesson.localPath;
-    if (local != null && await File(local).exists()) return local;
+    if (!kIsWeb && local != null && await File(local).exists()) return local;
 
     if (lesson.fileUrl.isEmpty) return null;
     if (!mounted) return null;

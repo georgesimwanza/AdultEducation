@@ -1,27 +1,33 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path/path.dart';
 import 'package:adult/Controller/auth_controller.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:adult/service/user_profile_service.dart';
+import 'package:adult/service/api_config.dart';
 
 class SyncService {
   final AuthController authController;
   final Dio dio = Dio();
   Database? db;
 
-  static const String _baseUrl = 'http://10.0.2.2:8080';
+  static const String _baseUrl = '$kBackendHost';
 
   SyncService({required this.authController});
 
   Future<void> initDb() async {
     print('🗄️ Initializing database...');
-    final dbPath = await getDatabasesPath();
+    // Browsers have no native sqlite; use the WASM-backed factory instead.
+    if (kIsWeb) databaseFactory = databaseFactoryFfiWebNoWebWorker;
+    // The web factory has no databases directory; the name alone is enough.
+    final dbPath = kIsWeb ? '' : await getDatabasesPath();
     db = await openDatabase(
-      join(dbPath, 'app.db'),
+      kIsWeb ? 'app.db' : join(dbPath, 'app.db'),
       version: 8, // ← bumped to 8 (added content.localPath)
       // Runs on every open (after create/upgrade), so user_profile exists on
       // fresh installs AND on databases created before it existed. It is never
@@ -663,6 +669,8 @@ class SyncService {
   }
 
   Future<void> downloadContentFiles({void Function(String)? onProgress}) async {
+    // No local file system on web — lessons are opened from their URL.
+    if (kIsWeb) return;
     final rows = await db!.query(
       'content',
       columns: ['id', 'title', 'fileUrl'],
@@ -705,6 +713,7 @@ class SyncService {
   /// Download a single file on demand (e.g. when a student taps a lesson
   /// that wasn't saved during startup sync) and record its local path.
   Future<String?> ensureLocalFile(int id, String url) async {
+    if (kIsWeb) return null;
     final path = await _downloadFile(id, url);
     if (path != null && db != null) {
       await db!.update('content', {'localPath': path},

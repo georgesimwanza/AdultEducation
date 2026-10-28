@@ -2,9 +2,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../Model/programme_model.dart';
+import 'package:adult/service/api_config.dart';
 
 class ProgrammeService {
-  final String baseUrl = 'http://10.0.2.2:8080/api/programmes';
+  final String baseUrl = '$kBackendHost/api/programmes';
 
   Future<List<ProgrammeModel>> getProgrammes() async {
     final response = await http.get(Uri.parse('$baseUrl/allProgrammes'));
