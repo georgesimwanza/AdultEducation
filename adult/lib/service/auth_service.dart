@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Model/user_model.dart';
+import 'package:adult/service/api_config.dart';
 
 /// Handles all authentication-related network requests and local
 /// persistence (auth token, role, programme, and institution) using
@@ -9,7 +10,7 @@ import '../Model/user_model.dart';
 class AuthService {
   /// Base URL for the user API. Points at the Android emulator's
   /// loopback alias (10.0.2.2) for the local backend during development.
-  final String baseUrl = 'http://10.0.2.2:8080/api/users';
+  final String baseUrl = '$kBackendHost/api/users';
 
   /// Registers a new user account with the backend.
   ///

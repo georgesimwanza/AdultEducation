@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:adult/service/api_config.dart';
 
 /// Shown to the user as-is, so every message here is written for them.
 class AccountException implements Exception {
@@ -15,7 +16,7 @@ class AccountException implements Exception {
 ///
 /// Save as: lib/service/account_service.dart
 class AccountService {
-  AccountService({this.baseUrl = 'http://10.0.2.2:8080/api/account'});
+  AccountService({this.baseUrl = '$kBackendHost/api/account'});
 
   /// 10.0.2.2 only works from the Android emulator — use your real backend
   /// URL on a physical device or in production (same as the other services).

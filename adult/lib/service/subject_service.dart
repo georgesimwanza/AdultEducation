@@ -2,9 +2,10 @@ import 'dart:convert';
 import '../Model/subject_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
+import 'package:adult/service/api_config.dart';
 
 class subjectService {
-  final String baseUrl = 'http://10.0.2.2:8080/api/subject';
+  final String baseUrl = '$kBackendHost/api/subject';
   final Database? db;
 
   subjectService({this.db});

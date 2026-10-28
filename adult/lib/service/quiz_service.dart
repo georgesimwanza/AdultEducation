@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
 import '../Model/quiz.dart';
+import 'package:adult/service/api_config.dart';
 
 /// Talks to the Spring Boot quiz API (QuizController / QuizService /
 /// QuizRepository on the backend). This is the only file that knows the
@@ -13,7 +14,7 @@ import '../Model/quiz.dart';
 /// cached from the last sync. createQuiz/updateQuiz/deleteQuiz stay
 /// network-only — admin editing isn't meant to work offline.
 class QuizService {
-  QuizService({this.baseUrl = 'http://10.0.2.2:8080/api', this.db});
+  QuizService({this.baseUrl = '$kBackendHost/api', this.db});
 
   /// 10.0.2.2 is the special alias the Android emulator uses to reach
   /// "localhost" on your development machine — it is NOT a real network

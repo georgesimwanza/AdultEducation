@@ -1,4 +1,4 @@
-name: adult
+﻿name: adult
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -41,6 +41,8 @@ dependencies:
   flutter_secure_storage: ^10.2.0
   dio: ^5.9.2
   sqflite: ^2.4.2+1
+  sqflite_common_ffi_web: ^0.4.5
+  sqlite3: ^2.4.6 # 3.x adds a native build hook that fails on paths with spaces
   path: ^1.9.1
   flutter_native_splash: ^2.4.7
   supabase_flutter: ^2.0.0

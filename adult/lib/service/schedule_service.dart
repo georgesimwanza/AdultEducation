@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
 import '../model/schedule_model.dart';
+import 'package:adult/service/api_config.dart';
 
 class ScheduleService {
-  static const String _base = 'http://10.0.2.2:8080/api';
+  static const String _base = '$kBackendHost/api';
   final Database db;
 
   ScheduleService({required this.db});
