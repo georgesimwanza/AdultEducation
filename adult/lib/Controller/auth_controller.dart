@@ -1,6 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../service/auth_service.dart';
 import '../Model/user_model.dart';
+import 'package:adult/service/offline_cache.dart';
+import 'package:adult/service/notifications/notification_service.dart';
 import 'package:adult/service/sync_service.dart';
 
 class AuthController extends ChangeNotifier {
@@ -14,6 +19,9 @@ class AuthController extends ChangeNotifier {
   int? get programmeId => _programmeId;
   String? get token => _token;
   String? get role => _role;
+  /// Signed-in email. After a restart only the token is kept, so it comes
+  /// from the token's subject.
+  String? get email => currentUser?.email ?? tokenClaims(_token)?['sub'] as String?;
   Future<void> init() async {
     isLoading = true;
     notifyListeners();
@@ -26,6 +34,40 @@ class AuthController extends ChangeNotifier {
     print('📚 Programme ID on restart: $_programmeId');
 
     isLoading = false;
+    notifyListeners();
+  }
+
+  /// The login token lasts 24 hours. Once it has run out the server refuses
+  /// every request, so the learner must sign in again.
+  bool get tokenExpired {
+    final exp = tokenClaims(_token)?['exp'];
+    return exp is int &&
+        DateTime.fromMillisecondsSinceEpoch(exp * 1000).isBefore(DateTime.now());
+  }
+
+  /// Payload of a JWT, or null if [token] isn't one.
+  static Map<String, dynamic>? tokenClaims(String? token) {
+    final parts = token?.split('.');
+    if (parts == null || parts.length != 3) return null;
+    try {
+      return jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))))
+          as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Signs out because the token ran out, and says so on the login screen.
+  /// Unlike [logout], pages saved for offline use are kept: it is usually
+  /// the same person signing straight back in.
+  Future<void> expireSession() async {
+    if (_token == null) return;
+    await _authService.logout();
+    _token = null;
+    _role = null;
+    _programmeId = null;
+    currentUser = null;
+    errorMessage = 'Your session has expired. Please sign in again.';
     notifyListeners();
   }
 
@@ -47,6 +89,12 @@ class AuthController extends ChangeNotifier {
 
       if (_token != null) {
         await _authService.saveToken(_token!);
+      }
+      // Someone else used this device last: drop their saved pages.
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getString('offline_cache_owner') != email.toLowerCase()) {
+        await OfflineCache.clear();
+        await prefs.setString('offline_cache_owner', email.toLowerCase());
       }
       if (_role != null) {
         print('💾 Saving role: $_role');
@@ -72,11 +120,12 @@ class AuthController extends ChangeNotifier {
 
       final syncService = SyncService(authController: this);
       await syncService.syncOnStartup();
+      await NotificationService.startBackgroundSync();
       isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      errorMessage = e.toString();
+      errorMessage = e.toString().replaceFirst('Exception: ', '');
       isLoading = false;
       notifyListeners();
       return false;
@@ -117,6 +166,10 @@ class AuthController extends ChangeNotifier {
 
   Future<void> logout() async {
     await _authService.logout();
+    // The next person to sign in on this device mustn't see these pages,
+    // or get this person's study reminders.
+    await OfflineCache.clear();
+    await NotificationService.rescheduleStudyReminders(const []);
     currentUser = null;
     _token = null;
     _role = null;

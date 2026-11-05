@@ -1,11 +1,17 @@
 import 'package:adult/service/auth_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:adult/Model/content.dart';
+import 'package:adult/Model/subject_model.dart';
+import 'package:adult/service/subject_service.dart';
+import 'package:adult/service/sync_service.dart';
+import 'package:provider/provider.dart';
 import 'package:adult/service/contentService.dart';
 import 'package:adult/service/cdn_supabase.dart';
 import 'package:adult/Controller/auth_controller.dart'; // ← added, adjust if getInstitution lives elsewhere
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:adult/core/admin_table.dart';
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
+import 'package:adult/screens/color.dart';
 
 class ContentScreen extends StatefulWidget {
   const ContentScreen({super.key});
@@ -31,7 +37,7 @@ class _ContentScreenState extends State<ContentScreen> {
   Future<void> _fetchAllContent() async {
     setState(() => _loading = true);
     try {
-      final data = await contentService().getAllContent();
+      final data = await contentService(db: context.read<SyncService>().db).getAllContent();
       setState(() {
         _content = data;
       });
@@ -96,33 +102,44 @@ class _ContentScreenState extends State<ContentScreen> {
   List<ContentModel> get _filtered => _content.where((item) {
     final matchSearch =
         item.title.toLowerCase().contains(_searchTerm.toLowerCase()) ||
-        item.type.toLowerCase().contains(_searchTerm.toLowerCase());
+        _typeKey(item.type).contains(_searchTerm.toLowerCase());
     final matchFilter =
-        _filterType == 'all' ||
-        item.type.toLowerCase() == _filterType.toLowerCase();
+        _filterType == 'all' || _typeKey(item.type) == _filterType;
     return matchSearch && matchFilter;
   }).toList();
 
+  /// Older items were saved as "assignment"; they are quizzes, so they are
+  /// shown and filtered as quizzes.
+  static String _typeKey(String type) {
+    final t = type.toLowerCase();
+    return t == 'assignment' ? 'quiz' : t;
+  }
+
+  static String _typeLabel(String type) {
+    final t = _typeKey(type);
+    return t.isEmpty ? '-' : t[0].toUpperCase() + t.substring(1);
+  }
+
   IconData _getIcon(String type) {
-    switch (type.toLowerCase()) {
+    switch (_typeKey(type)) {
       case 'video':
         return Icons.play_circle_outline;
       case 'image':
         return Icons.image_outlined;
-      case 'assignment':
-        return Icons.assignment_outlined;
+      case 'quiz':
+        return Icons.quiz_outlined;
       default:
         return Icons.description_outlined;
     }
   }
 
   Color _getColor(String type) {
-    switch (type.toLowerCase()) {
+    switch (_typeKey(type)) {
       case 'video':
         return const Color(0xFFEF4444);
       case 'image':
         return const Color(0xFF22C55E);
-      case 'assignment':
+      case 'quiz':
         return const Color(0xFFDE782E);
       default:
         return const Color(0xFF3B82F6);
@@ -130,15 +147,25 @@ class _ContentScreenState extends State<ContentScreen> {
   }
 
   // ── Add modal ────────────────────────────────────────────────────────────
-  void _showAddModal() {
+  Future<void> _showAddModal() async {
     final titleCtrl = TextEditingController();
-    final courseIdCtrl = TextEditingController();
     String selectedType = 'document';
     PlatformFile? selectedFile;
 
-    final contentTypes = ['document', 'video', 'image', 'assignment'];
+    // Pick the programme and subject by name (from the local copy synced at
+    // login) instead of typing a course ID.
+    final db = context.read<SyncService>().db;
+    final programmes = db == null
+        ? <Map<String, Object?>>[]
+        : await db.query('programmes', orderBy: 'name');
+    if (!mounted) return;
+    int? programmeId;
+    int? subjectId;
+    var subjects = <subjectModel>[];
 
-    showModalBottomSheet(
+    final contentTypes = ['document', 'video', 'image', 'quiz'];
+
+    showAdaptiveSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -160,7 +187,7 @@ class _ContentScreenState extends State<ContentScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5E7EB),
+                    color: EduColors.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -183,28 +210,79 @@ class _ContentScreenState extends State<ContentScreen> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF111827),
+                                color: EduColors.textPrimary,
                               ),
                             ),
                             IconButton(
                               onPressed: () => Navigator.pop(ctx),
                               icon: const Icon(
                                 Icons.close,
-                                color: Color(0xFF9CA3AF),
+                                color: EduColors.textSecondary,
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
 
-                        _buildField(
-                          courseIdCtrl,
-                          'Course ID',
-                          'Enter target course ID relationship',
-                          keyboardType: TextInputType.number,
+                        ResponsiveFormRow(
+                          children: [
+                            _buildPicker(
+                              label: 'Programme',
+                              value: programmeId,
+                              hint: programmes.isEmpty
+                                  ? 'No programmes available'
+                                  : 'Choose a programme',
+                              items: [
+                                for (final p in programmes)
+                                  DropdownMenuItem(
+                                    value: p['id'] as int,
+                                    child: Text(
+                                      p['name'] as String? ?? '',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                              ],
+                              onChanged: (v) async {
+                                final list = v == null || db == null
+                                    ? <subjectModel>[]
+                                    : await subjectService(db: db)
+                                        .getSubjectsByProgramme(v);
+                                setModalState(() {
+                                  programmeId = v;
+                                  subjectId = null;
+                                  subjects = list;
+                                });
+                              },
+                            ),
+                            _buildPicker(
+                              // Rebuilt when the programme changes so the
+                              // previous subject is cleared.
+                              key: ValueKey(programmeId),
+                              label: 'Subject',
+                              value: subjectId,
+                              hint: programmeId == null
+                                  ? 'Choose a programme first'
+                                  : subjects.isEmpty
+                                      ? 'No subjects in this programme'
+                                      : 'Choose a subject',
+                              items: [
+                                for (final sub in subjects)
+                                  DropdownMenuItem(
+                                    value: sub.id,
+                                    child: Text(
+                                      sub.code.isEmpty
+                                          ? sub.name
+                                          : '${sub.name} (${sub.code})',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                              ],
+                              onChanged: (v) =>
+                                  setModalState(() => subjectId = v),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 12),
-
                         _buildField(
                           titleCtrl,
                           'Content Title',
@@ -212,99 +290,113 @@ class _ContentScreenState extends State<ContentScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        const Text(
-                          'Content Type',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF374151),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        DropdownButtonFormField<String>(
-                          value: selectedType,
-                          onChanged: (v) =>
-                              setModalState(() => selectedType = v!),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: const Color(0xFFF9FAFB),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Colors.black,
-                                width: 2,
-                              ),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 4,
-                            ),
-                          ),
-                          items: contentTypes
-                              .map(
-                                (t) => DropdownMenuItem(
-                                  value: t,
-                                  child: Text(
-                                    t[0].toUpperCase() + t.substring(1),
+                        ResponsiveFormRow(
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Content Type',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: EduColors.textPrimary,
                                   ),
                                 ),
-                              )
-                              .toList(),
-                        ),
-                        const SizedBox(height: 12),
-
-                        const Text(
-                          'Content File',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF374151),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            // Web has no file paths, so load the bytes there.
-                            final result = await FilePicker.platform
-                                .pickFiles(withData: kIsWeb);
-                            if (result != null &&
-                                (kIsWeb
-                                    ? result.files.single.bytes != null
-                                    : result.files.single.path != null)) {
-                              setModalState(() {
-                                selectedFile = result.files.single;
-                              });
-                            }
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                                const SizedBox(height: 6),
+                                DropdownButtonFormField<String>(
+                                  value: selectedType,
+                                  onChanged: (v) =>
+                                      setModalState(() => selectedType = v!),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: EduColors.background,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: EduColors.border,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: EduColors.border,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: EduColors.primary,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 4,
+                                    ),
+                                  ),
+                                  items: contentTypes
+                                      .map(
+                                        (t) => DropdownMenuItem(
+                                          value: t,
+                                          child: Text(
+                                            t[0].toUpperCase() + t.substring(1),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                              ],
                             ),
-                            side: const BorderSide(color: Color(0xFFE5E7EB)),
-                          ),
-                          icon: const Icon(
-                            Icons.attach_file,
-                            color: Colors.black,
-                          ),
-                          label: Text(
-                            selectedFile == null
-                                ? 'Attach File'
-                                : selectedFile!.name,
-                            style: const TextStyle(color: Color(0xFF374151)),
-                          ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Content File',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: EduColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                OutlinedButton.icon(
+                                  onPressed: () async {
+                                    // Browsers have no file paths; load the bytes.
+                                    final result = await FilePicker.platform
+                                        .pickFiles(withData: true);
+                                    if (result != null &&
+                                        result.files.single.bytes != null) {
+                                      setModalState(() {
+                                        selectedFile = result.files.single;
+                                      });
+                                    }
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    side: const BorderSide(color: EduColors.border),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.attach_file,
+                                    color: EduColors.primary,
+                                  ),
+                                  label: Text(
+                                    selectedFile == null
+                                        ? 'Attach File'
+                                        : selectedFile!.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: EduColors.textPrimary),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 24),
 
@@ -321,12 +413,12 @@ class _ContentScreenState extends State<ContentScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   side: const BorderSide(
-                                    color: Color(0xFFE5E7EB),
+                                    color: EduColors.border,
                                   ),
                                 ),
                                 child: const Text(
                                   'Cancel',
-                                  style: TextStyle(color: Color(0xFF374151)),
+                                  style: TextStyle(color: EduColors.textPrimary),
                                 ),
                               ),
                             ),
@@ -337,20 +429,21 @@ class _ContentScreenState extends State<ContentScreen> {
                                     ? null
                                     : () {
                                         if (titleCtrl.text.isEmpty ||
-                                            courseIdCtrl.text.isEmpty) {
-                                          _showError('Please fill all fields');
+                                            subjectId == null) {
+                                          _showError(
+                                              'Choose a subject and enter a title');
                                           return;
                                         }
                                         Navigator.pop(ctx);
                                         _addContent(
                                           titleCtrl.text,
                                           selectedType,
-                                          courseIdCtrl.text,
+                                          '$subjectId',
                                           selectedFile,
                                         );
                                       },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.black,
+                                  backgroundColor: EduColors.primary,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 14,
                                   ),
@@ -382,6 +475,60 @@ class _ContentScreenState extends State<ContentScreen> {
     );
   }
 
+  /// Labelled dropdown matching the form's text fields.
+  Widget _buildPicker({
+    Key? key,
+    required String label,
+    required int? value,
+    required String hint,
+    required List<DropdownMenuItem<int>> items,
+    required ValueChanged<int?> onChanged,
+  }) {
+    return Column(
+      key: key,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: EduColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<int>(
+          initialValue: value,
+          isExpanded: true,
+          hint: Text(hint, overflow: TextOverflow.ellipsis),
+          items: items,
+          onChanged: onChanged,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: EduColors.background,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: EduColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: EduColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: EduColors.primary, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildField(
     TextEditingController ctrl,
     String label,
@@ -396,7 +543,7 @@ class _ContentScreenState extends State<ContentScreen> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF374151),
+            color: EduColors.textPrimary,
           ),
         ),
         const SizedBox(height: 6),
@@ -405,20 +552,20 @@ class _ContentScreenState extends State<ContentScreen> {
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+            hintStyle: const TextStyle(color: EduColors.textSecondary),
             filled: true,
-            fillColor: const Color(0xFFF9FAFB),
+            fillColor: EduColors.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderSide: const BorderSide(color: EduColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderSide: const BorderSide(color: EduColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.black, width: 2),
+              borderSide: const BorderSide(color: EduColors.primary, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 14,
@@ -430,16 +577,109 @@ class _ContentScreenState extends State<ContentScreen> {
     );
   }
 
+  Widget _contentCard(ContentModel item) {
+    final color = _getColor(item.type);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: EduColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              _getIcon(item.type),
+              color: color,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: EduColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  'Type: ${_typeLabel(item.type)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: EduColors.textSecondary,
+                  ),
+                ),
+                if (item.fileUrl.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    item.fileUrl,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: EduColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          _deleteButton(item),
+        ],
+      ),
+    );
+  }
+
+  Widget _deleteButton(ContentModel item) {
+    return IconButton(
+      onPressed: () => setState(
+        () => _content.removeWhere(
+          (c) => c.id == item.id,
+        ),
+      ),
+      icon: const Icon(
+        Icons.delete_outline,
+        color: EduColors.primary,
+        size: 20,
+      ),
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final filters = ['all', 'video', 'document', 'image', 'assignment'];
+    final filters = ['all', 'video', 'document', 'image', 'quiz'];
 
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 255, 255, 255),
+      backgroundColor: EduColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
+            ResponsiveCenter(child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -452,25 +692,25 @@ class _ContentScreenState extends State<ContentScreen> {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF111827),
+                          color: EduColors.textPrimary,
                         ),
                       ),
                       Text(
                         '${_filtered.length} visible items',
                         style: const TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF6B7280),
+                          color: EduColors.textSecondary,
                         ),
                       ),
                     ],
                   ),
-                  GestureDetector(
+                  HoverCard(child: GestureDetector(
                     onTap: _showAddModal,
                     child: Container(
                       width: 44,
                       height: 44,
                       decoration: const BoxDecoration(
-                        color: Colors.black,
+                        color: EduColors.primary,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -479,41 +719,41 @@ class _ContentScreenState extends State<ContentScreen> {
                         size: 22,
                       ),
                     ),
-                  ),
+                  )),
                 ],
               ),
-            ),
-            Padding(
+            )),
+            ResponsiveCenter(child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: TextField(
                 onChanged: (v) => setState(() => _searchTerm = v),
                 decoration: InputDecoration(
                   hintText: 'Search by title or type...',
-                  hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+                  hintStyle: const TextStyle(color: EduColors.textSecondary),
                   prefixIcon: const Icon(
                     Icons.search,
-                    color: Color(0xFF9CA3AF),
+                    color: EduColors.textSecondary,
                   ),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    borderSide: const BorderSide(color: EduColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    borderSide: const BorderSide(color: EduColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.black, width: 2),
+                    borderSide: const BorderSide(color: EduColors.primary, width: 2),
                   ),
                   contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
-            ),
+            )),
             const SizedBox(height: 10),
-            SizedBox(
+            ResponsiveCenter(child: SizedBox(
               height: 38,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
@@ -532,12 +772,12 @@ class _ContentScreenState extends State<ContentScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: selected ? Colors.black : Colors.white,
+                        color: selected ? EduColors.primary : Colors.white,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: selected
-                              ? Colors.black
-                              : const Color(0xFFE5E7EB),
+                              ? EduColors.primary
+                              : EduColors.border,
                         ),
                       ),
                       child: Text(
@@ -546,7 +786,7 @@ class _ContentScreenState extends State<ContentScreen> {
                           fontSize: 13,
                           color: selected
                               ? Colors.white
-                              : const Color(0xFF6B7280),
+                              : EduColors.textSecondary,
                           fontWeight: selected
                               ? FontWeight.w600
                               : FontWeight.w400,
@@ -556,7 +796,7 @@ class _ContentScreenState extends State<ContentScreen> {
                   );
                 },
               ),
-            ),
+            )),
             const SizedBox(height: 10),
             Expanded(
               child: _loading
@@ -565,7 +805,58 @@ class _ContentScreenState extends State<ContentScreen> {
                   ? const Center(
                       child: Text(
                         'No institutional content found matching selection criteria',
-                        style: TextStyle(color: Color(0xFF6B7280)),
+                        style: TextStyle(color: EduColors.textSecondary),
+                      ),
+                    )
+                  : context.isDesktop
+                  ? CenteredScrollPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      builder: (context, padding) => AdminDataTable(
+                        padding: padding,
+                        columns: const [
+                          DataColumn(label: Text('Title')),
+                          DataColumn(label: Text('Type')),
+                          DataColumn(label: Text('File')),
+                          DataColumn(label: Text('')),
+                        ],
+                        rows: [
+                          for (final item in _filtered)
+                            DataRow(cells: [
+                              DataCell(Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(_getIcon(item.type),
+                                      color: _getColor(item.type), size: 20),
+                                  const SizedBox(width: 10),
+                                  TableText(item.title,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600)),
+                                ],
+                              )),
+                              DataCell(Text(_typeLabel(item.type))),
+                              DataCell(TableText(
+                                item.fileUrl.isEmpty ? '-' : item.fileUrl,
+                                maxWidth: 360,
+                                style: const TextStyle(
+                                    color: EduColors.textSecondary, fontSize: 12.5),
+                              )),
+                              DataCell(_deleteButton(item)),
+                            ]),
+                        ],
+                      ),
+                    )
+                  : context.isTablet
+                  ? CenteredScrollPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      builder: (context, padding) => SingleChildScrollView(
+                        padding: padding,
+                        child: ResponsiveGrid(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            for (final item in _filtered) _contentCard(item),
+                          ],
+                        ),
                       ),
                     )
                   : ListView.separated(
@@ -573,93 +864,7 @@ class _ContentScreenState extends State<ContentScreen> {
                       itemCount: _filtered.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (_, index) {
-                        final item = _filtered[index];
-                        final color = _getColor(item.type);
-                        return Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                            border: Border.all(color: const Color(0xFFF3F4F6)),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 46,
-                                height: 46,
-                                decoration: BoxDecoration(
-                                  color: color.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  _getIcon(item.type),
-                                  color: color,
-                                  size: 22,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      item.title,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF111827),
-                                      ),
-                                    ),
-                                    Text(
-                                      'Type: ${item.type[0].toUpperCase() + item.type.substring(1)}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF6B7280),
-                                      ),
-                                    ),
-                                    if (item.fileUrl.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        item.fileUrl,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Color(0xFF9CA3AF),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () => setState(
-                                  () => _content.removeWhere(
-                                    (c) => c.id == item.id,
-                                  ),
-                                ),
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: Colors.black,
-                                  size: 20,
-                                ),
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
+                        return _contentCard(_filtered[index]);
                       },
                     ),
             ),

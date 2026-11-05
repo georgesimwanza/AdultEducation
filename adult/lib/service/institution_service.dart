@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'package:adult/Model/insititution.dart';
 import 'package:http/http.dart' as http;
 import 'package:adult/service/api_config.dart';
+import 'package:adult/service/offline_cache.dart';
 
 class InstitutionService {
   static const String institutionBaseUrl =
       '$kBackendHost/api/institution';
 
   Future<List<Institution>> getInstitutions() async {
-    final response = await http.get(
+    final response = await cachedGet(
       Uri.parse('$institutionBaseUrl/institutions'),
     );
     if (response.statusCode == 200) {

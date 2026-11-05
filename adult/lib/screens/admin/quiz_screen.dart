@@ -1,7 +1,14 @@
+import 'package:adult/core/admin_table.dart';
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
+import 'package:adult/screens/color.dart';
 import 'package:provider/provider.dart';
 import '../../Controller/quiz_admin_controller.dart';
 import '../../Model/quiz.dart';
+import '../../Model/subject_model.dart';
+import 'package:adult/service/auth_service.dart';
+import 'package:adult/service/subject_service.dart';
+import 'package:adult/service/sync_service.dart';
 import 'quiz_editor_screen.dart';
 
 /// Drop-in replacement for the placeholder QuizScreen tab in AdminNavBar.
@@ -40,19 +47,36 @@ class _QuizListViewState extends State<_QuizListView> {
 
   Future<void> _createQuiz() async {
     final titleController = TextEditingController();
-    final subjectIdController = TextEditingController();
-    final institutionIdController = TextEditingController();
-    final programmeIdController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
-    final confirmed = await showModalBottomSheet<bool>(
+    // Programmes and subjects come from the local copy synced at login, so
+    // the admin picks names instead of typing IDs (works offline too).
+    // The institution is the signed-in admin's own.
+    final db = context.read<SyncService>().db;
+    final institutionId = await AuthService().getInstitution();
+    final programmes = db == null
+        ? <Map<String, Object?>>[]
+        : await db.query('programmes', orderBy: 'name');
+    if (!mounted) return;
+    if (institutionId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No institution found. Please log in again.'),
+      ));
+      return;
+    }
+    int? programmeId;
+    int? subjectId;
+    var subjects = <subjectModel>[];
+
+    final confirmed = await showAdaptiveSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) {
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
         return Padding(
           padding: EdgeInsets.only(
             left: 24,
@@ -71,7 +95,7 @@ class _QuizListViewState extends State<_QuizListView> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                    color: EduColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -84,31 +108,60 @@ class _QuizListViewState extends State<_QuizListView> {
                       : null,
                 ),
                 const SizedBox(height: 12),
-                _quizField(
-                  controller: subjectIdController,
-                  label: 'Subject ID',
-                  numeric: true,
-                  validator: (v) => int.tryParse(v ?? '') == null
-                      ? 'Enter a valid subject ID'
-                      : null,
+                DropdownButtonFormField<int>(
+                  initialValue: programmeId,
+                  isExpanded: true,
+                  decoration: _pickerDecoration('Programme'),
+                  hint: Text(programmes.isEmpty
+                      ? 'No programmes available'
+                      : 'Choose a programme'),
+                  items: [
+                    for (final p in programmes)
+                      DropdownMenuItem(
+                        value: p['id'] as int,
+                        child: Text(
+                          p['name'] as String? ?? '',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  validator: (v) => v == null ? 'Choose a programme' : null,
+                  onChanged: (v) async {
+                    final list = v == null || db == null
+                        ? <subjectModel>[]
+                        : await subjectService(db: db)
+                            .getSubjectsByProgramme(v);
+                    setSheetState(() {
+                      programmeId = v;
+                      subjectId = null;
+                      subjects = list;
+                    });
+                  },
                 ),
                 const SizedBox(height: 12),
-                _quizField(
-                  controller: institutionIdController,
-                  label: 'Institution ID',
-                  numeric: true,
-                  validator: (v) => int.tryParse(v ?? '') == null
-                      ? 'Enter a valid institution ID'
-                      : null,
-                ),
-                const SizedBox(height: 12),
-                _quizField(
-                  controller: programmeIdController,
-                  label: 'Programme ID',
-                  numeric: true,
-                  validator: (v) => int.tryParse(v ?? '') == null
-                      ? 'Enter a valid programme ID'
-                      : null,
+                DropdownButtonFormField<int>(
+                  // Rebuilt when the programme changes so the old pick clears.
+                  key: ValueKey(programmeId),
+                  initialValue: subjectId,
+                  isExpanded: true,
+                  decoration: _pickerDecoration('Subject'),
+                  hint: Text(programmeId == null
+                      ? 'Choose a programme first'
+                      : subjects.isEmpty
+                          ? 'No subjects in this programme'
+                          : 'Choose a subject'),
+                  items: [
+                    for (final sub in subjects)
+                      DropdownMenuItem(
+                        value: sub.id,
+                        child: Text(
+                          sub.code.isEmpty ? sub.name : '${sub.name} (${sub.code})',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  validator: (v) => v == null ? 'Choose a subject' : null,
+                  onChanged: (v) => setSheetState(() => subjectId = v),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -121,12 +174,12 @@ class _QuizListViewState extends State<_QuizListView> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
-                          side: const BorderSide(color: Colors.black26),
+                          side: const BorderSide(color: EduColors.textSecondary),
                         ),
                         child: const Text(
                           'Cancel',
                           style: TextStyle(
-                            color: Colors.black,
+                            color: EduColors.textPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -141,7 +194,7 @@ class _QuizListViewState extends State<_QuizListView> {
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
+                          backgroundColor: EduColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(
@@ -161,7 +214,8 @@ class _QuizListViewState extends State<_QuizListView> {
             ),
           ),
         );
-      },
+        },
+      ),
     );
 
     if (confirmed != true || !mounted) return;
@@ -170,9 +224,9 @@ class _QuizListViewState extends State<_QuizListView> {
     try {
       final quiz = await controller.createQuiz(
         titleController.text.trim(),
-        subjectId: int.parse(subjectIdController.text),
-        institutionId: int.parse(institutionIdController.text),
-        programmeId: int.parse(programmeIdController.text),
+        subjectId: subjectId!,
+        institutionId: institutionId,
+        programmeId: programmeId!,
       );
       if (!mounted) return;
       Navigator.push(
@@ -192,6 +246,19 @@ class _QuizListViewState extends State<_QuizListView> {
     }
   }
 
+  InputDecoration _pickerDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: EduColors.background,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    );
+  }
+
   Widget _quizField({
     required TextEditingController controller,
     required String label,
@@ -207,7 +274,7 @@ class _QuizListViewState extends State<_QuizListView> {
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: const Color(0xFFF5F5F5),
+        fillColor: EduColors.background,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -220,15 +287,118 @@ class _QuizListViewState extends State<_QuizListView> {
     );
   }
 
+  void _openQuiz(QuizAdminController controller, Quiz quiz) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: controller,
+          child: QuizEditorScreen(quizId: quiz.id),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteQuiz(QuizAdminController controller, Quiz quiz) async {
+    try {
+      await controller.deleteQuiz(quiz.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not delete quiz: $e')),
+        );
+      }
+    }
+  }
+
+  /// Desktop: a sortable-looking table; tablet: a two-column grid.
+  Widget _wideQuizList(QuizAdminController controller) {
+    if (context.isDesktop) {
+      return CenteredScrollPadding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        builder: (context, padding) => AdminDataTable(
+          padding: padding,
+          columns: const [
+            DataColumn(label: Text('Title')),
+            DataColumn(label: Text('Questions'), numeric: true),
+            DataColumn(label: Text('Points'), numeric: true),
+            DataColumn(label: Text('')),
+          ],
+          rows: [
+            for (final quiz in controller.quizzes)
+              DataRow(
+                onSelectChanged: (_) => _openQuiz(controller, quiz),
+                cells: [
+                  DataCell(Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.quiz_rounded, size: 18),
+                      const SizedBox(width: 10),
+                      TableText(
+                        quiz.title,
+                        maxWidth: 420,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  )),
+                  DataCell(Text('${quiz.questionCount}')),
+                  DataCell(Text('${quiz.totalPoints}')),
+                  DataCell(Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Edit',
+                        icon: const Icon(Icons.edit_outlined, size: 20),
+                        onPressed: () => _openQuiz(controller, quiz),
+                      ),
+                      IconButton(
+                        tooltip: 'Delete',
+                        icon: const Icon(Icons.delete_outline,
+                            color: EduColors.textSecondary, size: 20),
+                        onPressed: () => _confirmDeleteQuiz(
+                          context,
+                          quiz,
+                          () => _deleteQuiz(controller, quiz),
+                        ),
+                      ),
+                    ],
+                  )),
+                ],
+              ),
+          ],
+        ),
+      );
+    }
+    return CenteredScrollPadding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      builder: (context, padding) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: padding,
+        child: ResponsiveGrid(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final quiz in controller.quizzes)
+              _QuizTile(
+                quiz: quiz,
+                onTap: () => _openQuiz(controller, quiz),
+                onDelete: () => _deleteQuiz(controller, quiz),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: EduColors.background,
       body: SafeArea(
         child: Column(
           children: [
             // ── Header ──────────────────────────────────────────
-            Padding(
+            ResponsiveCenter(child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -240,7 +410,7 @@ class _QuizListViewState extends State<_QuizListView> {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
-                          color: Colors.black,
+                          color: EduColors.textPrimary,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -252,7 +422,7 @@ class _QuizListViewState extends State<_QuizListView> {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF0F0F0),
+                              color: EduColors.primarySoft,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -260,7 +430,7 @@ class _QuizListViewState extends State<_QuizListView> {
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.black,
+                                color: EduColors.textPrimary,
                               ),
                             ),
                           );
@@ -270,31 +440,31 @@ class _QuizListViewState extends State<_QuizListView> {
                   ),
                   Row(
                     children: [
-                      GestureDetector(
+                      HoverCard(child: GestureDetector(
                         onTap: () =>
                             context.read<QuizAdminController>().loadQuizzes(),
                         child: Container(
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF0F0F0),
+                            color: EduColors.primarySoft,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
                             Icons.refresh_rounded,
-                            color: Colors.black,
+                            color: EduColors.primary,
                             size: 19,
                           ),
                         ),
-                      ),
+                      )),
                       const SizedBox(width: 10),
-                      GestureDetector(
+                      HoverCard(child: GestureDetector(
                         onTap: _createQuiz,
                         child: Container(
                           width: 38,
                           height: 38,
                           decoration: const BoxDecoration(
-                            color: Colors.black,
+                            color: EduColors.primary,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -303,19 +473,19 @@ class _QuizListViewState extends State<_QuizListView> {
                             size: 20,
                           ),
                         ),
-                      ),
+                      )),
                     ],
                   ),
                 ],
               ),
-            ),
+            )),
             const SizedBox(height: 8),
             Expanded(
               child: Consumer<QuizAdminController>(
                 builder: (context, controller, _) {
                   if (controller.isLoading && controller.quizzes.isEmpty) {
                     return const Center(
-                      child: CircularProgressIndicator(color: Colors.black),
+                      child: CircularProgressIndicator(color: EduColors.primary),
                     );
                   }
                   if (controller.errorMessage != null &&
@@ -329,9 +499,11 @@ class _QuizListViewState extends State<_QuizListView> {
                     return const _EmptyState();
                   }
                   return RefreshIndicator(
-                    color: Colors.black,
+                    color: EduColors.primary,
                     onRefresh: controller.loadQuizzes,
-                    child: ListView.separated(
+                    child: !context.isMobile
+                        ? _wideQuizList(controller)
+                        : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                       itemCount: controller.quizzes.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -339,28 +511,8 @@ class _QuizListViewState extends State<_QuizListView> {
                         final quiz = controller.quizzes[index];
                         return _QuizTile(
                           quiz: quiz,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChangeNotifierProvider.value(
-                                value: controller,
-                                child: QuizEditorScreen(quizId: quiz.id),
-                              ),
-                            ),
-                          ),
-                          onDelete: () async {
-                            try {
-                              await controller.deleteQuiz(quiz.id);
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Could not delete quiz: $e'),
-                                  ),
-                                );
-                              }
-                            }
-                          },
+                          onTap: () => _openQuiz(controller, quiz),
+                          onDelete: () => _deleteQuiz(controller, quiz),
                         );
                       },
                     ),
@@ -392,7 +544,7 @@ class _QuizTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEDEDED)),
+        border: Border.all(color: EduColors.border),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -405,12 +557,12 @@ class _QuizTile extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F0F0),
+                  color: EduColors.primarySoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.quiz_rounded,
-                  color: Colors.black,
+                  color: EduColors.primary,
                   size: 19,
                 ),
               ),
@@ -426,14 +578,14 @@ class _QuizTile extends StatelessWidget {
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14.5,
-                        color: Colors.black,
+                        color: EduColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       '${quiz.questionCount} question${quiz.questionCount == 1 ? '' : 's'} · ${quiz.totalPoints} points',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: EduColors.textSecondary,
                         fontSize: 12.5,
                       ),
                     ),
@@ -443,43 +595,10 @@ class _QuizTile extends StatelessWidget {
               IconButton(
                 icon: const Icon(
                   Icons.delete_outline,
-                  color: Colors.black38,
+                  color: EduColors.textSecondary,
                   size: 20,
                 ),
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    title: const Text('Delete quiz?'),
-                    content: Text(
-                      '"${quiz.title}" and all its questions will be removed.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(color: Colors.black54),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          onDelete();
-                        },
-                        child: const Text(
-                          'Delete',
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                onPressed: () => _confirmDeleteQuiz(context, quiz, onDelete),
               ),
             ],
           ),
@@ -500,21 +619,21 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.quiz_outlined, size: 56, color: Colors.grey.shade300),
+            Icon(Icons.quiz_outlined, size: 56, color: EduColors.border),
             const SizedBox(height: 16),
             const Text(
               'No quizzes yet',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: Colors.black,
+                color: EduColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Tap the + button to build your first assessment.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade500),
+              style: TextStyle(color: EduColors.textSecondary),
             ),
           ],
         ),
@@ -537,26 +656,26 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off, size: 56, color: Colors.grey.shade300),
+            Icon(Icons.cloud_off, size: 56, color: EduColors.border),
             const SizedBox(height: 16),
             const Text(
               'Could not reach the server',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: Colors.black,
+                color: EduColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade500),
+              style: TextStyle(color: EduColors.textSecondary),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: EduColors.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -574,4 +693,42 @@ class _ErrorState extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Asks before deleting a quiz; used by the card list and the desktop table.
+void _confirmDeleteQuiz(BuildContext context, Quiz quiz, VoidCallback onDelete) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      title: const Text('Delete quiz?'),
+      content: Text(
+        '"${quiz.title}" and all its questions will be removed.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: EduColors.textSecondary),
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+            onDelete();
+          },
+          child: const Text(
+            'Delete',
+            style: TextStyle(
+              color: EduColors.danger,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    ),
+    );
 }

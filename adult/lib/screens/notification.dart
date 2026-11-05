@@ -1,3 +1,4 @@
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../Controller/auth_controller.dart';
@@ -43,11 +44,11 @@ class _NotificationPageState extends State<NotificationPage> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(),
+            ResponsiveCenter.reading(child: _buildTopBar()),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                child: Column(
+                child: ResponsiveCenter.reading(child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _ProfileCard(key: ValueKey(_profileVersion)),
@@ -121,7 +122,7 @@ class _NotificationPageState extends State<NotificationPage> {
                     ),
                     const SizedBox(height: 8),
                   ],
-                ),
+                )),
               ),
             ),
           ],
@@ -296,7 +297,7 @@ class _ProfileCardState extends State<_ProfileCard> {
   @override
   Widget build(BuildContext context) {
     final fallbackEmail =
-        context.read<AuthController>().currentUser?.email ?? '';
+        context.read<AuthController>().email ?? '';
     final profile = _profile ?? UserProfile(email: fallbackEmail);
 
     final hasName = profile.fullName.isNotEmpty;
@@ -376,7 +377,10 @@ class _ProfileCardState extends State<_ProfileCard> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    profile.isAdmin ? 'Admin' : 'Student',
+                    profile.isAdmin ||
+                            context.read<AuthController>().role == 'ADMIN'
+                        ? 'Admin'
+                        : 'Student',
                     style: const TextStyle(
                       color: EduColors.onPrimary,
                       fontSize: 10,

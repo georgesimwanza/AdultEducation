@@ -1,8 +1,8 @@
 import 'dart:convert';
 import '../Model/subject_model.dart';
-import 'package:http/http.dart' as http;
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common/sqlite_api.dart';
 import 'package:adult/service/api_config.dart';
+import 'package:adult/service/offline_cache.dart';
 
 class subjectService {
   final String baseUrl = '$kBackendHost/api/subject';
@@ -39,7 +39,7 @@ class subjectService {
   }
 
   Future<List<subjectModel>> _getSubjectsOnline(int programmeId) async {
-    final response = await http.get(
+    final response = await cachedGet(
       Uri.parse('$baseUrl/programme/$programmeId'),
     );
     if (response.statusCode == 200) {

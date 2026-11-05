@@ -84,7 +84,8 @@ public class JwtUtils {
         try {
             String email = extractEmail(token);
             boolean notExpired = extractExpiration(token).after(new Date());
-            return email.equals(userDetails.getUsername()) && notExpired;
+            // A deactivated account loses access immediately, even with an unexpired token
+            return email.equals(userDetails.getUsername()) && notExpired && userDetails.isEnabled();
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }

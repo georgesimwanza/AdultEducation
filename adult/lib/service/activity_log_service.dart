@@ -1,4 +1,4 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common/sqlite_api.dart';
 
 /// Icon keys match _activityIcons in DashboardScreen: 'person', 'document',
 /// 'gear', 'shield'. Pick whichever fits, or add a new key to both places.

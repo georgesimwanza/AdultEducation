@@ -1,6 +1,7 @@
 import 'package:provider/provider.dart';
 import 'package:adult/Controller/auth_controller.dart';
 import 'package:adult/service/dashboard_service.dart';
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import './subject.dart';
@@ -28,7 +29,7 @@ class DashboardState extends State<Dashboard>
   UserProfile? _profile;
 
   // Real events, read from the local activity_log table. SyncService writes
-  // "new file / announcement / assignment" rows into it after each sync.
+  // "new file / announcement / quiz" rows into it after each sync.
   List<_NotifData> _notifications = [];
   int _unreadCount = 0;
   static const String _lastSeenKey = 'notifications_last_seen';
@@ -246,7 +247,7 @@ class DashboardState extends State<Dashboard>
           ),
           SizedBox(height: 2),
           Text(
-            'New files, announcements and assignments will show up here',
+            'New files, announcements and quizzes will show up here',
             textAlign: TextAlign.center,
             style: TextStyle(color: EduColors.textSecondary, fontSize: 12),
           ),
@@ -262,7 +263,7 @@ class DashboardState extends State<Dashboard>
   String _initials() {
     final profile = _profile;
     if (profile != null) return profile.initials;
-    final email = context.read<AuthController>().currentUser?.email ?? '';
+    final email = context.read<AuthController>().email ?? '';
     return UserProfile(email: email).initials;
   }
 
@@ -348,7 +349,7 @@ class DashboardState extends State<Dashboard>
 
   void _openNotifications() {
     _markNotificationsSeen();
-    showModalBottomSheet(
+    showAdaptiveSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: EduColors.surface,
@@ -415,50 +416,8 @@ class DashboardState extends State<Dashboard>
     );
   }
 
-  bool get _showCourses => _selectedFilter == 0 || _selectedFilter == 1;
-  bool get _showSchedule => _selectedFilter == 0 || _selectedFilter == 2;
-
-  // ───────────────────────── Build ─────────────────────────
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: EduColors.background,
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: EduColors.primary,
-          onRefresh: () async {
-            setState(() => _isLoadingTitle = true);
-            await Future.wait([
-              _fetchTitle(),
-              _loadProfile(),
-              _loadNotifications(),
-            ]);
-          },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _fadeSlideIn(start: 0.0, end: 0.5, child: _buildHeader()),
-                const SizedBox(height: 20),
-                _fadeSlideIn(
-                    start: 0.08, end: 0.55, child: _buildSearchBar()),
-                const SizedBox(height: 18),
-                _fadeSlideIn(
-                    start: 0.12, end: 0.6, child: _buildFilterChips()),
-                const SizedBox(height: 20),
-                _fadeSlideIn(
-                    start: 0.18, end: 0.75, child: _buildCurrentProgramCard()),
-                const SizedBox(height: 26),
-                _fadeSlideIn(
-                  start: 0.28,
-                  end: 0.85,
-                  child: _buildSectionTitle('Quick access'),
-                ),
-                const SizedBox(height: 12),
-                _fadeSlideIn(
+  Widget _quickAccess() {
+    return _fadeSlideIn(
                   start: 0.32,
                   end: 0.9,
                   child: AnimatedSize(
@@ -502,7 +461,58 @@ class DashboardState extends State<Dashboard>
                       ),
                     ),
                   ),
+                );
+  }
+
+  bool get _showCourses => _selectedFilter == 0 || _selectedFilter == 1;
+  bool get _showSchedule => _selectedFilter == 0 || _selectedFilter == 2;
+
+  // ───────────────────────── Build ─────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: EduColors.background,
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: EduColors.primary,
+          onRefresh: () async {
+            setState(() => _isLoadingTitle = true);
+            await Future.wait([
+              _fetchTitle(),
+              _loadProfile(),
+              _loadNotifications(),
+            ]);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            child: ResponsiveCenter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _fadeSlideIn(start: 0.0, end: 0.5, child: _buildHeader()),
+                const SizedBox(height: 20),
+                _fadeSlideIn(
+                    start: 0.08, end: 0.55, child: _buildSearchBar()),
+                const SizedBox(height: 18),
+                _fadeSlideIn(
+                    start: 0.12, end: 0.6, child: _buildFilterChips()),
+                const SizedBox(height: 20),
+                if (context.isDesktop)
+                  _desktopProgramRow()
+                else ...[
+                _fadeSlideIn(
+                    start: 0.18, end: 0.75, child: _buildCurrentProgramCard()),
+                const SizedBox(height: 26),
+                _fadeSlideIn(
+                  start: 0.28,
+                  end: 0.85,
+                  child: _buildSectionTitle('Quick access'),
                 ),
+                const SizedBox(height: 12),
+                _quickAccess(),
+                ],
                 const SizedBox(height: 26),
                 _fadeSlideIn(
                   start: 0.45,
@@ -519,7 +529,15 @@ class DashboardState extends State<Dashboard>
                   end: 1.0,
                   child: _notifications.isEmpty
                       ? _emptyActivity()
-                      : Column(
+                      : context.isMobile
+                      ? Column(
+                    children: _notifications
+                        .take(2)
+                        .map(_buildNotifTile)
+                        .toList(),
+                  )
+                      : ResponsiveGrid(
+                    maxItemWidth: double.infinity,
                     children: _notifications
                         .take(2)
                         .map(_buildNotifTile)
@@ -528,9 +546,40 @@ class DashboardState extends State<Dashboard>
                 ),
               ],
             ),
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  /// Desktop: the programme card and quick access share one row.
+  Widget _desktopProgramRow() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 3,
+          child: _fadeSlideIn(
+              start: 0.18, end: 0.75, child: _buildCurrentProgramCard()),
+        ),
+        const SizedBox(width: 24),
+        Expanded(
+          flex: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _fadeSlideIn(
+                start: 0.28,
+                end: 0.85,
+                child: _buildSectionTitle('Quick access'),
+              ),
+              const SizedBox(height: 12),
+              _quickAccess(),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

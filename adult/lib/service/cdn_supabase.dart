@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -12,12 +11,8 @@ class CdnSupabaseService {
           '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
       final path = '$courseId/$fileName';
       print('⬆️ Uploading to Supabase: $path');
-      // On web there is no file path, only the picked bytes.
-      if (file.bytes != null) {
-        await _client.storage.from(bucketName).uploadBinary(path, file.bytes!);
-      } else {
-        await _client.storage.from(bucketName).upload(path, File(file.path!));
-      }
+      // Browsers expose the picked file's bytes, never a file path.
+      await _client.storage.from(bucketName).uploadBinary(path, file.bytes!);
 
       final publicUrl = _client.storage.from(bucketName).getPublicUrl(path);
       print('✅ Upload success: $publicUrl');

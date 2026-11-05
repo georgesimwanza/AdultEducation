@@ -1,10 +1,12 @@
+import 'dart:math';
 import 'dart:convert';
 import 'package:adult/Model/user_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common/sqlite_api.dart';
 import 'package:adult/service/activity_log_service.dart';
 import 'package:adult/service/api_config.dart';
+import 'package:adult/service/offline_cache.dart';
 
 class UserService {
   final String baseUrl = "$kBackendHost/api/users";
@@ -29,7 +31,7 @@ class UserService {
     final prefs = await SharedPreferences.getInstance();
     final institution = await prefs.getInt('institution') ?? '';
     print('Institution from prefs: $institution');
-    final response = await http.get(
+    final response = await cachedGet(
       Uri.parse('$baseUrl/institution/$institution'),
       headers: await _authHeaders(),
     );
@@ -43,34 +45,60 @@ class UserService {
     }
   }
 
-  Future<void> addStudent(String fullName, String email) async {
-    final parts = fullName.trim().split(' ');
+  /// Creates a learner account with a temporary password and returns that
+  /// password so the admin can give it to the learner (who can change it
+  /// in Account settings).
+  Future<String> addStudent(String fullName, String email) async {
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    final password = _temporaryPassword();
     final response = await http.post(
-      Uri.parse('$baseUrl/AllStudents'),
+      Uri.parse('$kBackendHost/api/admin/users'),
       headers: await _authHeaders(),
       body: jsonEncode({
         'firstName': parts.first,
-        'lastName': parts.length > 1 ? parts.skip(1).join(' ') : '',
-        'email': email,
+        'lastName': parts.length > 1 ? parts.skip(1).join(' ') : '-',
+        'email': email.trim(),
+        'password': password,
+        'role': 'LEARNER',
       }),
     );
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Failed to add student: ${response.statusCode}');
+      throw Exception(_message(response, 'Failed to add student'));
     }
     if (db != null) {
       await ActivityLogService(
         db: db!,
       ).log(action: 'New student enrolled', name: fullName, icon: 'person');
     }
+    return password;
   }
 
+  // Easy to read aloud: no 0/O or 1/l look-alikes
+  static String _temporaryPassword() {
+    const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+    final r = Random.secure();
+    return List.generate(10, (_) => chars[r.nextInt(chars.length)]).join();
+  }
+
+  static String _message(http.Response response, String fallback) {
+    try {
+      final body = jsonDecode(response.body);
+      if (body is Map && body['message'] != null) return body['message'].toString();
+    } catch (_) {}
+    return '$fallback (${response.statusCode})';
+  }
+
+  /// Deactivates the account rather than deleting it, so the learner's
+  /// grades, attendance and history stay in reports. Reactivate it from
+  /// the Users screen.
   Future<void> deleteStudent(int id, {String? name}) async {
-    final response = await http.delete(
-      Uri.parse('$baseUrl/AllStudents/$id'),
+    final response = await http.patch(
+      Uri.parse('$kBackendHost/api/admin/users/$id/status'),
       headers: await _authHeaders(),
+      body: jsonEncode({'active': false}),
     );
     if (response.statusCode != 200 && response.statusCode != 204) {
-      throw Exception('Failed to delete student: ${response.statusCode}');
+      throw Exception(_message(response, 'Failed to remove student'));
     }
     if (db != null) {
       await ActivityLogService(db: db!).log(
@@ -85,7 +113,7 @@ class UserService {
     final prefs = await SharedPreferences.getInstance();
     final institutionId = prefs.getInt('institution') ?? 0;
     print('🏫 Counting students for institution ID: $institutionId');
-    final response = await http.get(
+    final response = await cachedGet(
       Uri.parse('$baseUrl/count/$institutionId'),
       headers: await _authHeaders(),
     );

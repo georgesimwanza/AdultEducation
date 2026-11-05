@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common/sqlite_api.dart';
 import '../Model/quiz.dart';
 import 'package:adult/service/api_config.dart';
+import 'package:adult/service/lms_api.dart';
 
 /// Talks to the Spring Boot quiz API (QuizController / QuizService /
 /// QuizRepository on the backend). This is the only file that knows the
@@ -95,7 +96,7 @@ class QuizService {
       }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/quizzes'),
-      headers: {'Content-Type': 'application/json'},
+      headers: await authHeaders(),
       body: jsonEncode({
         'title': title,
         'description': description,
@@ -115,7 +116,7 @@ class QuizService {
   Future<Quiz> updateQuiz(Quiz quiz) async {
     final response = await http.put(
       Uri.parse('$baseUrl/quizzes/${quiz.id}'),
-      headers: {'Content-Type': 'application/json'},
+      headers: await authHeaders(),
       body: jsonEncode(quiz.toJson()),
     );
     _checkOk(response);
@@ -123,7 +124,10 @@ class QuizService {
   }
 
   Future<void> deleteQuiz(String id) async {
-    final response = await http.delete(Uri.parse('$baseUrl/quizzes/$id'));
+    final response = await http.delete(
+      Uri.parse('$baseUrl/quizzes/$id'),
+      headers: await authHeaders(),
+    );
     _checkOk(response);
   }
 

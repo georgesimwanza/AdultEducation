@@ -1,3 +1,4 @@
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:adult/screens/color.dart';
@@ -29,7 +30,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     super.initState();
     _selectedDay = DateTime.now();
     Future.microtask(() {
-      final email = context.read<AuthController>().currentUser?.email;
+      final email = context.read<AuthController>().email;
       if (email != null) {
         context.read<ScheduleController>().loadEntries(email);
       }
@@ -138,12 +139,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     String? startTime;
     String? endTime;
 
-    final email = context.read<AuthController>().currentUser?.email ?? '';
+    final email = context.read<AuthController>().email ?? '';
     // Captured before the sheet's own `context` shadows it, so the success
     // message can show on the main screen after the sheet closes.
     final rootMessenger = ScaffoldMessenger.of(context);
 
-    showModalBottomSheet(
+    showAdaptiveSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: EduColors.surface,
@@ -425,7 +426,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ? const Center(
           child: CircularProgressIndicator(color: EduColors.primary))
           : SafeArea(
-        child: Column(
+        child: !context.isMobile
+            ? _buildWideBody(controller, grid, today, dayEntries)
+            : Column(
           children: [
             _buildTopBar(),
             Padding(
@@ -433,8 +436,30 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               child: _buildCalendarCard(controller, grid, today),
             ),
             const SizedBox(height: 22),
-            if (_selectedDay != null)
-              Padding(
+            if (_selectedDay != null) _dayHeader(dayEntries, today),
+            const SizedBox(height: 12),
+            Expanded(
+              child: _dayList(dayEntries, controller),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: EduColors.primary,
+        foregroundColor: EduColors.onPrimary,
+        elevation: 4,
+        onPressed: () => _showAddScheduleSheet(_selectedDay ?? DateTime.now()),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text(
+          'Add',
+          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+
+  Widget _dayHeader(List<dynamic> dayEntries, DateTime today) {
+    return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -469,10 +494,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     ),
                   ],
                 ),
-              ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: dayEntries.isEmpty
+              );
+  }
+
+  Widget _dayList(List<dynamic> dayEntries, ScheduleController controller) {
+    return dayEntries.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
@@ -481,21 +507,64 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   return _buildEntryCard(
                       dayEntries[index], controller);
                 },
+              );
+  }
+
+  /// Tablet: calendar capped and centred above the list.
+  /// Desktop: calendar in a left column, the day's entries on the right.
+  Widget _buildWideBody(
+    ScheduleController controller,
+    List<DateTime> grid,
+    DateTime today,
+    List<dynamic> dayEntries,
+  ) {
+    final dayPanel = Column(
+      children: [
+        if (_selectedDay != null) _dayHeader(dayEntries, today),
+        const SizedBox(height: 12),
+        Expanded(child: _dayList(dayEntries, controller)),
+      ],
+    );
+    if (!context.isDesktop) {
+      return ResponsiveCenter.reading(
+        child: Column(
+          children: [
+            _buildTopBar(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: _buildCalendarCard(controller, grid, today),
               ),
             ),
+            const SizedBox(height: 22),
+            Expanded(child: dayPanel),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: EduColors.primary,
-        foregroundColor: EduColors.onPrimary,
-        elevation: 4,
-        onPressed: () => _showAddScheduleSheet(_selectedDay ?? DateTime.now()),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text(
-          'Add',
-          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
-        ),
+      );
+    }
+    return ResponsiveCenter(
+      child: Column(
+        children: [
+          _buildTopBar(),
+          const SizedBox(height: 14),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 420,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 0, 24),
+                    child: _buildCalendarCard(controller, grid, today),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(child: dayPanel),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

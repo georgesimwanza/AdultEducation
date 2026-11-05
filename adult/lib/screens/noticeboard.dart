@@ -1,6 +1,7 @@
 import 'package:adult/service/announcement_service.dart';
 import 'package:adult/service/sync_service.dart';
 import 'package:adult/screens/color.dart';
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:adult/Model/Announcement_model.dart';
@@ -56,7 +57,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(),
+            ResponsiveCenter(child: _buildTopBar()),
             const SizedBox(height: 12),
             Expanded(
               child: RefreshIndicator(
@@ -93,6 +94,22 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                       );
                     }
 
+                    if (!context.isMobile) {
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                        child: ResponsiveCenter(child: ResponsiveGrid(
+                          runSpacing: 0,
+                          children: [
+                            for (var i = 0; i < notices.length; i++)
+                              _EntranceFade(
+                                index: i,
+                                child: _buildNoticeCard(notices[i]),
+                              ),
+                          ],
+                        )),
+                      );
+                    }
                     return ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),

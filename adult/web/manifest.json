@@ -1,12 +1,12 @@
 {
-    "name": "adult",
-    "short_name": "adult",
+    "name": "PAMODZI",
+    "short_name": "PAMODZI",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#FFFFFF",
+    "theme_color": "#3D5CFF",
+    "description": "PAMODZI adult education: IT skills and back-to-school programmes.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

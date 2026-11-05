@@ -1,3 +1,4 @@
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:adult/screens/color.dart';
 import '../Service/programme_service.dart';
@@ -55,7 +56,7 @@ class _ProgrammePageState extends State<ProgrammePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
+            ResponsiveCenter(child: _buildHeader()),
             Expanded(
               child: FutureBuilder<List<ProgrammeModel>>(
                 future: _programmesFuture,
@@ -105,25 +106,37 @@ class _ProgrammePageState extends State<ProgrammePage> {
                   return RefreshIndicator(
                     color: EduColors.primary,
                     onRefresh: _reload,
-                    child: GridView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(),
+                    child: CenteredScrollPadding(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                      builder: (context, padding) => GridView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: padding,
                       itemCount: programmes.length,
-                      gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 14,
-                        crossAxisSpacing: 14,
-                        childAspectRatio: 0.95,
-                      ),
+                      gridDelegate: context.isMobile
+                          ? const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 14,
+                              crossAxisSpacing: 14,
+                              childAspectRatio: 0.95,
+                            )
+                          // Small tiles: fixed height, more columns.
+                          : SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: context.isDesktop ? 4 : 3,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 16,
+                              mainAxisExtent: 200,
+                            ),
                       itemBuilder: (_, i) => _EntranceFade(
                         index: i,
-                        child: _ProgrammeCard(
-                          programme: programmes[i],
-                          colorIndex: i,
+                        child: HoverCard(
+                          child: _ProgrammeCard(
+                            programme: programmes[i],
+                            colorIndex: i,
+                          ),
                         ),
                       ),
                     ),
+                      ),
                   );
                 },
               ),
@@ -322,7 +335,7 @@ class _ProgrammeCardState extends State<_ProgrammeCard> {
   void _showDetail(BuildContext context) async {
     final navigator = Navigator.of(context); // capture before await
 
-    final result = await showModalBottomSheet<ProgrammeModel>(
+    final result = await showAdaptiveSheet<ProgrammeModel>(
       context: context,
       backgroundColor: EduColors.surface,
       shape: const RoundedRectangleBorder(

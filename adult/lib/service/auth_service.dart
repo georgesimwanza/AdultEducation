@@ -80,7 +80,9 @@ class AuthService {
       print('🔍 user.programmeId: ${user.programmeId}');
       return user;
     } else {
-      throw Exception('Login failed: ${response.body}');
+      throw Exception(
+        response.body.isNotEmpty ? response.body : 'Sign-in failed. Please try again.',
+      );
     }
   }
 

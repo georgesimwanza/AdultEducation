@@ -1,8 +1,12 @@
 package com.project.adult.Controller;
 
 import com.project.adult.Model.Announcement;
+import com.project.adult.Model.Notification;
+import com.project.adult.Model.User;
+import com.project.adult.Repository.UserRepository;
 import com.project.adult.Security.UserPrincipal;
 import com.project.adult.Service.AnnouncementService;
+import com.project.adult.Service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +23,8 @@ import java.util.Map;
 public class AnnouncementController {
 
     private final AnnouncementService announcementService;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @GetMapping("/allAnnouncements")
     public ResponseEntity<List<Announcement>> getAll() {
@@ -26,7 +32,7 @@ public class AnnouncementController {
     }
 
     @PostMapping("/addAnnouncement")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','INSTRUCTOR','INSTITUTION')")
     public ResponseEntity<Announcement> create(@RequestBody Map<String, Object> body, Authentication auth) {
         UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
         Long institutionId = principal.getInstitutionId();
@@ -42,6 +48,13 @@ public class AnnouncementController {
                 programmeId,
                 institutionId.longValue()
         );
+        // Let the programme's learners at this institution know straight away
+        List<Long> recipients = userRepository.findBySelectedProgramme_IdAndRole(programmeId, User.Role.USER).stream()
+                .filter(u -> u.getInstitution() != null && institutionId.equals(u.getInstitution().getId()))
+                .map(User::getId)
+                .toList();
+        notificationService.notifyAll(recipients, Notification.Type.ANNOUNCEMENT,
+                "Announcement: " + announcement.getTitle(), announcement.getContent());
         return ResponseEntity.status(HttpStatus.CREATED).body(announcement);
     }
 
@@ -54,7 +67,7 @@ public class AnnouncementController {
         return ResponseEntity.ok(announcements);
     }
     @DeleteMapping("/delete/{id}")
-
+    @PreAuthorize("hasAnyRole('ADMIN','INSTRUCTOR','INSTITUTION')")
     public ResponseEntity<Void> delete(@PathVariable int id) {
         announcementService.delete(id);
         return ResponseEntity.noContent().build();

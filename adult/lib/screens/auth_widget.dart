@@ -1,3 +1,4 @@
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:adult/screens/color.dart';
 
@@ -52,6 +53,11 @@ class AuthScaffold extends StatelessWidget {
     // Collapse the big title while the keyboard is open so the form
     // keeps enough room on small screens.
     final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    // On wider screens the form floats as a centred card.
+    final wide = !context.isMobile;
+    final panelRadius = wide
+        ? BorderRadius.circular(32)
+        : const BorderRadius.vertical(top: Radius.circular(32));
 
     return Scaffold(
       backgroundColor: EduColors.primary,
@@ -79,6 +85,7 @@ class AuthScaffold extends StatelessWidget {
             ),
             SafeArea(
               bottom: false,
+              child: ResponsiveCenter.reading(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -164,16 +171,16 @@ class AuthScaffold extends StatelessWidget {
                     ),
                   ),
                   Expanded(
+                    child: Padding(
+                    padding: EdgeInsets.only(bottom: wide ? 32 : 0),
                     child: Container(
                       width: double.infinity,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: EduColors.surface,
-                        borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(32)),
+                        borderRadius: panelRadius,
                       ),
                       child: ClipRRect(
-                        borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(32)),
+                        borderRadius: panelRadius,
                         child: SingleChildScrollView(
                           keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
@@ -182,8 +189,10 @@ class AuthScaffold extends StatelessWidget {
                         ),
                       ),
                     ),
+                    ),
                   ),
                 ],
+              ),
               ),
             ),
           ],

@@ -1,3 +1,4 @@
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:adult/screens/color.dart'; // EduColors
@@ -185,7 +186,7 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(),
+            ResponsiveCenter.reading(child: _buildTopBar()),
             Expanded(
               child: Form(
                 key: _formKey,
@@ -193,7 +194,7 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                   keyboardDismissBehavior:
                   ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                  child: Column(
+                  child: ResponsiveCenter.reading(child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildAvatar(),
@@ -336,11 +337,11 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                         ],
                       ),
                     ],
-                  ),
+                  )),
                 ),
               ),
             ),
-            _buildSaveBar(),
+            ResponsiveCenter.reading(child: _buildSaveBar()),
           ],
         ),
       ),

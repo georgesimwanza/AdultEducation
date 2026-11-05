@@ -1,61 +1,74 @@
-import 'package:adult/service/contentService.dart';
+import 'package:adult/Controller/auth_controller.dart';
+import 'package:adult/core/app_nav_shell.dart';
+import 'package:adult/screens/notification.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'quiz_screen.dart';
 import 'content_screen.dart';
 import 'dashboard_screen.dart';
 import 'students_screen.dart';
 import 'announcement_screen.dart';
+import 'staff_hub.dart';
 
-class AdminNavBar extends StatefulWidget {
+/// Admin and instructor navigation: same frame and look as the student app,
+/// a "More" hub (reports, grading, attendance, courses, messages, users),
+/// and the shared Settings page (profile, account details and logout).
+class AdminNavBar extends StatelessWidget {
   const AdminNavBar({super.key});
-  @override
-  State<AdminNavBar> createState() => _MyNavBarState();
-}
 
-class _MyNavBarState extends State<AdminNavBar> {
-  int _selectedIndex = 0;
-  final List<Widget> _screens = [
-    // fix 1: List<Widget> not List<NavBar>
-    DashboardScreen(),
-    StudentsScreen(),
-    AnnouncementsScreen(),
-    ContentScreen(),
-    QuizScreen(),
+  static const List<NavDestination> _items = [
+    NavDestination(
+      label: 'Home',
+      icon: Icons.dashboard_outlined,
+      activeIcon: Icons.dashboard_rounded,
+    ),
+    NavDestination(
+      label: 'Students',
+      icon: Icons.people_outline_rounded,
+      activeIcon: Icons.people_rounded,
+    ),
+    NavDestination(
+      label: 'Notices',
+      icon: Icons.campaign_outlined,
+      activeIcon: Icons.campaign_rounded,
+    ),
+    NavDestination(
+      label: 'Content',
+      icon: Icons.folder_outlined,
+      activeIcon: Icons.folder_rounded,
+    ),
+    NavDestination(
+      label: 'Quizzes',
+      icon: Icons.quiz_outlined,
+      activeIcon: Icons.quiz_rounded,
+    ),
+    NavDestination(
+      label: 'More',
+      icon: Icons.apps_outlined,
+      activeIcon: Icons.apps_rounded,
+    ),
+    NavDestination(
+      label: 'Settings',
+      icon: Icons.settings_outlined,
+      activeIcon: Icons.settings_rounded,
+    ),
   ];
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _screens),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (i) => setState(() => _selectedIndex = i),
-        backgroundColor: const Color(0xFF1A1A1A),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people_rounded),
-            label: 'Students',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book_rounded),
-            label: 'Announcements',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.folder_rounded),
-            label: 'Content',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.quiz_rounded),
-            label: 'Quiz',
-          ),
-        ],
-      ),
+    final role = context.watch<AuthController>().role;
+    return AppNavShell(
+      subtitle: role == 'INSTRUCTOR' ? 'Instructor' : 'Admin',
+      destinations: _items,
+      screens: const [
+        DashboardScreen(),
+        StudentsScreen(),
+        AnnouncementsScreen(),
+        ContentScreen(),
+        QuizScreen(),
+        StaffHub(),
+        NotificationPage(),
+      ],
     );
   }
 }

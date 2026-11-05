@@ -1,4 +1,6 @@
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
+import 'package:adult/screens/color.dart';
 import 'package:provider/provider.dart';
 import '../../Controller/quiz_admin_controller.dart';
 import '../../Model/question.dart';
@@ -19,10 +21,10 @@ class QuizEditorScreen extends StatelessWidget {
       builder: (context, controller, _) {
         final quiz = controller.quizzes.firstWhere((q) => q.id == quizId);
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: EduColors.background,
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () => _addQuestion(context, controller, quiz),
-            backgroundColor: Colors.black,
+            backgroundColor: EduColors.primary,
             foregroundColor: Colors.white,
             icon: const Icon(Icons.add),
             label: const Text('Add Question'),
@@ -33,15 +35,18 @@ class QuizEditorScreen extends StatelessWidget {
           body: SafeArea(
             child: Column(
               children: [
-                _QuizSummaryHeader(
+                ResponsiveCenter.reading(child: _QuizSummaryHeader(
                   quiz: quiz,
                   onSettings: () => _openSettings(context, controller, quiz),
-                ),
+                )),
                 Expanded(
                   child: quiz.questions.isEmpty
                       ? const _NoQuestionsState()
-                      : ReorderableListView.builder(
+                      : CenteredScrollPadding(
+                          maxWidth: Breakpoints.reading,
                           padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
+                          builder: (context, padding) => ReorderableListView.builder(
+                          padding: padding,
                           itemCount: quiz.questions.length,
                           onReorder: (oldIndex, newIndex) => controller
                               .reorderQuestions(quiz, oldIndex, newIndex),
@@ -61,6 +66,7 @@ class QuizEditorScreen extends StatelessWidget {
                                   controller.removeQuestion(quiz, question.id),
                             );
                           },
+                        ),
                         ),
                 ),
               ],
@@ -110,7 +116,7 @@ class QuizEditorScreen extends StatelessWidget {
   }
 
   Future<QuestionType?> _pickQuestionType(BuildContext context) {
-    return showModalBottomSheet<QuestionType>(
+    return showAdaptiveSheet<QuestionType>(
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
@@ -129,7 +135,7 @@ class QuizEditorScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                    color: EduColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -142,7 +148,7 @@ class QuizEditorScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF7F7F7),
+                          color: EduColors.background,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
@@ -151,7 +157,7 @@ class QuizEditorScreen extends StatelessWidget {
                               width: 38,
                               height: 38,
                               decoration: BoxDecoration(
-                                color: Colors.black,
+                                color: EduColors.primary,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
@@ -170,7 +176,7 @@ class QuizEditorScreen extends StatelessWidget {
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 14,
-                                      color: Colors.black,
+                                      color: EduColors.textPrimary,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -178,7 +184,7 @@ class QuizEditorScreen extends StatelessWidget {
                                     type.description,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey.shade600,
+                                      color: EduColors.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -219,7 +225,7 @@ class QuizEditorScreen extends StatelessWidget {
       text: quiz.passingScorePercent.toString(),
     );
 
-    showModalBottomSheet(
+    showAdaptiveSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -243,16 +249,19 @@ class QuizEditorScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: Colors.black,
+                  color: EduColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 16),
-              _settingsField(controller: titleController, label: 'Title'),
-              const SizedBox(height: 12),
-              _settingsField(
-                controller: descController,
-                label: 'Description',
-                maxLines: 2,
+              ResponsiveFormRow(
+                children: [
+                  _settingsField(controller: titleController, label: 'Title'),
+                  _settingsField(
+                    controller: descController,
+                    label: 'Description',
+                    maxLines: 2,
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               Row(
@@ -279,7 +288,7 @@ class QuizEditorScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: EduColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
@@ -328,7 +337,7 @@ class QuizEditorScreen extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: const Color(0xFFF5F5F5),
+        fillColor: EduColors.background,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -355,7 +364,12 @@ class _QuizSummaryHeader extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 22),
       decoration: BoxDecoration(
-        color: Colors.black,
+        gradient: const LinearGradient(
+          colors: [EduColors.primary, EduColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: EduColors.cardShadow,
         borderRadius: BorderRadius.circular(28),
       ),
       child: Column(
@@ -387,7 +401,7 @@ class _QuizSummaryHeader extends StatelessWidget {
               quiz.description,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFFB3B3B3), fontSize: 13),
+              style: const TextStyle(color: EduColors.textSecondary, fontSize: 13),
             ),
           ],
           const SizedBox(height: 16),
@@ -416,7 +430,7 @@ class _QuizSummaryHeader extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: const Color(0xFF262626),
+          color: EduColors.onPrimaryFaint,
           shape: BoxShape.circle,
         ),
         child: Icon(icon, size: 16, color: Colors.white),
@@ -434,9 +448,9 @@ class _StatChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: EduColors.onPrimaryFaint,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF2E2E2E)),
+        border: Border.all(color: EduColors.onPrimaryFaint),
       ),
       child: Text(
         label,
@@ -461,21 +475,21 @@ class _NoQuestionsState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.playlist_add, size: 56, color: Colors.grey.shade300),
+            Icon(Icons.playlist_add, size: 56, color: EduColors.border),
             const SizedBox(height: 16),
             const Text(
               'No questions yet',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: Colors.black,
+                color: EduColors.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Tap "Add Question" and choose a type to get started.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade500),
+              style: TextStyle(color: EduColors.textSecondary),
             ),
           ],
         ),
@@ -521,7 +535,7 @@ class _QuestionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEDEDED)),
+        border: Border.all(color: EduColors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -532,14 +546,14 @@ class _QuestionCard extends StatelessWidget {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: const Color(0xFFF0F0F0),
+                color: EduColors.primarySoft,
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
               child: Text(
                 '${index + 1}',
                 style: const TextStyle(
-                  color: Colors.black,
+                  color: EduColors.textPrimary,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
                 ),
@@ -558,7 +572,7 @@ class _QuestionCard extends StatelessWidget {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black,
+                          color: EduColors.primary,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
@@ -581,7 +595,7 @@ class _QuestionCard extends StatelessWidget {
                       Text(
                         '${question.points} pt${question.points == 1 ? '' : 's'}',
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: EduColors.textSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -595,13 +609,13 @@ class _QuestionCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: Colors.black,
+                      color: EduColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     _summary,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    style: TextStyle(color: EduColors.textSecondary, fontSize: 12),
                   ),
                 ],
               ),
@@ -611,7 +625,7 @@ class _QuestionCard extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, size: 19),
                   onPressed: onEdit,
-                  color: Colors.black,
+                  color: EduColors.textPrimary,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
                     minWidth: 32,
@@ -622,7 +636,7 @@ class _QuestionCard extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.delete_outline, size: 19),
                   onPressed: onDelete,
-                  color: Colors.black38,
+                  color: EduColors.textSecondary,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(
                     minWidth: 32,

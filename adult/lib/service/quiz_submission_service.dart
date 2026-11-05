@@ -1,8 +1,9 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common/sqlite_api.dart';
 import 'package:adult/service/api_config.dart';
+import 'package:adult/service/lms_api.dart';
 
 /// Handles offline-first submission of quiz answers.
 ///
@@ -213,6 +214,8 @@ class QuizSubmissionService {
           // Only include the score when one is available.
           if (score != null) 'score': score,
         },
+        // The backend files the attempt under the signed-in learner
+        options: Options(headers: await authHeaders()),
       );
 
       // The server accepted the submission successfully.

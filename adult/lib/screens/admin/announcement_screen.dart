@@ -1,10 +1,13 @@
 import 'package:adult/Model/Announcement_model.dart';
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
+import 'package:adult/screens/color.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:adult/Controller/auth_controller.dart';
 import 'package:adult/service/api_config.dart';
+import 'package:adult/service/offline_cache.dart';
 
 /// Represents a programme available in the system.
 ///
@@ -62,7 +65,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   Future<List<AnnouncementModel>> _fetchAnnouncements() async {
     final token = Provider.of<AuthController>(context, listen: false).token;
 
-    final response = await http.get(
+    final response = await cachedGet(
       Uri.parse('$kBackendHost/api/announcement/allAnnouncements'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -87,7 +90,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   Future<List<ProgrammeModel>> _fetchProgrammes() async {
     final token = Provider.of<AuthController>(context, listen: false).token;
 
-    final response = await http.get(
+    final response = await cachedGet(
       Uri.parse('$kBackendHost/api/programmes/allProgrammes'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -136,7 +139,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     // Stores an error message when programme loading fails.
     String? programmeLoadError;
 
-    showModalBottomSheet(
+    showAdaptiveSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -186,7 +189,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          color: Colors.black,
+                          color: EduColors.textPrimary,
                         ),
                       ),
 
@@ -194,7 +197,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                         onPressed: () => Navigator.pop(ctx),
                         icon: const Icon(
                           Icons.close,
-                          color: Colors.black54,
+                          color: EduColors.textSecondary,
                           size: 22,
                         ),
                       ),
@@ -228,7 +231,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black54,
+                      color: EduColors.textSecondary,
                     ),
                   ),
 
@@ -239,7 +242,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                     Text(
                       'Failed to load programmes',
                       style: TextStyle(
-                        color: Colors.red.shade700,
+                        color: EduColors.danger,
                         fontSize: 12,
                       ),
                     )
@@ -256,7 +259,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                       ),
                       decoration: InputDecoration(
                         filled: true,
-                        fillColor: const Color(0xFFF5F5F5),
+                        fillColor: EduColors.background,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
@@ -293,12 +296,12 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
-                            side: const BorderSide(color: Colors.black26),
+                            side: const BorderSide(color: EduColors.textSecondary),
                           ),
                           child: const Text(
                             'Cancel',
                             style: TextStyle(
-                              color: Colors.black,
+                              color: EduColors.textPrimary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -389,7 +392,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
+                            backgroundColor: EduColors.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 15),
                             shape: RoundedRectangleBorder(
@@ -436,7 +439,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: Colors.black54,
+            color: EduColors.textSecondary,
           ),
         ),
 
@@ -445,12 +448,12 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
         TextField(
           controller: ctrl,
           maxLines: maxLines,
-          cursorColor: Colors.black,
+          cursorColor: EduColors.primary,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.black.withOpacity(0.35)),
             filled: true,
-            fillColor: const Color(0xFFF5F5F5),
+            fillColor: EduColors.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -468,13 +471,13 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: EduColors.background,
       body: SafeArea(
         child: Column(
           children: [
             // Header containing the screen title, announcement count,
             // and button for creating a new announcement.
-            Padding(
+            ResponsiveCenter(child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -486,7 +489,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
-                          color: Colors.black,
+                          color: EduColors.textPrimary,
                         ),
                       ),
 
@@ -504,7 +507,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF0F0F0),
+                              color: EduColors.primarySoft,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -512,7 +515,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.black,
+                                color: EduColors.textPrimary,
                               ),
                             ),
                           );
@@ -522,13 +525,13 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   ),
 
                   // Opens the announcement creation modal.
-                  GestureDetector(
+                  HoverCard(child: GestureDetector(
                     onTap: _showAddModal,
                     child: Container(
                       width: 38,
                       height: 38,
                       decoration: const BoxDecoration(
-                        color: Colors.black,
+                        color: EduColors.primary,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -537,29 +540,29 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                         size: 20,
                       ),
                     ),
-                  ),
+                  )),
                 ],
               ),
-            ),
+            )),
 
             // Search field used to filter announcements by title or content.
-            Padding(
+            ResponsiveCenter(child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
               child: TextField(
                 onChanged: (v) {
                   setState(() => _searchTerm = v);
                 },
-                cursorColor: Colors.black,
+                cursorColor: EduColors.primary,
                 decoration: InputDecoration(
                   hintText: 'Search updates...',
                   hintStyle: TextStyle(color: Colors.black.withOpacity(0.35)),
                   prefixIcon: const Icon(
                     Icons.search,
-                    color: Colors.black45,
+                    color: EduColors.textSecondary,
                     size: 20,
                   ),
                   filled: true,
-                  fillColor: const Color(0xFFF5F5F5),
+                  fillColor: EduColors.background,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
@@ -567,7 +570,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   contentPadding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
-            ),
+            )),
 
             // Announcement list.
             Expanded(
@@ -578,7 +581,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   // are being retrieved from the backend.
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
-                      child: CircularProgressIndicator(color: Colors.black),
+                      child: CircularProgressIndicator(color: EduColors.primary),
                     );
                   }
 
@@ -593,7 +596,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                           children: [
                             const Icon(
                               Icons.error_outline,
-                              color: Colors.black45,
+                              color: EduColors.textSecondary,
                               size: 44,
                             ),
 
@@ -604,7 +607,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                               '${snapshot.error}',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                color: Colors.black87,
+                                color: EduColors.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -615,7 +618,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                             OutlinedButton(
                               onPressed: _refreshAnnouncements,
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.black26),
+                                side: const BorderSide(color: EduColors.textSecondary),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
                                 ),
@@ -627,7 +630,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                               child: const Text(
                                 'Retry',
                                 style: TextStyle(
-                                  color: Colors.black,
+                                  color: EduColors.textPrimary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -655,8 +658,125 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                       child: Text(
                         'No announcements posted.',
                         style: TextStyle(
-                          color: Colors.grey.shade500,
+                          color: EduColors.textSecondary,
                           fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }
+
+                  // One card per announcement, shared by the list and the grid.
+                  Widget buildItem(BuildContext context, int index) {
+                  final announcement = filtered[index];
+
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: EduColors.border),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Announcement icon.
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: EduColors.primarySoft,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.campaign_outlined,
+                            color: EduColors.primary,
+                            size: 18,
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        // Announcement title and content.
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                announcement.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: EduColors.textPrimary,
+                                ),
+                              ),
+
+                              const SizedBox(height: 4),
+
+                              Text(
+                                announcement.content,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  height: 1.35,
+                                  color: EduColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Deletes the selected announcement.
+                        IconButton(
+                          onPressed: () async {
+                            try {
+                              // Retrieve the authentication token.
+                              final token = Provider.of<AuthController>(
+                                context,
+                                listen: false,
+                              ).token;
+
+                              // Send the delete request to the backend.
+                              await http.delete(
+                                Uri.parse(
+                                  '$kBackendHost/api/announcement/delete/${announcement.id}',
+                                ),
+                                headers: {'Authorization': 'Bearer $token'},
+                              );
+
+                              // Refresh the list after deletion.
+                              _refreshAnnouncements();
+                            } catch (e) {
+                              debugPrint('Error deleting announcement: $e');
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: EduColors.textSecondary,
+                            size: 19,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  );
+                    }
+
+                  if (!context.isMobile) {
+                    return CenteredScrollPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+                      builder: (context, padding) => SingleChildScrollView(
+                        padding: padding,
+                        child: ResponsiveGrid(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            for (var i = 0; i < filtered.length; i++)
+                              buildItem(context, i),
+                          ],
                         ),
                       ),
                     );
@@ -667,104 +787,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (context, index) {
-                      final announcement = filtered[index];
-
-                      return Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFEDEDED)),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Announcement icon.
-                            Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF0F0F0),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.campaign_outlined,
-                                color: Colors.black,
-                                size: 18,
-                              ),
-                            ),
-
-                            const SizedBox(width: 12),
-
-                            // Announcement title and content.
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    announcement.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black,
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 4),
-
-                                  Text(
-                                    announcement.content,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      height: 1.35,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Deletes the selected announcement.
-                            IconButton(
-                              onPressed: () async {
-                                try {
-                                  // Retrieve the authentication token.
-                                  final token = Provider.of<AuthController>(
-                                    context,
-                                    listen: false,
-                                  ).token;
-
-                                  // Send the delete request to the backend.
-                                  await http.delete(
-                                    Uri.parse(
-                                      '$kBackendHost/api/announcement/delete/${announcement.id}',
-                                    ),
-                                    headers: {'Authorization': 'Bearer $token'},
-                                  );
-
-                                  // Refresh the list after deletion.
-                                  _refreshAnnouncements();
-                                } catch (e) {
-                                  debugPrint('Error deleting announcement: $e');
-                                }
-                              },
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                color: Colors.black38,
-                                size: 19,
-                              ),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    itemBuilder: buildItem,
                   );
                 },
               ),
