@@ -1,3 +1,4 @@
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../Model/subject_model.dart';
@@ -92,7 +93,7 @@ class _SubjectPageState extends State<SubjectPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
+            ResponsiveCenter(child: _buildHeader()),
             Expanded(child: _buildBody()),
           ],
         ),
@@ -257,21 +258,34 @@ class _SubjectPageState extends State<SubjectPage> {
     return RefreshIndicator(
       color: EduColors.primary,
       onRefresh: _loadSubjects,
-      child: GridView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
+      child: CenteredScrollPadding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 14,
-          childAspectRatio: 0.85,
-        ),
+        builder: (context, padding) => GridView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: padding,
+        gridDelegate: context.isMobile
+            ? const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                childAspectRatio: 0.85,
+              )
+            // Small tiles: one more column than full-size cards, fixed height.
+            : SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: context.isDesktop ? 4 : 3,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                mainAxisExtent: 190,
+              ),
         itemCount: _filtered.length,
         itemBuilder: (context, index) => _EntranceFade(
           index: index,
-          child: _SubjectCard(subject: _filtered[index], colorIndex: index),
+          child: HoverCard(
+            child: _SubjectCard(subject: _filtered[index], colorIndex: index),
+          ),
         ),
       ),
+        ),
     );
   }
 

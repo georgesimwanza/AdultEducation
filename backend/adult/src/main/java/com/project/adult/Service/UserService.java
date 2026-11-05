@@ -9,6 +9,7 @@ import com.project.adult.Repository.InstitutionRepository;
 import com.project.adult.Repository.ProgrammeRepository;
 import com.project.adult.Repository.UserRepository;
 import com.project.adult.Security.JwtUtils;
+import com.project.adult.Security.LoginAttemptService;
 import com.project.adult.Security.UserPrincipal;
 import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,6 +31,9 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final InstitutionRepository institutionRepository;
+    private final EnrollmentService enrollmentService;
+    private final ActivityService activityService;
+    private final LoginAttemptService loginAttemptService;
 
     /**
      * Constructs the service with its required repositories and security helpers.
@@ -44,12 +48,18 @@ public class UserService {
                        ProgrammeRepository programmeRepository,
                        PasswordEncoder passwordEncoder,
                        JwtUtils jwtUtils,
-                       InstitutionRepository institutionRepository) {
+                       InstitutionRepository institutionRepository,
+                       EnrollmentService enrollmentService,
+                       ActivityService activityService,
+                       LoginAttemptService loginAttemptService) {
         this.userRepository        = userRepository;
         this.programmeRepository   = programmeRepository;
         this.passwordEncoder       = passwordEncoder;
         this.jwtUtils              = jwtUtils;
         this.institutionRepository = institutionRepository;
+        this.enrollmentService     = enrollmentService;
+        this.activityService       = activityService;
+        this.loginAttemptService   = loginAttemptService;
     }
 
     /**
@@ -63,6 +73,15 @@ public class UserService {
      */
     @Transactional
     public User CreateUser(RegisterRequest request) {
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new RuntimeException("Email is required");
+        }
+        if (userRepository.findByEmailIgnoreCase(request.getEmail().trim()).isPresent()) {
+            throw new RuntimeException("An account with that email already exists");
+        }
+        if (request.getPasswordHash() == null || request.getPasswordHash().length() < 8) {
+            throw new RuntimeException("Password must be at least 8 characters");
+        }
         User user = new User();
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
@@ -89,7 +108,9 @@ public class UserService {
             user.setSelectedProgramme(programme);
         }
 
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        enrollmentService.enrollInProgrammeCourses(saved);
+        return saved;
     }
 
     /**
@@ -114,12 +135,24 @@ public class UserService {
      * @throws RuntimeException if no user exists with the given email, or if the password is invalid
      */
     public UserDTO login(String email, String password) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Invalid password");
+        if (loginAttemptService.isBlocked(email)) {
+            throw new RuntimeException("Too many failed attempts. Please wait 15 minutes and try again.");
         }
+        // Same message for unknown email and wrong password, so the login
+        // form can't be used to find out which emails have accounts.
+        User user = userRepository.findByEmailIgnoreCase(email == null ? "" : email.trim())
+                .orElse(null);
+        if (user == null || password == null || !passwordEncoder.matches(password, user.getPasswordHash())) {
+            loginAttemptService.recordFailure(email);
+            throw new RuntimeException("Incorrect email or password");
+        }
+        if (Boolean.FALSE.equals(user.getIsActive())) {
+            throw new RuntimeException("This account has been deactivated. Please contact your institution.");
+        }
+        loginAttemptService.recordSuccess(email);
+        user.setLastLoginAt(java.time.LocalDateTime.now());
+        userRepository.save(user);
+        activityService.record(user.getId(), com.project.adult.Model.ActivityEvent.Type.LOGIN, null, null);
 
         String token = jwtUtils.generateToken(UserPrincipal.from(user));
 

@@ -45,4 +45,10 @@ public class QuizSubmission {
 
     @Column(nullable = false)
     private LocalDateTime submittedAt;
+
+    /** Instructor's comments on the attempt, shown to the learner with the grade. */
+    @Column(length = 4000)
+    private String feedback;
+
+    private LocalDateTime gradedAt;
 }

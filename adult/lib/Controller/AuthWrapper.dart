@@ -20,7 +20,9 @@ class AuthWrapper extends StatelessWidget {
       return const LoginPage();
     }
 
-    if (auth.role == 'ADMIN') {
+    // Admins, institution admins and instructors share the staff interface;
+    // AdminNavBar hides account management from instructors.
+    if (auth.role == 'ADMIN' || auth.role == 'INSTITUTION' || auth.role == 'INSTRUCTOR') {
       return const AdminNavBar();
     }
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:adult/service/api_config.dart';
+import 'package:adult/service/offline_cache.dart';
 
 class ApiService {
   static const String baseUrl = '$kBackendHost/api';
@@ -84,7 +85,7 @@ class ApiService {
     print('=== ApiService.getContentByCourseId ===');
     print('URL: $baseUrl/Content/course/$courseId');
 
-    final response = await http.get(
+    final response = await cachedGet(
       Uri.parse('$baseUrl/Content/course/$courseId'),
       headers: headers,
     );

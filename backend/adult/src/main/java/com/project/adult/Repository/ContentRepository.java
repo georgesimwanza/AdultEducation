@@ -13,4 +13,6 @@ public interface ContentRepository extends JpaRepository<Content,Long> {
     @Query("SELECT C FROM Content C WHERE C.course.id = :id")
     List<Content> findContentbySubjectId(@Param("id") Long id);
     List<Content> findByUpdatedAtAfter(LocalDateTime since);
+
+    long countByCourse_Id(Long courseId);
 }

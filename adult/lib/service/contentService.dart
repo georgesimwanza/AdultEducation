@@ -1,8 +1,10 @@
 import 'package:adult/Model/content.dart';
 import 'package:http/http.dart' as http;
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common/sqlite_api.dart';
 import 'dart:convert';
 import 'package:adult/service/api_config.dart';
+import 'package:adult/service/offline_cache.dart';
+import 'package:adult/service/lms_api.dart';
 
 class contentService {
   final String baseUrl = '$kBackendHost/api/Content';
@@ -25,21 +27,19 @@ class contentService {
       whereArgs: [courseId],
     );
     print('📦 Found ${results.length} content items in local storage');
-    return results
-        .map(
-          (row) => ContentModel(
-            id: row['id'] as int,
-            title: row['title'] as String? ?? '',
-            type: row['type'] as String? ?? '',
-            fileUrl: row['fileUrl'] as String? ?? '',
-            institutionId: row['institutionId'] as int? ?? 0,
-          ),
-        )
-        .toList();
+    return results.map(_fromRow).toList();
   }
 
+  ContentModel _fromRow(Map<String, Object?> row) => ContentModel(
+        id: row['id'] as int,
+        title: row['title'] as String? ?? '',
+        type: row['type'] as String? ?? '',
+        fileUrl: row['fileUrl'] as String? ?? '',
+        institutionId: row['institutionId'] as int? ?? 0,
+      );
+
   Future<List<ContentModel>> _getContentOnline(int courseId) async {
-    final response = await http.get(Uri.parse('$baseUrl/course/$courseId'));
+    final response = await cachedGet(Uri.parse('$baseUrl/course/$courseId'));
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((json) => ContentModel.fromJson(json)).toList();
@@ -49,7 +49,15 @@ class contentService {
   }
 
   Future<List<ContentModel>> getAllContent() async {
-    final response = await http.get(Uri.parse('$baseUrl/getAllContent'));
+    final http.Response response;
+    try {
+      response = await cachedGet(Uri.parse('$baseUrl/getAllContent'));
+    } on NotSavedOffline {
+      // Never loaded online on this device: use the copy sync saved.
+      if (db == null) rethrow;
+      final rows = await db!.query('content');
+      return [for (final r in rows) _fromRow(r)];
+    }
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((json) => ContentModel.fromJson(json)).toList();
@@ -67,7 +75,7 @@ class contentService {
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/addContent'),
-      headers: {'Content-Type': 'application/json'},
+      headers: await authHeaders(),
       body: jsonEncode({
         'title': title,
         'type': type,

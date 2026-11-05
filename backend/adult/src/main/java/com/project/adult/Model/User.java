@@ -34,11 +34,41 @@ public class User {
     @Column(name = "email", unique = true, nullable = false, length = 255)
     private String email;
 
+    // Never serialised: user lists are returned to the admin screens as JSON
+    @JsonIgnore
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    // ── Learner profile ──────────────────────────────────────────────
+    // Phone, date of birth and address are personal data, so they are
+    // encrypted at rest (AES-GCM) by EncryptedStringConverter.
+    @Convert(converter = com.project.adult.Security.EncryptedStringConverter.class)
+    @Column(name = "phone_number", length = 512)
+    private String phoneNumber;
+
+    @Convert(converter = com.project.adult.Security.EncryptedStringConverter.class)
+    @Column(name = "date_of_birth", length = 512)
+    private String dateOfBirth;
+
+    @Convert(converter = com.project.adult.Security.EncryptedStringConverter.class)
+    @Column(name = "address", length = 1024)
+    private String address;
+
+    @Column(name = "gender", length = 20)
+    private String gender;
+
+    // e.g. "No formal schooling", "Primary", "Secondary", "Certificate", "Diploma", "Degree"
+    @Column(name = "education_level", length = 100)
+    private String educationLevel;
+
+    @Column(name = "occupation", length = 150)
+    private String occupation;
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
     @ManyToOne(fetch = FetchType.LAZY)
     @JsonIgnore
     @JoinColumn(name = "selected_programme_id")
@@ -76,6 +106,7 @@ public class User {
     private Institution institution;
 
     public enum Role{
-        USER,ADMIN,INSTITUTION
+        // USER is a learner; INSTRUCTOR teaches courses and grades work
+        USER,ADMIN,INSTITUTION,INSTRUCTOR
     }
 }

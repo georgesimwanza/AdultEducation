@@ -1,7 +1,9 @@
 import 'package:adult/Controller/quiz_admin_controller.dart';
 import 'package:adult/Model/question.dart';
 import 'package:adult/Model/quiz.dart';
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
+import 'package:adult/screens/color.dart';
 
 /// Hosts a single question's editor form. Which form actually renders
 /// depends entirely on [type] / [initial]'s runtime type — the exhaustive
@@ -26,20 +28,21 @@ class QuestionEditorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: EduColors.background,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Header(
+            ResponsiveCenter.reading(child: _Header(
               title: initial == null
                   ? 'Add ${type.label} Question'
                   : 'Edit Question',
-            ),
+            )),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
-                child: switch (type) {
+                child: ResponsiveCenter.reading(
+                  child: switch (type) {
                   QuestionType.multipleChoice => _MultipleChoiceForm(
                     initial: initial as MultipleChoiceQuestion?,
                     onSave: (q) async {
@@ -69,6 +72,7 @@ class QuestionEditorScreen extends StatelessWidget {
                     },
                   ),
                 },
+                ),
               ),
             ),
           ],
@@ -89,7 +93,12 @@ class _Header extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       decoration: BoxDecoration(
-        color: Colors.black,
+        gradient: const LinearGradient(
+          colors: [EduColors.primary, EduColors.primaryDark],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: EduColors.cardShadow,
         borderRadius: BorderRadius.circular(28),
       ),
       child: Row(
@@ -100,7 +109,7 @@ class _Header extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: const Color(0xFF262626),
+                color: EduColors.onPrimaryFaint,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -135,18 +144,18 @@ InputDecoration _fieldDecoration(String label, {String? hint}) {
     labelText: label,
     hintText: hint,
     filled: true,
-    fillColor: const Color(0xFFF5F5F5),
+    fillColor: EduColors.background,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
       borderSide: BorderSide.none,
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: Colors.redAccent),
+      borderSide: const BorderSide(color: EduColors.danger),
     ),
     focusedErrorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: Colors.redAccent, width: 1.6),
+      borderSide: const BorderSide(color: EduColors.danger, width: 1.6),
     ),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
   );
@@ -158,7 +167,7 @@ Widget _sectionLabel(String text) {
     style: const TextStyle(
       fontSize: 13,
       fontWeight: FontWeight.w700,
-      color: Colors.black,
+      color: EduColors.textPrimary,
     ),
   );
 }
@@ -168,7 +177,7 @@ Widget _saveButton(VoidCallback onPressed) {
     width: double.infinity,
     child: ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.black,
+        backgroundColor: EduColors.primary,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 15),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -279,7 +288,7 @@ class _MultipleChoiceFormState extends State<_MultipleChoiceForm> {
                   Radio<int>(
                     value: index,
                     groupValue: _correctIndex,
-                    activeColor: Colors.black,
+                    activeColor: EduColors.primary,
                     onChanged: (v) => setState(() => _correctIndex = v!),
                   ),
                   Expanded(
@@ -293,7 +302,7 @@ class _MultipleChoiceFormState extends State<_MultipleChoiceForm> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.remove_circle_outline),
-                    color: Colors.black38,
+                    color: EduColors.textSecondary,
                     onPressed: _optionControllers.length > 2
                         ? () => _removeOption(index)
                         : null,
@@ -306,14 +315,14 @@ class _MultipleChoiceFormState extends State<_MultipleChoiceForm> {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: _addOption,
-              style: TextButton.styleFrom(foregroundColor: Colors.black),
+              style: TextButton.styleFrom(foregroundColor: EduColors.primary),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Add option'),
             ),
           ),
           Text(
             'Select the radio button next to the correct option.',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            style: TextStyle(color: EduColors.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -447,13 +456,13 @@ class _ToggleTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? Colors.black : const Color(0xFFF5F5F5),
+          color: selected ? EduColors.primary : EduColors.background,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.white : Colors.black,
+            color: selected ? Colors.white : EduColors.textPrimary,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -546,7 +555,7 @@ class _ShortAnswerFormState extends State<_ShortAnswerForm> {
           const SizedBox(height: 4),
           Text(
             'Add every wording that should be marked correct.',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            style: TextStyle(color: EduColors.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 10),
           ..._answerControllers.asMap().entries.map((entry) {
@@ -567,7 +576,7 @@ class _ShortAnswerFormState extends State<_ShortAnswerForm> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.remove_circle_outline),
-                    color: Colors.black38,
+                    color: EduColors.textSecondary,
                     onPressed: _answerControllers.length > 1
                         ? () => _removeAnswer(index)
                         : null,
@@ -580,14 +589,14 @@ class _ShortAnswerFormState extends State<_ShortAnswerForm> {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: _addAnswer,
-              style: TextButton.styleFrom(foregroundColor: Colors.black),
+              style: TextButton.styleFrom(foregroundColor: EduColors.primary),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Add accepted answer'),
             ),
           ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            activeColor: Colors.black,
+            activeColor: EduColors.primary,
             title: const Text('Case sensitive'),
             value: _caseSensitive,
             onChanged: (v) => setState(() => _caseSensitive = v),
@@ -713,17 +722,17 @@ class _EssayFormState extends State<_EssayForm> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
+              color: EduColors.background,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, size: 18, color: Colors.grey.shade600),
+                Icon(Icons.info_outline, size: 18, color: EduColors.textSecondary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Essay answers are always graded manually by an instructor.',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    style: TextStyle(color: EduColors.textSecondary, fontSize: 12),
                   ),
                 ),
               ],

@@ -1,4 +1,4 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common/sqlite_api.dart';
 
 /// The signed-in user's details, stored locally so pages can load them
 /// instantly (and offline).

@@ -1,6 +1,5 @@
-import 'dart:io';
 import 'package:adult/Model/content.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
 import '../service/contentService.dart';
 import 'package:provider/provider.dart';
@@ -9,9 +8,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:adult/Model/quiz.dart';
 import 'package:adult/service/quiz_service.dart';
 import 'package:adult/screens/color.dart';
+import 'package:adult/service/lms_api.dart';
 import 'quiz_taking_screen.dart'; // adjust path to wherever you place it
-import 'pdf_viewer.dart'; // adjust path to wherever you place it
+import 'package:url_launcher/url_launcher.dart';
 import 'video_player.dart'; // adjust path to wherever you place it
+import 'package:adult/screens/document_viewer.dart';
+import 'package:adult/service/media/media_store.dart';
 
 typedef Content = ContentModel;
 
@@ -96,79 +98,58 @@ class _CoursePageState extends State<CoursePage> {
   }
 
   // ── Open a lesson ──
-  // 1. use the downloaded file if it exists
-  // 2. otherwise download it now (and record the path in the DB)
-  // 3. if that fails (offline), return the URL so the caller can tell the user
-
-  Future<String?> _resolveSource(ContentModel lesson) async {
-    final local = lesson.localPath;
-    if (!kIsWeb && local != null && await File(local).exists()) return local;
-
-    if (lesson.fileUrl.isEmpty) return null;
-    if (!mounted) return null;
-
-    _toast('Downloading...', duration: const Duration(seconds: 30));
-
-    final sync = context.read<SyncService>(); // read before the await
-    final path = await sync.ensureLocalFile(lesson.id, lesson.fileUrl);
-    return path ?? lesson.fileUrl;
-  }
+  // Lessons stream straight from their public URL: PDFs open in a new
+  // browser tab (the browser's own viewer), videos play in-app.
 
   Future<void> _openLesson(ContentModel lesson) async {
-    debugPrint('🔎 Tapped "${lesson.title}" localPath=${lesson.localPath}');
-    final source = await _resolveSource(lesson);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-    if (source == null || source.isEmpty) {
+    final source = lesson.fileUrl;
+    if (source.isEmpty) {
       _toast('This file is not available.', isError: true);
       return;
     }
 
-    final isNetwork = source.startsWith('http');
-    debugPrint(
-        '📂 Opening "${lesson.title}" from ${isNetwork ? 'network' : 'local'}: $source');
+    // Counts toward course progress (and attendance for video lessons).
+    // Fire-and-forget: an offline learner can still open cached lessons.
+    LmsApi.post('/progress/lessons/${lesson.id}/view').catchError((e) {
+      debugPrint('Lesson view not recorded: $e');
+      return null;
+    });
 
     final type = lesson.type.toLowerCase();
+    final path = Uri.tryParse(source)?.path.toLowerCase() ?? '';
     // Decide by the file extension as well as the stored type, because the
     // server's type string may not be exactly "pdf" (e.g. "document").
-    final isPdf = type.contains('pdf') || source.toLowerCase().endsWith('.pdf');
-    debugPrint('🔎 type="${lesson.type}" isPdf=$isPdf');
+    final isVideo = type.contains('video') ||
+        RegExp(r'\.(mp4|mov|mkv|webm|m4v)$').hasMatch(path);
 
-    if (isPdf) {
-      if (isNetwork) {
-        // Download failed, so there is no local file to show.
-        _toast(
-          'Could not download the file. Check your connection and try again.',
-          isError: true,
-        );
-        return;
-      }
+    if (isVideo) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => PdfViewerScreen(path: source, title: lesson.title),
+          builder: (_) => VideoPlayerScreen(url: source, title: lesson.title),
         ),
       );
-    } else if (type.contains('video') ||
-        RegExp(r'\.(mp4|mov|mkv|webm|3gp|m4v)$')
-            .hasMatch(source.toLowerCase())) {
-      if (isNetwork) {
-        // Download failed, so there is no local file to play.
-        _toast(
-          'Could not download the video. Check your connection and try again.',
-          isError: true,
-        );
-        return;
-      }
+      return;
+    }
+
+    // Phone: the in-app viewer, which keeps the file for offline use.
+    if (MediaStore.instance.canDownload) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => VideoPlayerScreen(path: source, title: lesson.title),
+          builder: (_) => DocumentViewerScreen(url: source, title: lesson.title),
         ),
       );
-    } else {
-      _toast('Can\'t open "${lesson.type}" files yet.');
+      return;
+    }
+
+    // Web: the browser's own viewer, in a new tab.
+    final opened = await launchUrl(
+      Uri.parse(source),
+      webOnlyWindowName: '_blank',
+    );
+    if (!opened && mounted) {
+      _toast('Could not open "${lesson.title}".', isError: true);
     }
   }
 
@@ -178,6 +159,7 @@ class _CoursePageState extends State<CoursePage> {
       backgroundColor: EduColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
+          child: ResponsiveCenter(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -194,6 +176,7 @@ class _CoursePageState extends State<CoursePage> {
                 ),
               ),
             ],
+          ),
           ),
         ),
       ),
@@ -278,8 +261,8 @@ class _CoursePageState extends State<CoursePage> {
                     if (!snapshot.hasData) return const SizedBox.shrink();
                     final count = snapshot.data!.length;
                     return _statChip(
-                      icon: Icons.assignment_outlined,
-                      label: '$count Assignment${count == 1 ? '' : 's'}',
+                      icon: Icons.quiz_outlined,
+                      label: '$count Quiz${count == 1 ? '' : 'zes'}',
                     );
                   },
                 ),
@@ -346,7 +329,7 @@ class _CoursePageState extends State<CoursePage> {
         child: Row(
           children: [
             _tabItem('Lesson Library', 0),
-            _tabItem('Assignments', 1),
+            _tabItem('Quizzes', 1),
           ],
         ),
       ),
@@ -461,6 +444,27 @@ class _CoursePageState extends State<CoursePage> {
             icon: Icons.menu_book_rounded,
             title: 'No content yet',
             message: 'Lessons for this subject will appear here.',
+          );
+        }
+
+        if (!context.isMobile) {
+          // Grid of lesson cards; the timeline line only makes sense in a
+          // single column, so every card is drawn as the "last" one.
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: ResponsiveGrid(
+              // Lesson rows are wide (icon, title, arrow): allow wider cards.
+              maxItemWidth: 400,
+              runSpacing: 2,
+              children: [
+                for (int i = 0; i < lessons.length; i++)
+                  _EntranceFade(
+                    index: i,
+                    child: _buildLessonRow(lessons[i],
+                        number: i + 1, isLast: true),
+                  ),
+              ],
+            ),
           );
         }
 
@@ -599,19 +603,7 @@ class _CoursePageState extends State<CoursePage> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: const BoxDecoration(
-                            color: EduColors.primarySoft,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.chevron_right_rounded,
-                            color: EduColors.primary,
-                            size: 20,
-                          ),
-                        ),
+                        _LessonSaveStatus(url: lesson.fileUrl),
                       ],
                     ),
                   ),
@@ -663,7 +655,7 @@ class _CoursePageState extends State<CoursePage> {
     }
   }
 
-  // ── Assignments ────────────────────────────────────────────────────────
+  // ── Quizzes ────────────────────────────────────────────────────────
 
   Widget _buildAssignments() {
     if (_quizzesFuture == null) return _loadingState();
@@ -677,7 +669,7 @@ class _CoursePageState extends State<CoursePage> {
         if (snapshot.hasError) {
           return _messageState(
             icon: Icons.cloud_off_rounded,
-            title: "Couldn't load assignments",
+            title: "Couldn't load quizzes",
             message: 'Check your connection and try again.\n${snapshot.error}',
           );
         }
@@ -685,8 +677,22 @@ class _CoursePageState extends State<CoursePage> {
         if (quizzes.isEmpty) {
           return _messageState(
             icon: Icons.assignment_turned_in_outlined,
-            title: 'No assignments yet',
-            message: 'Quizzes and assignments will show up here.',
+            title: 'No quizzes yet',
+            message: 'Quizzes for this course will show up here.',
+          );
+        }
+        if (!context.isMobile) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: ResponsiveGrid(
+              // Lesson rows are wide (icon, title, arrow): allow wider cards.
+              maxItemWidth: 400,
+              runSpacing: 2,
+              children: [
+                for (int i = 0; i < quizzes.length; i++)
+                  _EntranceFade(index: i, child: _buildQuizCard(quizzes[i])),
+              ],
+            ),
           );
         }
         return Padding(
@@ -849,6 +855,71 @@ class _EntranceFade extends StatelessWidget {
         ),
       ),
       child: child,
+    );
+  }
+}
+
+/// End of a lesson row. On the phone it shows whether the lesson is saved
+/// for offline use, with a button to download it; on the web, an arrow.
+class _LessonSaveStatus extends StatelessWidget {
+  const _LessonSaveStatus({required this.url});
+
+  final String url;
+
+  Widget _circle(Widget child, {Color color = EduColors.primarySoft}) => Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        child: child,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final store = MediaStore.instance;
+    if (!store.canDownload || url.isEmpty) {
+      return _circle(const Icon(Icons.chevron_right_rounded, color: EduColors.primary, size: 20));
+    }
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final progress = store.progress(url);
+        if (store.localPath(url) != null) {
+          return Tooltip(
+            message: 'Saved on this phone',
+            child: _circle(
+              const Icon(Icons.download_done_rounded, color: EduColors.success, size: 18),
+              color: EduColors.success.withAlpha(30),
+            ),
+          );
+        }
+        if (progress != null) {
+          return _circle(SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              value: progress == 0 ? null : progress,
+              strokeWidth: 2.5,
+              color: EduColors.primary,
+            ),
+          ));
+        }
+        return Tooltip(
+          message: 'Download for offline',
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () => store.download(url).catchError((Object _) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Download failed. Check your internet and try again.'),
+                ));
+              }
+              return '';
+            }),
+            child: _circle(const Icon(Icons.download_rounded, color: EduColors.primary, size: 18)),
+          ),
+        );
+      },
     );
   }
 }

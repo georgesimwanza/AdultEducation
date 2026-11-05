@@ -1,13 +1,15 @@
-import 'dart:io';
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:adult/screens/color.dart';
+import 'package:adult/service/media/media_files.dart' as files;
+import 'package:adult/service/media/media_store.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
-  final String path;
+  final String url;
   final String title;
 
-  const VideoPlayerScreen({super.key, required this.path, required this.title});
+  const VideoPlayerScreen({super.key, required this.url, required this.title});
 
   @override
   State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
@@ -21,19 +23,54 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   static const List<double> _speeds = [1.0, 1.25, 1.5, 2.0, 0.75];
 
-  late final VideoPlayerController _controller;
-  late final Future<void> _init;
+  late VideoPlayerController _controller;
+  late Future<void> _init;
+
+  /// Playing the copy saved on this device (works offline).
+  bool _local = false;
 
   int _speedIndex = 0;
   bool _muted = false;
 
+  MediaStore get _store => MediaStore.instance;
+
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.file(File(widget.path));
+    _open();
+  }
+
+  /// Plays the saved copy if there is one, otherwise streams.
+  void _open() {
+    final saved = _store.localPath(widget.url);
+    _local = saved != null;
+    _controller = files.videoController(saved ?? widget.url, local: _local);
     _init = _controller.initialize().then((_) {
-      _controller.play();
+      // Browsers may block autoplay; the play button still works then.
+      _controller.play().catchError((Object _) {});
     });
+  }
+
+  Future<void> _retry() async {
+    final old = _controller;
+    setState(_open);
+    await old.dispose();
+  }
+
+  Future<void> _download() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await _store.download(widget.url);
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Saved on this device. It now plays without internet.'),
+      ));
+      // Switch to the saved copy if streaming had failed.
+      if (mounted && _controller.value.hasError) await _retry();
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(
+        content: Text("Download failed. Check your internet and try again."),
+      ));
+    }
   }
 
   @override
@@ -95,7 +132,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bg,
-      body: SafeArea(
+      body: ResponsiveCenter(child: SafeArea(
         child: Column(
           children: [
             _buildTopBar(),
@@ -116,7 +153,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 
@@ -155,9 +192,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     color: EduColors.onPrimary,
                   ),
                 ),
-                const Text(
-                  'Video lesson',
-                  style: TextStyle(
+                Text(
+                  _local ? 'Video lesson · saved on this device' : 'Video lesson',
+                  style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: EduColors.onPrimaryMuted,
@@ -166,8 +203,58 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               ],
             ),
           ),
+          if (_store.canDownload) _buildDownloadButton(),
         ],
       ),
+    );
+  }
+
+  /// Save for offline: a progress ring while downloading, a tick once saved.
+  Widget _buildDownloadButton() {
+    return ListenableBuilder(
+      listenable: _store,
+      builder: (context, _) {
+        final saved = _store.localPath(widget.url) != null;
+        final progress = _store.progress(widget.url);
+        final Widget icon;
+        if (progress != null) {
+          icon = SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(
+              value: progress == 0 ? null : progress,
+              strokeWidth: 2.5,
+              color: EduColors.onPrimary,
+            ),
+          );
+        } else {
+          icon = Icon(
+            saved ? Icons.download_done_rounded : Icons.download_rounded,
+            color: EduColors.onPrimary,
+            size: 22,
+          );
+        }
+        return Tooltip(
+          message: saved
+              ? 'Saved on this device'
+              : progress != null
+                  ? 'Downloading ${(progress * 100).round()}%'
+                  : 'Download to watch offline',
+          child: GestureDetector(
+            onTap: saved || progress != null ? null : _download,
+            child: Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: Color(0x1FFFFFFF),
+                shape: BoxShape.circle,
+              ),
+              child: icon,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -191,19 +278,24 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                   color: EduColors.onPrimary, size: 34),
             ),
             const SizedBox(height: 18),
-            const Text(
-              "Couldn't play this video",
-              style: TextStyle(
+            Text(
+              _local ? "Couldn't play this video" : "Can't reach the video",
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: EduColors.onPrimary,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'The file may be missing or in a format this device can\'t play.',
+            Text(
+              _local
+                  ? 'The saved file may be damaged. Delete it and download it again.'
+                  : _store.canDownload
+                      ? 'Streaming needs internet. Connect and try again, or '
+                          'download it while online to watch it offline later.'
+                      : 'Check your internet connection and try again.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
                 height: 1.4,
                 color: EduColors.onPrimaryMuted,
@@ -219,7 +311,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
             ),
             const SizedBox(height: 18),
             ElevatedButton(
-              onPressed: () => Navigator.maybePop(context),
+              onPressed: _retry,
               style: ElevatedButton.styleFrom(
                 backgroundColor: EduColors.primary,
                 foregroundColor: EduColors.onPrimary,
@@ -230,6 +322,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
+              child: const Text('Try again'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.maybePop(context),
+              style: TextButton.styleFrom(foregroundColor: EduColors.onPrimaryMuted),
               child: const Text('Go back'),
             ),
           ],

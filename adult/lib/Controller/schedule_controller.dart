@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../model/schedule_model.dart';
 import '../service/schedule_service.dart';
+import 'package:adult/service/notifications/notification_service.dart';
 
 class ScheduleController extends ChangeNotifier {
   final ScheduleService _service;
@@ -30,6 +31,7 @@ class ScheduleController extends ChangeNotifier {
     notifyListeners();
     try {
       _entries = await _service.fetchSchedules(email);
+      _updateReminders();
     } catch (e) {
       errorMessage = e.toString();
     } finally {
@@ -45,6 +47,7 @@ class ScheduleController extends ChangeNotifier {
     try {
       final saved = await _service.createSchedule(entry);
       _entries.add(saved);
+      _updateReminders();
     } catch (e) {
       errorMessage = e.toString();
     } finally {
@@ -57,10 +60,17 @@ class ScheduleController extends ChangeNotifier {
     try {
       await _service.deleteSchedule(id);
       _entries.removeWhere((e) => e.id == id);
+      _updateReminders();
       notifyListeners();
     } catch (e) {
       errorMessage = e.toString();
       notifyListeners();
     }
+  }
+
+  // Reminders before each upcoming session; scheduled on the device, so
+  // they fire offline too.
+  void _updateReminders() {
+    NotificationService.rescheduleStudyReminders(_entries);
   }
 }

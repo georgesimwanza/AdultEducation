@@ -3,6 +3,7 @@ package com.project.adult.Security;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -13,6 +14,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -24,6 +26,9 @@ import java.util.List;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    // Roles that create and manage teaching material
+    private static final String[] STAFF = {"ADMIN", "INSTRUCTOR", "INSTITUTION"};
 
     private final UserDetailsServiceImpl userDetailsService;
     private final JwtFilter jwtFilter;
@@ -77,19 +82,29 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+                // A missing or expired token is 401 (sign in again), not 403
+                // (signed in but not allowed), so the app can tell them apart.
+                .exceptionHandling(e -> e.authenticationEntryPoint(
+                        new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+
                 .authorizeHttpRequests(auth -> auth
 
                         // CORS preflight never carries a token
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Error responses keep their real status (403 for a
+                        // forbidden page) instead of turning into 401.
+                        .requestMatchers("/error").permitAll()
 
                         // Auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/users/login").permitAll()
                         .requestMatchers("/api/users/Register").permitAll()
-                        .requestMatchers("/api/users/AllStudents").hasRole("ADMIN")
+                        .requestMatchers("/api/health").permitAll()
+                        .requestMatchers("/api/users/AllStudents").hasAnyRole("ADMIN", "INSTITUTION")
                         .requestMatchers("/api/institution/**").permitAll()
-                        .requestMatchers("/api/users/institution/**").permitAll()
-                        .requestMatchers("/api/users/count/**").permitAll()
+                        // User lists hold personal data: staff only
+                        .requestMatchers("/api/users/institution/**").hasAnyRole(STAFF)
+                        .requestMatchers("/api/users/count/**").authenticated()
 
                         // Programmes
                         .requestMatchers(HttpMethod.GET, "/api/programmes/**").permitAll()
@@ -97,18 +112,19 @@ public class SecurityConfig {
                         .requestMatchers("/api/sync/**").permitAll()
 
                         // Content — specific rules BEFORE broad ones
-                        .requestMatchers(HttpMethod.POST, "/api/Content/addContent").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/Content/addContent").hasAnyRole(STAFF)
                         .requestMatchers(HttpMethod.GET,  "/api/Content/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/announcement/allAnnouncements").permitAll()
                         // ← added: this was falling through to anyRequest().authenticated(),
                         // which is where the 403 on the notices screen was coming from.
                         .requestMatchers(HttpMethod.GET, "/api/announcement/getByInstitutionAndProgramme").permitAll()
 
-                        // Writes restricted to ADMIN
-                        .requestMatchers(HttpMethod.POST, "/api/announcement/addAnnouncement").permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/api/announcement/delete/**").permitAll()
-                        //quiz permissions
-                        .requestMatchers("/api/quizzes/**").permitAll()
+                        // Writes restricted to staff
+                        .requestMatchers(HttpMethod.POST, "/api/announcement/addAnnouncement").hasAnyRole(STAFF)
+                        .requestMatchers(HttpMethod.DELETE, "/api/announcement/delete/**").hasAnyRole(STAFF)
+                        //quiz permissions: anyone can read, only staff can change
+                        .requestMatchers(HttpMethod.GET, "/api/quizzes/**").permitAll()
+                        .requestMatchers("/api/quizzes/**").hasAnyRole(STAFF)
                         // Subject
                         .requestMatchers("/api/subject/programme/**").permitAll()
                         .requestMatchers("/api/subject/allSubjects").hasRole("ADMIN")

@@ -1,8 +1,13 @@
 import 'dart:async';
+import 'package:adult/core/responsive.dart';
 import 'package:flutter/material.dart';
 import 'package:adult/Model/quiz.dart';
 import 'package:adult/Model/question.dart';
 import 'package:adult/screens/color.dart';
+import 'package:adult/service/quiz_submission_service.dart';
+import 'package:adult/service/sync_service.dart';
+import 'package:adult/service/user_profile_service.dart';
+import 'package:provider/provider.dart';
 
 /// Displays the quiz interface where a student can answer questions.
 ///
@@ -207,6 +212,26 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
     _submit();
   }
 
+  /// Saves the attempt locally and pushes it to the server (retried by
+  /// syncPendingSubmissions when offline), so instructors can grade it and
+  /// it counts in the learner's progress report. Never blocks the results.
+  Future<void> _sendAttempt(int percent) async {
+    try {
+      final db = context.read<SyncService>().db;
+      final quizId = int.tryParse(widget.quiz.id);
+      if (db == null || quizId == null) return;
+      final email = (await UserProfileService(db: db).getCurrent())?.email ?? '';
+      await QuizSubmissionService(db: db).submitQuiz(
+        quizId: quizId,
+        email: email,
+        answers: _answers.map((k, v) => MapEntry(k.toString(), v)),
+        score: percent,
+      );
+    } catch (e) {
+      debugPrint('Quiz attempt not sent yet: $e');
+    }
+  }
+
   /// Submits the quiz and calculates the student's score.
   ///
   /// Essay questions are not automatically graded and are instead
@@ -280,6 +305,8 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
 
     final passed = percent >= widget.quiz.passingScorePercent;
 
+    _sendAttempt(percent);
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -308,12 +335,15 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(total),
+            ResponsiveCenter.reading(child: _buildTopBar(total)),
             Expanded(
               child: Form(
                 key: _formKey,
-                child: ListView(
+                child: CenteredScrollPadding(
+                  maxWidth: Breakpoints.reading,
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  builder: (context, padding) => ListView(
+                  padding: padding,
                   children: [
                     if (widget.quiz.description.isNotEmpty) ...[
                       Container(
@@ -348,9 +378,10 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
                       _buildQuestionCard(i, widget.quiz.questions[i]),
                   ],
                 ),
+                ),
               ),
             ),
-            _buildSubmitBar(),
+            ResponsiveCenter.reading(child: _buildSubmitBar()),
           ],
         ),
       ),
@@ -810,7 +841,7 @@ class _QuizResultsScreen extends StatelessWidget {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 28, 20, 16),
-                child: Column(
+                child: ResponsiveCenter.reading(child: Column(
                   children: [
                     // Animated score ring with trophy / flag inside.
                     SizedBox(
@@ -974,7 +1005,7 @@ class _QuizResultsScreen extends StatelessWidget {
                     for (int i = 0; i < results.length; i++)
                       _buildResultRow(i, results[i]),
                   ],
-                ),
+                )),
               ),
             ),
 
@@ -992,7 +1023,7 @@ class _QuizResultsScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              child: SizedBox(
+              child: ResponsiveCenter.reading(child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -1012,7 +1043,7 @@ class _QuizResultsScreen extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                   ),
                 ),
-              ),
+              )),
             ),
           ],
         ),
