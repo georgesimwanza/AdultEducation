@@ -33,6 +33,9 @@ class MediaStore extends ChangeNotifier {
   bool get canDownload => files.canDownload;
 
   Future<void> attach(Database db) async {
+    // Every sync re-attaches the same database; reloading would wipe the
+    // list while downloads are finishing.
+    if (identical(_db, db)) return;
     await db.execute(_createSql);
     _db = db;
     _paths.clear();
@@ -94,6 +97,9 @@ class MediaStore extends ChangeNotifier {
   /// Files saved at the same time in a bulk download.
   static const _parallel = 3;
 
+  /// Longest one file may take before the batch moves on without it.
+  static const _fileTimeout = Duration(minutes: 20);
+
   bool _bulkActive = false;
   List<String> _bulkUrls = const [];
   int _bulkFailed = 0;
@@ -101,7 +107,9 @@ class MediaStore extends ChangeNotifier {
   Timer? _retry;
 
   /// Saving lessons in bulk right now (shown in the "Loading content" banner).
-  bool get bulkActive => _bulkActive;
+  /// Ends as soon as every file is saved, even if the queue is still
+  /// winding down, so the banner can never stay up at 100%.
+  bool get bulkActive => _bulkActive && bulkDone < bulkTotal;
   int get bulkTotal => _bulkUrls.length;
   int get bulkFailed => _bulkFailed;
 
@@ -136,20 +144,24 @@ class MediaStore extends ChangeNotifier {
     Future<void> worker() async {
       while (next < todo.length) {
         final url = todo[next++];
-        final name = Uri.decodeComponent(Uri.parse(url).pathSegments.last);
         try {
-          await download(url);
-          debugPrint('📦 Saved $name ($bulkDone/${todo.length})');
+          // A transfer that hangs must not hold up the whole batch.
+          await download(url).timeout(_fileTimeout);
+          debugPrint('📦 Saved $url ($bulkDone/${todo.length})');
         } catch (e) {
           _bulkFailed++;
-          debugPrint('📦 Could not save $name: $e');
+          debugPrint('📦 Could not save $url: $e');
         }
       }
     }
-    await Future.wait([for (var i = 0; i < _parallel; i++) worker()]);
-    _bulkActive = false;
-    debugPrint('📦 Done: $bulkDone saved, $_bulkFailed failed');
-    notifyListeners();
+    try {
+      await Future.wait([for (var i = 0; i < _parallel; i++) worker()]);
+    } finally {
+      // Always cleared, or the banner would stay up forever.
+      _bulkActive = false;
+      debugPrint('📦 Done: $bulkDone saved, $_bulkFailed failed');
+      notifyListeners();
+    }
     // Some failed (server busy, connection dropped): try them again shortly
     // instead of waiting for the next sync.
     if (_bulkFailed > 0 && _retries < 5) {

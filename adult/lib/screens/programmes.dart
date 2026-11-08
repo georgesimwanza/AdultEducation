@@ -9,9 +9,9 @@ typedef Programme = ProgrammeModel;
 // Kept in case other screens import these from this file; they now map to
 // the shared palette so nothing stays purple by accident.
 const kPurple = EduColors.primary;
-const kPurpleBg = EduColors.primarySoft;
+Color get kPurpleBg => EduColors.primarySoft;
 const kWhite = Colors.white;
-const kGrey = EduColors.background;
+Color get kGrey => EduColors.background;
 
 class ProgrammePage extends StatefulWidget {
   const ProgrammePage({super.key});
@@ -165,12 +165,12 @@ class _ProgrammePageState extends State<ProgrammePage> {
                     shape: BoxShape.circle,
                     border: Border.all(color: EduColors.border),
                   ),
-                  child: const Icon(Icons.arrow_back_rounded,
+                  child: Icon(Icons.arrow_back_rounded,
                       color: EduColors.textPrimary, size: 20),
                 ),
               ),
               const SizedBox(width: 14),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -209,17 +209,17 @@ class _ProgrammePageState extends State<ProgrammePage> {
               onChanged: (v) => setState(() => _query = v),
               cursorColor: EduColors.primary,
               style:
-              const TextStyle(color: EduColors.textPrimary, fontSize: 14),
+              TextStyle(color: EduColors.textPrimary, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Search programmes',
-                hintStyle: const TextStyle(
+                hintStyle: TextStyle(
                     color: EduColors.textSecondary, fontSize: 14),
-                prefixIcon: const Icon(Icons.search_rounded,
+                prefixIcon: Icon(Icons.search_rounded,
                     color: EduColors.textSecondary),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(
-                  icon: const Icon(Icons.close_rounded,
+                  icon: Icon(Icons.close_rounded,
                       color: EduColors.textSecondary, size: 20),
                   onPressed: () {
                     _searchController.clear();
@@ -265,7 +265,7 @@ class _ProgrammePageState extends State<ProgrammePage> {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
               color: EduColors.textPrimary,
@@ -275,7 +275,7 @@ class _ProgrammePageState extends State<ProgrammePage> {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.4,
               color: EduColors.textSecondary,
@@ -326,7 +326,7 @@ class _ProgrammeCardState extends State<_ProgrammeCard> {
     EduColors.accent,
     EduColors.success,
   ];
-  static const List<Color> _bg = [
+  static List<Color> get _bg => [
     EduColors.primarySoft,
     EduColors.accentSoft,
     EduColors.successSoft,
@@ -390,7 +390,7 @@ class _ProgrammeCardState extends State<_ProgrammeCard> {
                 widget.programme.name,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
                   height: 1.25,
@@ -466,7 +466,7 @@ class _ProgrammeDetailSheet extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               programme.name,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 height: 1.25,
@@ -477,7 +477,7 @@ class _ProgrammeDetailSheet extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 programme.description!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   height: 1.5,
                   color: EduColors.textSecondary,

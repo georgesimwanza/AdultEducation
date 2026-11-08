@@ -40,8 +40,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: EduColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Padding(
@@ -53,7 +53,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Add New Student',
                     style: TextStyle(
                       fontSize: 18,
@@ -63,7 +63,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(Icons.close, color: EduColors.textSecondary),
+                    icon: Icon(Icons.close, color: EduColors.textSecondary),
                   ),
                 ],
               ),
@@ -93,9 +93,9 @@ class _StudentsScreenState extends State<StudentsScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: const BorderSide(color: EduColors.border),
+                        side: BorderSide(color: EduColors.border),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Cancel',
                         style: TextStyle(color: EduColors.textPrimary),
                       ),
@@ -172,7 +172,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: EduColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -195,7 +195,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     Flexible(
                       child: Text(
                         s.fullName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: EduColors.textPrimary,
@@ -210,7 +210,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.mail_outline,
                       size: 14,
                       color: EduColors.textSecondary,
@@ -219,7 +219,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                     Expanded(
                       child: Text(
                         s.email,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           color: EduColors.textSecondary,
                         ),
@@ -233,7 +233,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   const SizedBox(height: 2),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.school_outlined,
                         size: 14,
                         color: EduColors.textSecondary,
@@ -242,7 +242,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       Expanded(
                         child: Text(
                           s.programmeName!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             color: EduColors.textSecondary,
                           ),
@@ -316,7 +316,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
         size: 20,
       ),
       style: IconButton.styleFrom(
-        backgroundColor: Colors.white,
+        backgroundColor: EduColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
@@ -343,7 +343,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Students',
                             style: TextStyle(
                               fontSize: 22,
@@ -353,7 +353,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                           ),
                           Text(
                             '$count total students',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               color: EduColors.textSecondary,
                             ),
@@ -388,8 +388,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
                 onChanged: (v) => setState(() => _searchTerm = v),
                 decoration: InputDecoration(
                   hintText: 'Search students...',
-                  hintStyle: const TextStyle(color: EduColors.textSecondary),
-                  prefixIcon: const Icon(
+                  hintStyle: TextStyle(color: EduColors.textSecondary),
+                  prefixIcon: Icon(
                     Icons.search,
                     color: EduColors.textSecondary,
                   ),
@@ -397,11 +397,11 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: EduColors.border),
+                    borderSide: BorderSide(color: EduColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: EduColors.border),
+                    borderSide: BorderSide(color: EduColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -426,7 +426,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.wifi_off,
                             color: EduColors.textSecondary,
                             size: 48,
@@ -435,7 +435,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                           Text(
                             'Could not load students.\n${snapshot.error}',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: EduColors.textSecondary),
+                            style: TextStyle(color: EduColors.textSecondary),
                           ),
                           const SizedBox(height: 12),
                           ElevatedButton(
@@ -453,7 +453,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   }).toList();
 
                   if (filtered.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Text(
                         'No students found.',
                         style: TextStyle(color: EduColors.textSecondary),
@@ -543,7 +543,7 @@ class _ModalField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
             color: EduColors.textPrimary,
@@ -555,16 +555,16 @@ class _ModalField extends StatelessWidget {
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: EduColors.textSecondary),
+            hintStyle: TextStyle(color: EduColors.textSecondary),
             filled: true,
             fillColor: EduColors.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: EduColors.border),
+              borderSide: BorderSide(color: EduColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: EduColors.border),
+              borderSide: BorderSide(color: EduColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

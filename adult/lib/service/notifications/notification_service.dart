@@ -29,10 +29,15 @@ class NotificationService {
 
   static bool _ready = false;
 
+  /// Set by main: "Sync now" was tapped on the back-online notification.
+  static void Function()? onSyncRequested;
+
   static Future<void> init() async {
     if (_ready) return;
     try {
-      await platform.initNotifications();
+      await platform.initNotifications(onTap: (payload) {
+        if (payload == 'sync') onSyncRequested?.call();
+      });
       _ready = true;
     } catch (e) {
       debugPrint('Notifications unavailable: $e');
@@ -46,6 +51,28 @@ class NotificationService {
     } catch (e) {
       debugPrint('Background sync not started: $e');
     }
+  }
+
+  /// Phone: the connection is back; ask whether to sync now.
+  static Future<void> askToSync() async {
+    await init();
+    if (!_ready) return;
+    try {
+      await platform.showSyncPrompt(
+        "You're back online",
+        'Do you want to sync new information now?',
+      );
+    } catch (e) {
+      debugPrint('Could not show sync prompt: $e');
+    }
+  }
+
+  /// Removes the "sync?" notification (the sync has started).
+  static Future<void> clearSyncPrompt() async {
+    if (!_ready) return;
+    try {
+      await platform.clearSyncPrompt();
+    } catch (_) {}
   }
 
   /// Tells the user what a sync found. Nothing new, no notification.

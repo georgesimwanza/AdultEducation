@@ -82,11 +82,11 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                 fontSize: 15.5, fontWeight: n.isUnread ? FontWeight.w900 : FontWeight.w600)),
                         if (n.body != null && n.body!.isNotEmpty) ...[
                           const SizedBox(height: 3),
-                          Text(n.body!, style: const TextStyle(color: EduColors.textSecondary)),
+                          Text(n.body!, style: TextStyle(color: EduColors.textSecondary)),
                         ],
                         const SizedBox(height: 4),
                         Text(relativeTime(n.createdAt),
-                            style: const TextStyle(fontSize: 12, color: EduColors.textSecondary)),
+                            style: TextStyle(fontSize: 12, color: EduColors.textSecondary)),
                       ]),
                     ),
                     if (n.isUnread)

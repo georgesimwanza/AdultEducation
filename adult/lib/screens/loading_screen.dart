@@ -1,3 +1,4 @@
+import 'package:adult/screens/color.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:adult/Controller/AuthWrapper.dart';
@@ -53,7 +54,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: EduColors.surface,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

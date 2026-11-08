@@ -182,7 +182,7 @@ class _RegisterInstitutionScreenState extends State<RegisterInstitutionScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'Already registered? ',
                 style: TextStyle(
                   color: EduColors.textSecondary,

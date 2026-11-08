@@ -79,7 +79,7 @@ class _LearningHubState extends State<LearningHub> {
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(a.title, style: const TextStyle(fontWeight: FontWeight.w800)),
-                        Text(a.courseName, style: const TextStyle(color: EduColors.textSecondary)),
+                        Text(a.courseName, style: TextStyle(color: EduColors.textSecondary)),
                       ]),
                     ),
                     StatusChip('Due ${relativeTime(a.dueDate)}', color: EduColors.accent),

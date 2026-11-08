@@ -176,8 +176,8 @@ class _ContentScreenState extends State<ContentScreen> {
           maxChildSize: 0.95,
           expand: false,
           builder: (_, scrollController) => Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: EduColors.surface,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Column(
@@ -205,7 +205,7 @@ class _ContentScreenState extends State<ContentScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
+                            Text(
                               'Add New Content',
                               style: TextStyle(
                                 fontSize: 18,
@@ -215,7 +215,7 @@ class _ContentScreenState extends State<ContentScreen> {
                             ),
                             IconButton(
                               onPressed: () => Navigator.pop(ctx),
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.close,
                                 color: EduColors.textSecondary,
                               ),
@@ -296,7 +296,7 @@ class _ContentScreenState extends State<ContentScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
+                                Text(
                                   'Content Type',
                                   style: TextStyle(
                                     fontSize: 13,
@@ -314,13 +314,13 @@ class _ContentScreenState extends State<ContentScreen> {
                                     fillColor: EduColors.background,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
+                                      borderSide: BorderSide(
                                         color: EduColors.border,
                                       ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
+                                      borderSide: BorderSide(
                                         color: EduColors.border,
                                       ),
                                     ),
@@ -353,7 +353,7 @@ class _ContentScreenState extends State<ContentScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
+                                Text(
                                   'Content File',
                                   style: TextStyle(
                                     fontSize: 13,
@@ -379,7 +379,7 @@ class _ContentScreenState extends State<ContentScreen> {
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    side: const BorderSide(color: EduColors.border),
+                                    side: BorderSide(color: EduColors.border),
                                   ),
                                   icon: const Icon(
                                     Icons.attach_file,
@@ -391,7 +391,7 @@ class _ContentScreenState extends State<ContentScreen> {
                                         : selectedFile!.name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: EduColors.textPrimary),
+                                    style: TextStyle(color: EduColors.textPrimary),
                                   ),
                                 ),
                               ],
@@ -412,11 +412,11 @@ class _ContentScreenState extends State<ContentScreen> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  side: const BorderSide(
+                                  side: BorderSide(
                                     color: EduColors.border,
                                   ),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'Cancel',
                                   style: TextStyle(color: EduColors.textPrimary),
                                 ),
@@ -491,7 +491,7 @@ class _ContentScreenState extends State<ContentScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
             color: EduColors.textPrimary,
@@ -509,11 +509,11 @@ class _ContentScreenState extends State<ContentScreen> {
             fillColor: EduColors.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: EduColors.border),
+              borderSide: BorderSide(color: EduColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: EduColors.border),
+              borderSide: BorderSide(color: EduColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -540,7 +540,7 @@ class _ContentScreenState extends State<ContentScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
             color: EduColors.textPrimary,
@@ -552,16 +552,16 @@ class _ContentScreenState extends State<ContentScreen> {
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: EduColors.textSecondary),
+            hintStyle: TextStyle(color: EduColors.textSecondary),
             filled: true,
             fillColor: EduColors.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: EduColors.border),
+              borderSide: BorderSide(color: EduColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: EduColors.border),
+              borderSide: BorderSide(color: EduColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -582,7 +582,7 @@ class _ContentScreenState extends State<ContentScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: EduColors.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -615,7 +615,7 @@ class _ContentScreenState extends State<ContentScreen> {
               children: [
                 Text(
                   item.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: EduColors.textPrimary,
@@ -623,7 +623,7 @@ class _ContentScreenState extends State<ContentScreen> {
                 ),
                 Text(
                   'Type: ${_typeLabel(item.type)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     color: EduColors.textSecondary,
                   ),
@@ -634,7 +634,7 @@ class _ContentScreenState extends State<ContentScreen> {
                     item.fileUrl,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       color: EduColors.textSecondary,
                     ),
@@ -662,7 +662,7 @@ class _ContentScreenState extends State<ContentScreen> {
         size: 20,
       ),
       style: IconButton.styleFrom(
-        backgroundColor: Colors.white,
+        backgroundColor: EduColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
@@ -687,7 +687,7 @@ class _ContentScreenState extends State<ContentScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Global Content Library',
                         style: TextStyle(
                           fontSize: 22,
@@ -697,7 +697,7 @@ class _ContentScreenState extends State<ContentScreen> {
                       ),
                       Text(
                         '${_filtered.length} visible items',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           color: EduColors.textSecondary,
                         ),
@@ -729,8 +729,8 @@ class _ContentScreenState extends State<ContentScreen> {
                 onChanged: (v) => setState(() => _searchTerm = v),
                 decoration: InputDecoration(
                   hintText: 'Search by title or type...',
-                  hintStyle: const TextStyle(color: EduColors.textSecondary),
-                  prefixIcon: const Icon(
+                  hintStyle: TextStyle(color: EduColors.textSecondary),
+                  prefixIcon: Icon(
                     Icons.search,
                     color: EduColors.textSecondary,
                   ),
@@ -738,11 +738,11 @@ class _ContentScreenState extends State<ContentScreen> {
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: EduColors.border),
+                    borderSide: BorderSide(color: EduColors.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: EduColors.border),
+                    borderSide: BorderSide(color: EduColors.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -802,7 +802,7 @@ class _ContentScreenState extends State<ContentScreen> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _filtered.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         'No institutional content found matching selection criteria',
                         style: TextStyle(color: EduColors.textSecondary),
@@ -837,7 +837,7 @@ class _ContentScreenState extends State<ContentScreen> {
                               DataCell(TableText(
                                 item.fileUrl.isEmpty ? '-' : item.fileUrl,
                                 maxWidth: 360,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     color: EduColors.textSecondary, fontSize: 12.5),
                               )),
                               DataCell(_deleteButton(item)),

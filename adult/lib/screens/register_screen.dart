@@ -186,11 +186,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               DropdownButtonFormField<Institution>(
                 value: selectedInstitution,
                 isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                icon: Icon(Icons.keyboard_arrow_down_rounded,
                     color: EduColors.textSecondary),
                 dropdownColor: EduColors.surface,
                 borderRadius: BorderRadius.circular(16),
-                style: const TextStyle(
+                style: TextStyle(
                   color: EduColors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -229,7 +229,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'Already have an account? ',
                     style: TextStyle(
                       color: EduColors.textSecondary,

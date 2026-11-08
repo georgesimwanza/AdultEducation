@@ -10,7 +10,6 @@ import 'package:adult/service/quiz_service.dart';
 import 'package:adult/screens/color.dart';
 import 'package:adult/service/lms_api.dart';
 import 'quiz_taking_screen.dart'; // adjust path to wherever you place it
-import 'package:url_launcher/url_launcher.dart';
 import 'video_player.dart'; // adjust path to wherever you place it
 import 'package:adult/screens/document_viewer.dart';
 import 'package:adult/service/media/media_store.dart';
@@ -132,25 +131,14 @@ class _CoursePageState extends State<CoursePage> {
       return;
     }
 
-    // Phone: the in-app viewer, which keeps the file for offline use.
-    if (MediaStore.instance.canDownload) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DocumentViewerScreen(url: source, title: lesson.title),
-        ),
-      );
-      return;
-    }
-
-    // Web: the browser's own viewer, in a new tab.
-    final opened = await launchUrl(
-      Uri.parse(source),
-      webOnlyWindowName: '_blank',
+    // In-app viewer: on the phone it keeps the file for offline use; on the
+    // web it shows the browser's own viewer inside the app.
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DocumentViewerScreen(url: source, title: lesson.title),
+      ),
     );
-    if (!opened && mounted) {
-      _toast('Could not open "${lesson.title}".', isError: true);
-    }
   }
 
   @override
@@ -398,7 +386,7 @@ class _CoursePageState extends State<CoursePage> {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
               color: EduColors.textPrimary,
@@ -408,7 +396,7 @@ class _CoursePageState extends State<CoursePage> {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.4,
               color: EduColors.textSecondary,
@@ -547,7 +535,7 @@ class _CoursePageState extends State<CoursePage> {
                 clipBehavior: Clip.antiAlias,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
-                  side: const BorderSide(color: EduColors.border),
+                  side: BorderSide(color: EduColors.border),
                 ),
                 child: InkWell(
                   onTap: () => _openLesson(lesson),
@@ -575,7 +563,7 @@ class _CoursePageState extends State<CoursePage> {
                                 lesson.title,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 14,
                                   height: 1.3,
@@ -725,7 +713,7 @@ class _CoursePageState extends State<CoursePage> {
           const SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w700,
               color: EduColors.textSecondary,
@@ -745,7 +733,7 @@ class _CoursePageState extends State<CoursePage> {
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: EduColors.border),
+          side: BorderSide(color: EduColors.border),
         ),
         child: InkWell(
           splashColor: EduColors.primarySoft,
@@ -780,7 +768,7 @@ class _CoursePageState extends State<CoursePage> {
                         quiz.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                           height: 1.3,
@@ -866,11 +854,14 @@ class _LessonSaveStatus extends StatelessWidget {
 
   final String url;
 
-  Widget _circle(Widget child, {Color color = EduColors.primarySoft}) => Container(
+  Widget _circle(Widget child, {Color? color}) => Container(
         width: 32,
         height: 32,
         alignment: Alignment.center,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        decoration: BoxDecoration(
+          color: color ?? EduColors.primarySoft,
+          shape: BoxShape.circle,
+        ),
         child: child,
       );
 

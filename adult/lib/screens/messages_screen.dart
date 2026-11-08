@@ -80,9 +80,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           ),
                           if (c.lastAt != null)
                             Text(relativeTime(c.lastAt!),
-                                style: const TextStyle(fontSize: 12, color: EduColors.textSecondary)),
+                                style: TextStyle(fontSize: 12, color: EduColors.textSecondary)),
                         ]),
-                        Text(roleLabel(c.role), style: const TextStyle(fontSize: 12.5, color: EduColors.textSecondary)),
+                        Text(roleLabel(c.role), style: TextStyle(fontSize: 12.5, color: EduColors.textSecondary)),
                         const SizedBox(height: 2),
                         Text(c.lastMessage, maxLines: 1, overflow: TextOverflow.ellipsis),
                       ]),

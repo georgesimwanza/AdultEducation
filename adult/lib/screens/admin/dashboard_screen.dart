@@ -162,7 +162,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         Text(
                           '${_greeting()}, $_institutionName 👋',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
                             color: EduColors.textPrimary,
@@ -171,7 +171,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(height: 4),
                         Text(
                           _formattedDate(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             color: EduColors.textSecondary,
                           ),
@@ -212,7 +212,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           width: 20,
                           height: 20,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: EduColors.surface,
                             shape: BoxShape.circle,
                             border: Border.all(color: EduColors.primary, width: 1.2),
                           ),
@@ -306,13 +306,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   _totalStudents,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                     color: EduColors.textPrimary,
                   ),
                 ),
-                const Text(
+                Text(
                   'Students',
                   style: TextStyle(fontSize: 13, color: EduColors.textSecondary),
                 ),
@@ -320,7 +320,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: EduColors.textSecondary),
+            icon: Icon(Icons.refresh_rounded, color: EduColors.textSecondary),
             onPressed: () {
               setState(() => _totalStudents = '...');
               _fetchStudentCount();
@@ -412,12 +412,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: EduColors.surface,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   progress.isHoliday ? 'Holiday' : 'Active',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: EduColors.textPrimary,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -477,7 +477,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(Icons.bolt_rounded, color: EduColors.primary, size: 20),
               SizedBox(width: 8),
@@ -493,7 +493,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 16),
           if (recentActivity.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'Nothing yet — actions you take will show up here.',
@@ -530,14 +530,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             Text(
                               activity.action,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 color: EduColors.textPrimary,
                               ),
                             ),
                             Text(
                               activity.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 color: EduColors.textSecondary,
                               ),
@@ -547,7 +547,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       Text(
                         _timeAgo(activity.timestamp),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           color: EduColors.textSecondary,
                         ),
@@ -555,7 +555,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                   if (i < recentActivity.length - 1)
-                    const Divider(height: 20, color: EduColors.border),
+                    Divider(height: 20, color: EduColors.border),
                 ],
               );
             }),

@@ -47,7 +47,7 @@ class _AppNavShellState extends State<AppNavShell> {
       body: Row(
         children: [
           DecoratedBox(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: EduColors.surface,
               border: Border(right: BorderSide(color: EduColors.border)),
             ),
@@ -67,7 +67,7 @@ class _AppNavShellState extends State<AppNavShell> {
                   color: EduColors.primary,
                   size: 23,
                 ),
-                unselectedIconTheme: const IconThemeData(
+                unselectedIconTheme: IconThemeData(
                   color: EduColors.textSecondary,
                   size: 23,
                 ),
@@ -76,7 +76,7 @@ class _AppNavShellState extends State<AppNavShell> {
                   fontWeight: FontWeight.w800,
                   fontSize: 13,
                 ),
-                unselectedLabelTextStyle: const TextStyle(
+                unselectedLabelTextStyle: TextStyle(
                   color: EduColors.textSecondary,
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
@@ -116,7 +116,7 @@ class _AppNavShellState extends State<AppNavShell> {
                       if (extended && widget.subtitle != null)
                         Text(
                           widget.subtitle!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: EduColors.textSecondary,
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
@@ -152,7 +152,7 @@ class _AppNavShellState extends State<AppNavShell> {
       backgroundColor: EduColors.background,
       body: IndexedStack(index: _selectedIndex, children: widget.screens),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: EduColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           boxShadow: [

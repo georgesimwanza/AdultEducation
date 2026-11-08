@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -6,12 +7,13 @@ import 'package:adult/screens/pdf_viewer.dart';
 import 'package:adult/service/media/media_files.dart' as files;
 import 'package:adult/service/media/media_store.dart';
 
-/// Opens a document lesson inside the app (phone / desktop).
+/// Opens a document lesson inside the app.
 ///
-/// The first time, it downloads the file and keeps it on the device, so it
-/// opens without internet afterwards. PDFs show in the PDF viewer and
+/// Phone: the first time, it downloads the file and keeps it on the device,
+/// so it opens without internet afterwards. PDFs show in the PDF viewer and
 /// images in a zoomable viewer; other formats can be opened in the browser.
-/// (On the web, lessons open in the browser's own viewer instead.)
+/// Web: the same, saved in the browser's storage, and shown with the
+/// browser's own viewer embedded in the page.
 class DocumentViewerScreen extends StatefulWidget {
   final String url;
   final String title;
@@ -27,6 +29,9 @@ enum _Kind { pdf, image, other }
 class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   String? _path;
   bool _failed = false;
+
+  /// Web: the address shown in the embedded viewer.
+  String? _webSrc;
 
   MediaStore get _store => MediaStore.instance;
 
@@ -47,6 +52,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     setState(() => _failed = false);
     try {
       final path = await _store.download(widget.url); // instant if already saved
+      if (kIsWeb) {
+        // Shown by the browser's own viewer, from the saved copy.
+        final src = await files.playableSource(path);
+        if (mounted) setState(() => _webSrc = src);
+        return;
+      }
       if (mounted) setState(() => _path = path);
     } catch (e) {
       debugPrint('Document download failed: $e');
@@ -64,7 +75,39 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   }
 
   @override
+  void dispose() {
+    final src = _webSrc;
+    if (src != null) files.releaseSource(src);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final webSrc = _webSrc;
+    if (webSrc != null) {
+      return Scaffold(
+        backgroundColor: EduColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _topBar(dark: false),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: ColoredBox(
+                      color: EduColors.surface,
+                      child: files.documentFrame(webSrc),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final path = _path;
     if (path != null && _kind == _Kind.pdf) {
       return PdfViewerScreen(path: path, title: widget.title);
@@ -134,8 +177,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               children: [
                 const Icon(Icons.download_rounded, color: EduColors.primary, size: 40),
                 const SizedBox(height: 16),
-                const Text(
-                  'Saving for offline use…',
+                Text(
+                  _store.canDownload ? 'Saving for offline use…' : 'Opening document…',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -143,7 +186,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                if (_store.canDownload) Text(
                   'Only the first time. After this it opens without internet.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 13, color: EduColors.textSecondary),
@@ -161,7 +204,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                 if (p != null && p > 0) ...[
                   const SizedBox(height: 8),
                   Text('${(p * 100).round()}%',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontWeight: FontWeight.w700, color: EduColors.textSecondary)),
                 ],
               ],
@@ -216,12 +259,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             const SizedBox(height: 18),
             Text(title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 17, fontWeight: FontWeight.w800, color: EduColors.textPrimary)),
             const SizedBox(height: 6),
             Text(body,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13, height: 1.4, color: EduColors.textSecondary)),
             const SizedBox(height: 18),
             ElevatedButton(

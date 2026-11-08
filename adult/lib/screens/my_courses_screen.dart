@@ -70,7 +70,7 @@ class _Enrolled extends StatelessWidget {
                   ]),
                   const SizedBox(height: 4),
                   Text('${e.courseCode} · ${e.lessonsViewed} of ${e.totalLessons} lessons opened',
-                      style: const TextStyle(color: EduColors.textSecondary)),
+                      style: TextStyle(color: EduColors.textSecondary)),
                   const SizedBox(height: 10),
                   ProgressLine(percent: e.progressPercentage),
                   const SizedBox(height: 8),
@@ -79,7 +79,7 @@ class _Enrolled extends StatelessWidget {
                         ? 'Finished on ${formatDate(e.completedAt)}'
                         : 'Joined ${formatDate(e.enrolledAt)}'
                             '${e.lastAccessed != null ? ' · last studied ${relativeTime(e.lastAccessed!)}' : ''}',
-                    style: const TextStyle(fontSize: 13, color: EduColors.textSecondary),
+                    style: TextStyle(fontSize: 13, color: EduColors.textSecondary),
                   ),
                 ]),
               ),
@@ -165,7 +165,7 @@ class _CatalogueCardState extends State<_CatalogueCard> {
         const SizedBox(height: 4),
         Text(
           [c.courseCode, if (c.level != null) c.level!, '${c.lessonCount} lessons', '${c.credits} credits'].join(' · '),
-          style: const TextStyle(color: EduColors.textSecondary),
+          style: TextStyle(color: EduColors.textSecondary),
         ),
         if (c.description != null && c.description!.isNotEmpty) ...[
           const SizedBox(height: 8),

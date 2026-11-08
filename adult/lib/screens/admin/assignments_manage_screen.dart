@@ -92,10 +92,10 @@ class _AssignmentsTabState extends State<_AssignmentsTab> {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text(a.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                         Text('${a.isTest ? 'Test' : 'Assignment'} · ${a.courseName}',
-                            style: const TextStyle(color: EduColors.textSecondary)),
+                            style: TextStyle(color: EduColors.textSecondary)),
                         Text('Due ${formatDateTime(a.dueDate)} · ${a.submissionCount} handed in, '
                             '${a.submissionCount - a.gradedCount} to grade',
-                            style: const TextStyle(fontSize: 13, color: EduColors.textSecondary)),
+                            style: TextStyle(fontSize: 13, color: EduColors.textSecondary)),
                       ]),
                     ),
                     PopupMenuButton<String>(
@@ -503,7 +503,7 @@ class _QuizAttemptsScreen extends StatelessWidget {
                     ]),
                     Text('Submitted ${formatDateTime(a.submittedAt)}'
                         '${a.gradedAt != null ? ' · reviewed ${formatDate(a.gradedAt)}' : ''}',
-                        style: const TextStyle(fontSize: 13, color: EduColors.textSecondary)),
+                        style: TextStyle(fontSize: 13, color: EduColors.textSecondary)),
                     if (a.feedback != null && a.feedback!.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Text('Feedback: ${a.feedback}', style: const TextStyle(fontStyle: FontStyle.italic)),

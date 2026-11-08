@@ -148,7 +148,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                 shape: BoxShape.circle,
                 border: Border.all(color: EduColors.border),
               ),
-              child: const Icon(Icons.arrow_back_rounded,
+              child: Icon(Icons.arrow_back_rounded,
                   color: EduColors.textPrimary, size: 20),
             ),
           ),
@@ -165,7 +165,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Notice Board',
                       style: TextStyle(
                         fontSize: 22,
@@ -236,7 +236,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
         Text(
           title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w800,
             color: EduColors.textPrimary,
@@ -246,7 +246,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
         Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             height: 1.4,
             color: EduColors.textSecondary,
@@ -279,7 +279,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
             textAlign: TextAlign.center,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               color: EduColors.textSecondary,
             ),
@@ -378,20 +378,20 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
           const SizedBox(height: 12),
           Text(
             notice.content,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               color: EduColors.textSecondary,
               height: 1.55,
             ),
           ),
           const SizedBox(height: 14),
-          const Divider(color: EduColors.border, thickness: 1, height: 1),
+          Divider(color: EduColors.border, thickness: 1, height: 1),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
-                children: const [
+                children: [
                   CircleAvatar(
                     radius: 12,
                     backgroundColor: EduColors.primarySoft,
@@ -434,7 +434,7 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               behavior: SnackBarBehavior.floating,
-              backgroundColor: EduColors.textPrimary,
+              backgroundColor: EduColors.ink,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14)),
               content: const Row(

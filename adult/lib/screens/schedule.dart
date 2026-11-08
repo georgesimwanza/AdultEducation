@@ -1,3 +1,4 @@
+import 'package:adult/screens/color.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
@@ -31,7 +32,7 @@ class _CalendarState extends State<Calendar> {
         highlightColor: Colors.transparent,
       ),
       child: Container(
-        color: Colors.white,
+        color: EduColors.surface,
         child: TableCalendar(
           firstDay: DateTime.utc(2000, 1, 1),
           lastDay: DateTime.utc(2100, 1, 1),
