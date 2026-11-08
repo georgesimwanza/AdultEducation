@@ -170,8 +170,8 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
               // Prevents the keyboard from covering the form.
               bottom: MediaQuery.of(ctx).viewInsets.bottom,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: EduColors.surface,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: Padding(
@@ -184,7 +184,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'New Announcement',
                         style: TextStyle(
                           fontSize: 17,
@@ -195,7 +195,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
 
                       IconButton(
                         onPressed: () => Navigator.pop(ctx),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.close,
                           color: EduColors.textSecondary,
                           size: 22,
@@ -226,7 +226,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   const SizedBox(height: 14),
 
                   // Programme selection label.
-                  const Text(
+                  Text(
                     'Programme',
                     style: TextStyle(
                       fontSize: 12,
@@ -296,9 +296,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
-                            side: const BorderSide(color: EduColors.textSecondary),
+                            side: BorderSide(color: EduColors.textSecondary),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Cancel',
                             style: TextStyle(
                               color: EduColors.textPrimary,
@@ -436,7 +436,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
             color: EduColors.textSecondary,
@@ -484,7 +484,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 children: [
                   Row(
                     children: [
-                      const Text(
+                      Text(
                         'Announcements',
                         style: TextStyle(
                           fontSize: 22,
@@ -512,7 +512,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                             ),
                             child: Text(
                               '$count',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: EduColors.textPrimary,
@@ -556,7 +556,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 decoration: InputDecoration(
                   hintText: 'Search updates...',
                   hintStyle: TextStyle(color: Colors.black.withOpacity(0.35)),
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     Icons.search,
                     color: EduColors.textSecondary,
                     size: 20,
@@ -594,7 +594,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.error_outline,
                               color: EduColors.textSecondary,
                               size: 44,
@@ -606,7 +606,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                               'Failed to fetch announcements.\n'
                               '${snapshot.error}',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: EduColors.textPrimary,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -618,7 +618,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                             OutlinedButton(
                               onPressed: _refreshAnnouncements,
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: EduColors.textSecondary),
+                                side: BorderSide(color: EduColors.textSecondary),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
                                 ),
@@ -627,7 +627,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                                   vertical: 10,
                                 ),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Retry',
                                 style: TextStyle(
                                   color: EduColors.textPrimary,
@@ -672,7 +672,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                   return Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: EduColors.surface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: EduColors.border),
                     ),
@@ -705,7 +705,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                                 announcement.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14.5,
                                   fontWeight: FontWeight.w700,
                                   color: EduColors.textPrimary,
@@ -752,7 +752,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                               debugPrint('Error deleting announcement: $e');
                             }
                           },
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.delete_outline,
                             color: EduColors.textSecondary,
                             size: 19,

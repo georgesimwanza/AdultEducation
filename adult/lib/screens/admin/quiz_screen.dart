@@ -71,7 +71,7 @@ class _QuizListViewState extends State<_QuizListView> {
     final confirmed = await showAdaptiveSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: EduColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -90,7 +90,7 @@ class _QuizListViewState extends State<_QuizListView> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'New quiz',
                   style: TextStyle(
                     fontSize: 18,
@@ -174,9 +174,9 @@ class _QuizListViewState extends State<_QuizListView> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
-                          side: const BorderSide(color: EduColors.textSecondary),
+                          side: BorderSide(color: EduColors.textSecondary),
                         ),
-                        child: const Text(
+                        child: Text(
                           'Cancel',
                           style: TextStyle(
                             color: EduColors.textPrimary,
@@ -353,7 +353,7 @@ class _QuizListViewState extends State<_QuizListView> {
                       ),
                       IconButton(
                         tooltip: 'Delete',
-                        icon: const Icon(Icons.delete_outline,
+                        icon: Icon(Icons.delete_outline,
                             color: EduColors.textSecondary, size: 20),
                         onPressed: () => _confirmDeleteQuiz(
                           context,
@@ -405,7 +405,7 @@ class _QuizListViewState extends State<_QuizListView> {
                 children: [
                   Row(
                     children: [
-                      const Text(
+                      Text(
                         'Quiz Management',
                         style: TextStyle(
                           fontSize: 22,
@@ -427,7 +427,7 @@ class _QuizListViewState extends State<_QuizListView> {
                             ),
                             child: Text(
                               '${controller.quizzes.length}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
                                 color: EduColors.textPrimary,
@@ -542,7 +542,7 @@ class _QuizTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: EduColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: EduColors.border),
       ),
@@ -575,7 +575,7 @@ class _QuizTile extends StatelessWidget {
                       quiz.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14.5,
                         color: EduColors.textPrimary,
@@ -593,7 +593,7 @@ class _QuizTile extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.delete_outline,
                   color: EduColors.textSecondary,
                   size: 20,
@@ -621,7 +621,7 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(Icons.quiz_outlined, size: 56, color: EduColors.border),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No quizzes yet',
               style: TextStyle(
                 fontSize: 16,
@@ -658,7 +658,7 @@ class _ErrorState extends StatelessWidget {
           children: [
             Icon(Icons.cloud_off, size: 56, color: EduColors.border),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Could not reach the server',
               style: TextStyle(
                 fontSize: 16,
@@ -710,7 +710,7 @@ void _confirmDeleteQuiz(BuildContext context, Quiz quiz, VoidCallback onDelete) 
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text(
+          child: Text(
             'Cancel',
             style: TextStyle(color: EduColors.textSecondary),
           ),

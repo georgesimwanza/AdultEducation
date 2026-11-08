@@ -76,7 +76,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: ColorScheme.light(
               primary: EduColors.primary,
               onPrimary: EduColors.onPrimary,
               onSurface: EduColors.textPrimary,
@@ -176,7 +176,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const Text(
+                  Text(
                     'Add schedule',
                     style: TextStyle(
                       fontSize: 20,
@@ -217,19 +217,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   TextField(
                     controller: titleController,
                     cursorColor: EduColors.primary,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: EduColors.textPrimary, fontFamily: 'Poppins'),
                     decoration: InputDecoration(
                       labelText: 'Title',
                       labelStyle:
-                      const TextStyle(color: EduColors.textSecondary),
+                      TextStyle(color: EduColors.textSecondary),
                       floatingLabelStyle:
                       const TextStyle(color: EduColors.primary),
                       filled: true,
                       fillColor: EduColors.background,
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: EduColors.border),
+                        borderSide: BorderSide(color: EduColors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -468,7 +468,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       _isSameDay(_selectedDay!, today)
                           ? 'Today'
                           : _formatDay(_selectedDay!),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'Poppins',
                         fontWeight: FontWeight.w800,
                         fontSize: 17,
@@ -584,12 +584,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 shape: BoxShape.circle,
                 border: Border.all(color: EduColors.border),
               ),
-              child: const Icon(Icons.arrow_back_rounded,
+              child: Icon(Icons.arrow_back_rounded,
                   color: EduColors.textPrimary, size: 20),
             ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Text(
               'Schedule',
               style: TextStyle(
@@ -643,13 +643,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: const Icon(Icons.chevron_left_rounded,
+                icon: Icon(Icons.chevron_left_rounded,
                     color: EduColors.textPrimary),
                 onPressed: () => _changeMonth(-1),
               ),
               Text(
                 '${_monthNames[_visibleMonth.month - 1]} ${_visibleMonth.year}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -657,7 +657,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.chevron_right_rounded,
+                icon: Icon(Icons.chevron_right_rounded,
                     color: EduColors.textPrimary),
                 onPressed: () => _changeMonth(1),
               ),
@@ -671,7 +671,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 child: Center(
                   child: Text(
                     d,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Poppins',
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -762,8 +762,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Widget _buildEmptyState() {
+    // Scrolls when there's little room (small phones, large text).
     return Center(
-      child: Column(
+      child: SingleChildScrollView(
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
@@ -777,7 +779,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 color: EduColors.primary, size: 30),
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'Nothing scheduled',
             style: TextStyle(
               fontFamily: 'Poppins',
@@ -787,7 +789,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Tap Add to plan something for this day.',
             style: TextStyle(
               fontFamily: 'Poppins',
@@ -796,6 +798,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -826,7 +829,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           children: [
                             Text(
                               entry.title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Poppins',
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14,
@@ -863,7 +866,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.delete_outline_rounded,
                           color: EduColors.textSecondary,
                         ),

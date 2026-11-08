@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:adult/service/platform/network_events.dart';
 
@@ -24,16 +24,27 @@ enum ConnectionStatus {
 /// network drops or returns; a small request to the API confirms the server
 /// itself answers (Wi-Fi can be up while the server is down). A periodic
 /// check catches server outages and recoveries the browser can't see.
-class ConnectivityService extends ChangeNotifier {
-  ConnectivityService({this.onReconnect});
+class ConnectivityService extends ChangeNotifier with WidgetsBindingObserver {
+  ConnectivityService({this.onSync, this.askBeforeSync = false, this.onAskToSync});
 
-  /// Runs each time the app goes from offline to online, e.g. to upload
-  /// changes saved locally and refresh the cache. It reports what it is
-  /// doing through the given callback, shown in the sync pop-up.
-  final Future<void> Function(void Function(String stage) report)? onReconnect;
+  /// Uploads changes saved locally and downloads what is new; returns how
+  /// many new items it found. It reports what it is doing through the given
+  /// callback, shown in the sync pop-up.
+  final Future<int> Function(void Function(String stage) report)? onSync;
+
+  /// Phone: when the connection comes back, ask before syncing (pop-up and
+  /// system notification) instead of starting straight away.
+  final bool askBeforeSync;
+
+  /// Called when the connection comes back and [askBeforeSync] is on, e.g.
+  /// to post the "sync new information?" notification.
+  final void Function()? onAskToSync;
 
   static const _checkEvery = Duration(seconds: 15);
   static const _pingTimeout = Duration(seconds: 5);
+
+  /// While online, look for new information this often.
+  static const _updateEvery = Duration(minutes: 5);
 
   ConnectionStatus _status = ConnectionStatus.online;
   ConnectionStatus get status => _status;
@@ -47,8 +58,25 @@ class ConnectivityService extends ChangeNotifier {
   bool _lastSyncOk = true;
   bool get lastSyncOk => _lastSyncOk;
 
+  /// Back online and waiting for the user to agree to sync (phone).
+  bool _awaitingConsent = false;
+  bool get awaitingConsent => _awaitingConsent;
+
+  /// The user chose "Later": keep waiting, but stop showing the pop-up.
+  bool _consentDismissed = false;
+  bool get consentDismissed => _consentDismissed;
+
+  /// A quiet check for new information is running (corner pop-up).
+  bool _checkingForUpdates = false;
+  bool get checkingForUpdates => _checkingForUpdates;
+
+  /// New items found by the last check, or null if it failed.
+  int? _lastCheckNewItems;
+  int? get lastCheckNewItems => _lastCheckNewItems;
+
   StreamSubscription<bool>? _networkSub;
   Timer? _timer;
+  Timer? _updateTimer;
   bool _checking = false;
 
   /// Starts listening; resolves once the first check is done so the app
@@ -57,7 +85,15 @@ class ConnectivityService extends ChangeNotifier {
     _networkSub = networkChanges()
         .listen((up) => up ? checkNow() : _setOnline(false));
     _timer = Timer.periodic(_checkEvery, (_) => checkNow());
+    _updateTimer = Timer.periodic(_updateEvery, (_) => checkForUpdates());
+    WidgetsBinding.instance.addObserver(this);
     await checkNow();
+  }
+
+  /// Back in the app after using another one: look for anything new.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) checkForUpdates();
   }
 
   /// Checks right away whether the server can be reached.
@@ -93,18 +129,40 @@ class ConnectivityService extends ChangeNotifier {
     if (online == isOnline) return;
     if (!online) {
       _status = ConnectionStatus.offline;
+      _awaitingConsent = false;
       notifyListeners();
       return;
     }
-    _status = ConnectionStatus.syncing;
-    notifyListeners();
+    if (askBeforeSync) {
+      _status = ConnectionStatus.online;
+      _awaitingConsent = true;
+      _consentDismissed = false;
+      notifyListeners();
+      onAskToSync?.call();
+      return;
+    }
     _syncAfterReconnect();
   }
 
+  /// Syncs now, with the progress pop-up (e.g. "Sync now" was tapped).
+  Future<void> syncNow() async {
+    if (_status != ConnectionStatus.online) return;
+    _awaitingConsent = false;
+    await _syncAfterReconnect();
+  }
+
+  /// "Later": stop showing the question; the status bar still offers it.
+  void dismissConsent() {
+    _consentDismissed = true;
+    notifyListeners();
+  }
+
   Future<void> _syncAfterReconnect() async {
+    _status = ConnectionStatus.syncing;
     _syncStage = 'Connecting to the server...';
+    notifyListeners();
     try {
-      await onReconnect?.call((stage) {
+      await onSync?.call((stage) {
         _syncStage = stage;
         notifyListeners();
       });
@@ -120,10 +178,30 @@ class ConnectivityService extends ChangeNotifier {
     }
   }
 
+  /// Quietly looks for new information while online (no big pop-up, just
+  /// the small one in the corner). Skipped while waiting for the user's OK.
+  Future<void> checkForUpdates() async {
+    if (_status != ConnectionStatus.online || _awaitingConsent || _checkingForUpdates) {
+      return;
+    }
+    _checkingForUpdates = true;
+    notifyListeners();
+    try {
+      _lastCheckNewItems = await onSync?.call((_) {}) ?? 0;
+    } catch (e) {
+      debugPrint('Update check failed: $e');
+      _lastCheckNewItems = null;
+    }
+    _checkingForUpdates = false;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _networkSub?.cancel();
     _timer?.cancel();
+    _updateTimer?.cancel();
     super.dispose();
   }
 }

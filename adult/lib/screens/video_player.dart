@@ -19,11 +19,12 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   // Dark surfaces derived from the palette's text colour, so the player
   // feels part of the app while staying easy on the eyes.
   static const Color _bg = Color(0xFF0F1126);
-  static const Color _panel = EduColors.textPrimary;
+  static const Color _panel = EduColors.ink;
 
   static const List<double> _speeds = [1.0, 1.25, 1.5, 2.0, 0.75];
 
-  late VideoPlayerController _controller;
+  VideoPlayerController? _ctrl;
+  VideoPlayerController get _controller => _ctrl!;
   late Future<void> _init;
 
   /// Playing the copy saved on this device (works offline).
@@ -44,17 +45,28 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   void _open() {
     final saved = _store.localPath(widget.url);
     _local = saved != null;
-    _controller = files.videoController(saved ?? widget.url, local: _local);
-    _init = _controller.initialize().then((_) {
-      // Browsers may block autoplay; the play button still works then.
-      _controller.play().catchError((Object _) {});
-    });
+    _init = _start(saved);
+  }
+
+  Future<void> _start(String? saved) async {
+    final c = await files.openVideo(saved ?? widget.url, local: saved != null);
+    _ctrl = c;
+    await c.initialize();
+    // Browsers may block autoplay; the play button still works then.
+    c.play().catchError((Object _) {});
+  }
+
+  Future<void> _close(VideoPlayerController? c) async {
+    if (c == null) return;
+    await c.dispose();
+    files.releaseSource(c.dataSource);
   }
 
   Future<void> _retry() async {
-    final old = _controller;
+    final old = _ctrl;
+    _ctrl = null;
     setState(_open);
-    await old.dispose();
+    await _close(old);
   }
 
   Future<void> _download() async {
@@ -65,7 +77,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         content: Text('Saved on this device. It now plays without internet.'),
       ));
       // Switch to the saved copy if streaming had failed.
-      if (mounted && _controller.value.hasError) await _retry();
+      if (mounted && (_ctrl?.value.hasError ?? true)) await _retry();
     } catch (_) {
       messenger.showSnackBar(const SnackBar(
         content: Text("Download failed. Check your internet and try again."),
@@ -75,7 +87,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _close(_ctrl);
     super.dispose();
   }
 

@@ -70,11 +70,11 @@ class _CoursesManageScreenState extends State<CoursesManageScreen> {
                         Text(
                           [c.courseCode, if (c.level != null) c.level!, '${c.lessonCount} lessons', '${c.credits} credits']
                               .join(' · '),
-                          style: const TextStyle(color: EduColors.textSecondary),
+                          style: TextStyle(color: EduColors.textSecondary),
                         ),
                         if (!c.isActive) ...[
                           const SizedBox(height: 4),
-                          const StatusChip('Archived', color: EduColors.textSecondary),
+                          StatusChip('Archived', color: EduColors.textSecondary),
                         ],
                       ]),
                     ),
@@ -209,7 +209,7 @@ class _CourseSheetState extends State<_CourseSheet> {
                 ],
                 onChanged: (v) => setState(() => _programmeId = v),
               ),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 6),
                 child: Text("The programme's learners will be enrolled automatically.",
                     style: TextStyle(color: EduColors.textSecondary)),

@@ -32,18 +32,18 @@ class AdminDataTable extends StatelessWidget {
             margin: EdgeInsets.zero,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(22),
-              side: const BorderSide(color: EduColors.border),
+              side: BorderSide(color: EduColors.border),
             ),
           ),
           dividerColor: EduColors.border,
           dataTableTheme: DataTableThemeData(
             headingRowColor: WidgetStateProperty.all(EduColors.background),
-            headingTextStyle: const TextStyle(
+            headingTextStyle: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 13,
               color: EduColors.textSecondary,
             ),
-            dataTextStyle: const TextStyle(
+            dataTextStyle: TextStyle(
               fontSize: 13.5,
               color: EduColors.textPrimary,
             ),

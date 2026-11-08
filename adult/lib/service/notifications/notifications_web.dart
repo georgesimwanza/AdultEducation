@@ -12,7 +12,7 @@ export 'package:adult/service/notifications/reminder.dart';
 
 final List<Timer> _timers = [];
 
-Future<void> initNotifications() async {
+Future<void> initNotifications({void Function(String? payload)? onTap}) async {
   if (web.Notification.permission == 'default') {
     await web.Notification.requestPermission().toDart;
   }
@@ -25,6 +25,11 @@ Future<void> showNow(String title, String body) async {
     web.NotificationOptions(body: body, icon: 'icons/Icon-192.png'),
   );
 }
+
+/// The web syncs on its own when the connection returns, so it never asks.
+Future<void> showSyncPrompt(String title, String body) async {}
+
+Future<void> clearSyncPrompt() async {}
 
 Future<void> scheduleReminders(List<Reminder> reminders) async {
   for (final t in _timers) {

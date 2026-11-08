@@ -1,3 +1,4 @@
+import 'package:adult/screens/color.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -16,12 +17,13 @@ class ConnectionStatusBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = context.watch<ConnectivityService>().status;
+    final connectivity = context.watch<ConnectivityService>();
+    final status = connectivity.status;
     return Stack(
       children: [
         Column(
           children: [
-            _Bar(status: status),
+            _Bar(status: status, awaitingSync: connectivity.awaitingConsent),
             const _ContentDownloadBar(),
             Expanded(
               child: MediaQuery.removePadding(
@@ -32,7 +34,9 @@ class ConnectionStatusBar extends StatelessWidget {
             ),
           ],
         ),
+        const _UpdateCheckToast(),
         const _SyncPopup(),
+        const _AskToSyncPopup(),
       ],
     );
   }
@@ -68,10 +72,12 @@ class _SyncPopupState extends State<_SyncPopup> {
   void _onChange() {
     final c = _connectivity!;
     final status = c.status;
-    if (status == ConnectionStatus.syncing && _last != ConnectionStatus.syncing) {
+    if (status == ConnectionStatus.syncing &&
+        _last != ConnectionStatus.syncing) {
       _hideTimer?.cancel();
       setState(() => _state = _PopupState.syncing);
-    } else if (_last == ConnectionStatus.syncing && status != ConnectionStatus.syncing) {
+    } else if (_last == ConnectionStatus.syncing &&
+        status != ConnectionStatus.syncing) {
       // Still open: report how it went, then close. (If the learner hid it,
       // leave it hidden.)
       if (_state == _PopupState.syncing) {
@@ -103,24 +109,31 @@ class _SyncPopupState extends State<_SyncPopup> {
     final stage = _connectivity?.syncStage ?? '';
     final (Widget icon, String title, String message) = switch (_state) {
       _PopupState.syncing => (
-          const SizedBox(
-            width: 44,
-            height: 44,
-            child: CircularProgressIndicator(strokeWidth: 4, color: Color(0xFF16A34A)),
+        const SizedBox(
+          width: 44,
+          height: 44,
+          child: CircularProgressIndicator(
+            strokeWidth: 4,
+            color: Color(0xFF16A34A),
           ),
-          'Server is back — syncing',
-          stage.isEmpty ? 'Updating your data...' : stage,
         ),
+        'Server is back — syncing',
+        stage.isEmpty ? 'Updating your data...' : stage,
+      ),
       _PopupState.done => (
-          const Icon(Icons.check_circle_rounded, size: 52, color: Color(0xFF16A34A)),
-          'All synced',
-          'Your changes were sent and everything is up to date.',
+        const Icon(
+          Icons.check_circle_rounded,
+          size: 52,
+          color: Color(0xFF16A34A),
         ),
+        'All synced',
+        'Your changes were sent and everything is up to date.',
+      ),
       _ => (
-          const Icon(Icons.cloud_off_rounded, size: 52, color: Color(0xFFDC2626)),
-          'Sync stopped',
-          'The connection dropped. It will try again when you are back online.',
-        ),
+        const Icon(Icons.cloud_off_rounded, size: 52, color: Color(0xFFDC2626)),
+        'Sync stopped',
+        'The connection dropped. It will try again when you are back online.',
+      ),
     };
 
     return Positioned.fill(
@@ -135,30 +148,46 @@ class _SyncPopupState extends State<_SyncPopup> {
               margin: const EdgeInsets.all(24),
               padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: EduColors.surface,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 24)],
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 24),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   icon,
                   const SizedBox(height: 18),
-                  Text(title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 200),
-                    child: Text(message,
-                        key: ValueKey(message),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 15, color: Color(0xFF6B7280))),
+                    child: Text(
+                      message,
+                      key: ValueKey(message),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: EduColors.textSecondary,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: _hide,
-                    child: Text(_state == _PopupState.syncing ? 'Continue in background' : 'Close'),
+                    child: Text(
+                      _state == _PopupState.syncing
+                          ? 'Continue in background'
+                          : 'Close',
+                    ),
                   ),
                 ],
               ),
@@ -171,77 +200,89 @@ class _SyncPopupState extends State<_SyncPopup> {
 }
 
 class _Bar extends StatelessWidget {
-  const _Bar({required this.status});
+  const _Bar({required this.status, this.awaitingSync = false});
 
   final ConnectionStatus status;
+
+  /// Back online but the user hasn't agreed to sync yet: tap to sync.
+  final bool awaitingSync;
 
   @override
   Widget build(BuildContext context) {
     final short = context.isMobile;
     final (Color bg, Color fg, Widget icon, String text) = switch (status) {
       ConnectionStatus.online => (
-          const Color(0xFFE7F7EE),
-          const Color(0xFF15803D),
-          const _Dot(color: Color(0xFF22C55E)),
-          'Online',
-        ),
+        const Color(0xFFE7F7EE),
+        const Color(0xFF15803D),
+        const _Dot(color: Color(0xFF22C55E)),
+        awaitingSync ? 'Online · tap to sync new information' : 'Online',
+      ),
       ConnectionStatus.syncing => (
-          const Color(0xFF16A34A),
-          Colors.white,
-          const SizedBox(
-            width: 12,
-            height: 12,
-            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-          ),
-          short ? 'Back online · syncing…' : 'Back online — syncing your changes…',
+        const Color(0xFF16A34A),
+        Colors.white,
+        const SizedBox(
+          width: 12,
+          height: 12,
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
         ),
+        short
+            ? 'Back online · syncing…'
+            : 'Back online — syncing your changes…',
+      ),
       ConnectionStatus.offline => (
-          const Color(0xFF1F2937),
-          Colors.white,
-          const Icon(Icons.cloud_off_rounded, size: 15, color: Color(0xFFFBBF24)),
-          short
-              ? 'Offline · using saved data'
-              : 'Offline mode — showing data saved on this device. Changes will sync when you reconnect.',
-        ),
+        const Color(0xFF1F2937),
+        Colors.white,
+        const Icon(Icons.cloud_off_rounded, size: 15, color: Color(0xFFFBBF24)),
+        short
+            ? 'Offline · using saved data'
+            : 'Offline mode — showing data saved on this device. Changes will sync when you reconnect.',
+      ),
     };
 
+    final tappable = awaitingSync && status == ConnectionStatus.online;
     return Semantics(
       liveRegion: true,
       label: text,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        width: double.infinity,
-        color: bg,
-        padding: EdgeInsets.only(
-          top: MediaQuery.paddingOf(context).top + 5,
-          bottom: 5,
-          left: 12,
-          right: 12,
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              icon,
-              const SizedBox(width: 8),
-              Flexible(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Text(
-                    text,
-                    key: ValueKey(text),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: fg,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
+      button: tappable,
+      child: GestureDetector(
+        onTap: tappable
+            ? () => context.read<ConnectivityService>().syncNow()
+            : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          width: double.infinity,
+          color: bg,
+          padding: EdgeInsets.only(
+            top: MediaQuery.paddingOf(context).top + 5,
+            bottom: 5,
+            left: 12,
+            right: 12,
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                icon,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Text(
+                      text,
+                      key: ValueKey(text),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: fg,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -314,10 +355,12 @@ class _ContentDownloadBarState extends State<_ContentDownloadBar> {
     final failed = _store.bulkFailed;
     final String text;
     if (active) {
-      text = 'Loading content for offline use… '
+      text =
+          'Loading content for offline use… '
           '${_store.bulkDone} of ${_store.bulkTotal} saved';
     } else if (failed > 0) {
-      text = '$failed file${failed == 1 ? '' : 's'} could not be saved. '
+      text =
+          '$failed file${failed == 1 ? '' : 's'} could not be saved. '
           'Will try again when online.';
     } else {
       text = 'All lessons saved. They now open without internet.';
@@ -325,8 +368,8 @@ class _ContentDownloadBarState extends State<_ContentDownloadBar> {
     final bg = active
         ? const Color(0xFF3D5CFF)
         : failed > 0
-            ? const Color(0xFFB45309)
-            : const Color(0xFF15803D);
+        ? const Color(0xFFB45309)
+        : const Color(0xFF15803D);
     return Semantics(
       liveRegion: true,
       label: text,
@@ -343,8 +386,8 @@ class _ContentDownloadBarState extends State<_ContentDownloadBar> {
                     active
                         ? Icons.downloading_rounded
                         : failed > 0
-                            ? Icons.error_outline_rounded
-                            : Icons.download_done_rounded,
+                        ? Icons.error_outline_rounded
+                        : Icons.download_done_rounded,
                     size: 16,
                     color: Colors.white,
                   ),
@@ -385,6 +428,214 @@ class _ContentDownloadBarState extends State<_ContentDownloadBar> {
                 ),
               ],
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Small card in the top corner while the app quietly checks for new
+/// information, then the result for a few seconds.
+class _UpdateCheckToast extends StatefulWidget {
+  const _UpdateCheckToast();
+
+  @override
+  State<_UpdateCheckToast> createState() => _UpdateCheckToastState();
+}
+
+class _UpdateCheckToastState extends State<_UpdateCheckToast> {
+  ConnectivityService? _connectivity;
+  bool _wasChecking = false;
+  bool _showResult = false;
+  Timer? _hide;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final c = context.read<ConnectivityService>();
+    if (c == _connectivity) return;
+    _connectivity?.removeListener(_onChange);
+    _connectivity = c..addListener(_onChange);
+  }
+
+  void _onChange() {
+    final checking = _connectivity!.checkingForUpdates;
+    if (_wasChecking && !checking) {
+      _showResult = true;
+      _hide?.cancel();
+      _hide = Timer(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _showResult = false);
+      });
+    }
+    if (checking) _showResult = false;
+    _wasChecking = checking;
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _hide?.cancel();
+    _connectivity?.removeListener(_onChange);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _connectivity;
+    final checking = c?.checkingForUpdates ?? false;
+    final visible = checking || _showResult;
+    final found = c?.lastCheckNewItems;
+    final Widget icon;
+    final String text;
+    if (checking) {
+      icon = const SizedBox(
+        width: 14,
+        height: 14,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: Color(0xFF3D5CFF),
+        ),
+      );
+      text = 'Checking for new information…';
+    } else if (found == null) {
+      icon = const Icon(
+        Icons.cloud_off_rounded,
+        size: 16,
+        color: Color(0xFFB45309),
+      );
+      text = "Couldn't check right now";
+    } else if (found == 0) {
+      icon = const Icon(
+        Icons.check_circle_rounded,
+        size: 16,
+        color: Color(0xFF15803D),
+      );
+      text = "You're up to date";
+    } else {
+      icon = const Icon(
+        Icons.fiber_new_rounded,
+        size: 18,
+        color: Color(0xFF3D5CFF),
+      );
+      text = '$found new update${found == 1 ? '' : 's'} downloaded';
+    }
+    return Positioned(
+      top: MediaQuery.paddingOf(context).top + 40,
+      right: 12,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedSlide(
+          duration: const Duration(milliseconds: 250),
+          offset: visible ? Offset.zero : const Offset(0.3, 0),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 250),
+            opacity: visible ? 1 : 0,
+            child: Semantics(
+              liveRegion: true,
+              label: text,
+              child: Material(
+                color: EduColors.surface,
+                elevation: 6,
+                shadowColor: Colors.black26,
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      icon,
+                      const SizedBox(width: 10),
+                      Text(
+                        text,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: EduColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Phone, back online: "Do you want to sync new information now?"
+class _AskToSyncPopup extends StatelessWidget {
+  const _AskToSyncPopup();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.watch<ConnectivityService>();
+    if (!c.awaitingConsent ||
+        c.consentDismissed ||
+        c.status != ConnectionStatus.online) {
+      return const SizedBox.shrink();
+    }
+    return Positioned.fill(
+      child: Material(
+        color: Colors.black45,
+        child: Center(
+          child: Container(
+            width: 340,
+            margin: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 16),
+            decoration: BoxDecoration(
+              color: EduColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(color: Colors.black26, blurRadius: 24),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.wifi_rounded,
+                  size: 52,
+                  color: Color(0xFF16A34A),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  "You're back online",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Do you want to sync new information now? Changes you made '
+                  'offline will be sent and new lessons downloaded.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 15, color: EduColors.textSecondary),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: c.syncNow,
+                    icon: const Icon(Icons.sync_rounded),
+                    label: const Text('Sync now'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF16A34A),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: c.dismissConsent,
+                  child: const Text('Later'),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -16,7 +16,7 @@ class AttendanceScreen extends StatefulWidget {
 }
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
-  static const _statuses = [
+  static List<(String, String, Color)> get _statuses => [
     ('PRESENT', 'Present', EduColors.success),
     ('LATE', 'Late', EduColors.accent),
     ('ABSENT', 'Absent', EduColors.danger),

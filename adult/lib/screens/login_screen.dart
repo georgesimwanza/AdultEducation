@@ -98,7 +98,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: Checkbox(
                         value: _rememberMe,
                         activeColor: EduColors.primary,
-                        side: const BorderSide(
+                        side: BorderSide(
                             color: EduColors.textSecondary, width: 1.4),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
@@ -110,7 +110,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Remember me',
                       style: TextStyle(
                         fontSize: 13,
@@ -148,7 +148,7 @@ class _LoginPageState extends State<LoginPage> {
 
           // "or" divider
           Row(
-            children: const [
+            children: [
               Expanded(child: Divider(color: EduColors.border)),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
@@ -184,7 +184,7 @@ class _LoginPageState extends State<LoginPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 "Don't have an account? ",
                 style: TextStyle(
                   color: EduColors.textSecondary,

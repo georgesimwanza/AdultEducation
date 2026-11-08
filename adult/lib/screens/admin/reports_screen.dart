@@ -124,7 +124,7 @@ class _Courses extends StatelessWidget {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(c.courseName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                   Text('${c.courseCode} · ${c.enrolled} enrolled · ${c.completed} completed',
-                      style: const TextStyle(color: EduColors.textSecondary)),
+                      style: TextStyle(color: EduColors.textSecondary)),
                   const SizedBox(height: 10),
                   ProgressLine(percent: c.completionRate, label: 'Completion rate', color: EduColors.success),
                   const SizedBox(height: 8),
@@ -186,11 +186,11 @@ class _ParticipationCard extends StatelessWidget {
             Text(
               'Last active ${p.lastActive == null ? 'never' : relativeTime(p.lastActive!)} · '
               '${p.eventsLast30Days} actions in 30 days',
-              style: const TextStyle(fontSize: 13, color: EduColors.textSecondary),
+              style: TextStyle(fontSize: 13, color: EduColors.textSecondary),
             ),
             Text(
               'Progress ${p.averageProgress}% · attendance ${p.attendanceRate == null ? '—' : '${p.attendanceRate}%'}',
-              style: const TextStyle(fontSize: 13, color: EduColors.textSecondary),
+              style: TextStyle(fontSize: 13, color: EduColors.textSecondary),
             ),
           ]),
         ),

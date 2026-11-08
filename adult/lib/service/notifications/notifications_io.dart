@@ -40,12 +40,24 @@ const _firstReminderId = 100000;
 
 const _syncTask = 'pamodzi-background-sync';
 
-Future<void> initNotifications() async {
+/// Fixed id for the "back online, sync?" notification, so a new one
+/// replaces the old and it can be removed once the sync starts.
+const _syncPromptId = 99999;
+
+Future<void> initNotifications({void Function(String? payload)? onTap}) async {
   await _plugin.initialize(
     settings: const InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     ),
+    onDidReceiveNotificationResponse: (r) =>
+        onTap?.call(r.actionId == 'sync_now' ? 'sync' : r.payload),
   );
+  // The app was opened by tapping a notification while it was closed.
+  final launch = await _plugin.getNotificationAppLaunchDetails();
+  if (launch?.didNotificationLaunchApp ?? false) {
+    final r = launch!.notificationResponse;
+    if (r != null) onTap?.call(r.actionId == 'sync_now' ? 'sync' : r.payload);
+  }
   if (Platform.isAndroid) {
     // Asks on Android 13+; earlier versions allow notifications by default.
     await _plugin
@@ -73,6 +85,30 @@ Future<void> showNow(String title, String body) async {
     ),
   );
 }
+
+/// "You're back online" with a Sync now button; opens the app either way.
+Future<void> showSyncPrompt(String title, String body) async {
+  await _plugin.show(
+    id: _syncPromptId,
+    title: title,
+    body: body,
+    payload: 'sync',
+    notificationDetails: NotificationDetails(
+      android: AndroidNotificationDetails(
+        _updatesChannel.channelId,
+        _updatesChannel.channelName,
+        channelDescription: _updatesChannel.channelDescription,
+        importance: _updatesChannel.importance,
+        priority: _updatesChannel.priority,
+        actions: const [
+          AndroidNotificationAction('sync_now', 'Sync now', showsUserInterface: true),
+        ],
+      ),
+    ),
+  );
+}
+
+Future<void> clearSyncPrompt() => _plugin.cancel(id: _syncPromptId);
 
 Future<void> scheduleReminders(List<Reminder> reminders) async {
   for (final p in await _plugin.pendingNotificationRequests()) {

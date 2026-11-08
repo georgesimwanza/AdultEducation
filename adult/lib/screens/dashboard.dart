@@ -232,7 +232,7 @@ class DashboardState extends State<Dashboard>
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: EduColors.border),
       ),
-      child: const Column(
+      child: Column(
         children: [
           Icon(Icons.notifications_none_rounded,
               color: EduColors.textSecondary, size: 28),
@@ -382,7 +382,7 @@ class DashboardState extends State<Dashboard>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Notifications',
                     style: TextStyle(
                       fontSize: 20,
@@ -391,7 +391,7 @@ class DashboardState extends State<Dashboard>
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded,
+                    icon: Icon(Icons.close_rounded,
                         color: EduColors.textSecondary),
                     onPressed: () => Navigator.pop(context),
                   ),
@@ -618,14 +618,14 @@ class DashboardState extends State<Dashboard>
                 _greetingLine(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   color: EduColors.textSecondary,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
+              Text(
                 'Learn at your own pace',
                 style: TextStyle(
                   color: EduColors.textPrimary,
@@ -649,7 +649,7 @@ class DashboardState extends State<Dashboard>
                   shape: BoxShape.circle,
                   border: Border.all(color: EduColors.border),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.notifications_none_rounded,
                   color: EduColors.textPrimary,
                   size: 22,
@@ -677,10 +677,10 @@ class DashboardState extends State<Dashboard>
         ),
         child: Row(
           children: [
-            const Icon(Icons.search_rounded,
+            Icon(Icons.search_rounded,
                 color: EduColors.textSecondary, size: 22),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Search courses, lessons…',
                 style: TextStyle(color: EduColors.textSecondary, fontSize: 14),
@@ -689,7 +689,7 @@ class DashboardState extends State<Dashboard>
             Container(
               width: 40,
               height: 40,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: EduColors.primarySoft,
                 shape: BoxShape.circle,
               ),
@@ -750,7 +750,7 @@ class DashboardState extends State<Dashboard>
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             color: EduColors.textPrimary,
             fontSize: 17,
             fontWeight: FontWeight.w800,
@@ -1065,7 +1065,7 @@ class DashboardState extends State<Dashboard>
           const SizedBox(height: 16),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: EduColors.textPrimary,
               fontWeight: FontWeight.w800,
               fontSize: 14,
@@ -1074,7 +1074,7 @@ class DashboardState extends State<Dashboard>
           const SizedBox(height: 2),
           Text(
             subtitle,
-            style: const TextStyle(
+            style: TextStyle(
                 color: EduColors.textSecondary, fontSize: 11),
           ),
           const SizedBox(height: 12),
@@ -1124,7 +1124,7 @@ class DashboardState extends State<Dashboard>
               children: [
                 Text(
                   n.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: EduColors.textPrimary,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
@@ -1133,7 +1133,7 @@ class DashboardState extends State<Dashboard>
                 const SizedBox(height: 3),
                 Text(
                   n.subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: EduColors.textSecondary, fontSize: 12),
                 ),
               ],
@@ -1142,7 +1142,7 @@ class DashboardState extends State<Dashboard>
           const SizedBox(width: 8),
           Text(
             n.time,
-            style: const TextStyle(
+            style: TextStyle(
               color: EduColors.textSecondary,
               fontSize: 11,
               fontWeight: FontWeight.w700,

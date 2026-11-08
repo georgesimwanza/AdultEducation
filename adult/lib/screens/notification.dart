@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../Controller/auth_controller.dart';
 import 'package:adult/service/sync_service.dart';
+import 'package:adult/service/accessibility_settings.dart';
 import 'package:adult/service/user_profile_service.dart';
 import 'package:adult/screens/color.dart'; // EduColors (same import as AccountDetailsPage)
 import 'package:adult/screens/account_settings.dart'; // adjust if the file name differs
@@ -74,6 +75,13 @@ class _NotificationPageState extends State<NotificationPage> {
 
                     const SizedBox(height: 24),
 
+                    // ── Personalization ──────────────────────────────
+                    _sectionLabel('Personalization'),
+                    const SizedBox(height: 10),
+                    _SettingsCard(children: const [_ThemeTile()]),
+
+                    const SizedBox(height: 24),
+
                     // ── Account ──────────────────────────────────────
                     _sectionLabel('Account'),
                     const SizedBox(height: 10),
@@ -111,7 +119,7 @@ class _NotificationPageState extends State<NotificationPage> {
 
                     const SizedBox(height: 28),
 
-                    const Center(
+                    Center(
                       child: Text(
                         'Adult Education App · v1.0.0',
                         style: TextStyle(
@@ -146,12 +154,12 @@ class _NotificationPageState extends State<NotificationPage> {
                 shape: BoxShape.circle,
                 border: Border.all(color: EduColors.border),
               ),
-              child: const Icon(Icons.arrow_back_rounded,
+              child: Icon(Icons.arrow_back_rounded,
                   color: EduColors.textPrimary, size: 20),
             ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -186,7 +194,7 @@ class _NotificationPageState extends State<NotificationPage> {
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w800,
           color: EduColors.textPrimary,
@@ -205,7 +213,7 @@ class _NotificationPageState extends State<NotificationPage> {
       builder: (ctx) => AlertDialog(
         backgroundColor: EduColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
+        title: Text(
           'Logout',
           style: TextStyle(
             fontWeight: FontWeight.w800,
@@ -213,7 +221,7 @@ class _NotificationPageState extends State<NotificationPage> {
             color: EduColors.textPrimary,
           ),
         ),
-        content: const Text(
+        content: Text(
           'Are you sure you want to sign out?',
           style: TextStyle(
             fontSize: 14,
@@ -224,7 +232,7 @@ class _NotificationPageState extends State<NotificationPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
+            child: Text(
               'Cancel',
               style: TextStyle(
                 color: EduColors.textSecondary,
@@ -424,6 +432,72 @@ class _SettingsCard extends StatelessWidget {
   }
 }
 
+/// Chooses the app's theme: follow the device, light or dark.
+class _ThemeTile extends StatelessWidget {
+  const _ThemeTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<AccessibilitySettings>();
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: EduColors.primarySoft,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.dark_mode_outlined, size: 22, color: EduColors.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Theme',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: EduColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Choose light or dark mode',
+                      style: TextStyle(fontSize: 11.5, color: EduColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<ThemeMode>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: ThemeMode.system, label: Text('System')),
+                ButtonSegment(value: ThemeMode.light, label: Text('Light')),
+                ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+              ],
+              selected: {settings.themeMode},
+              onSelectionChanged: (s) => settings.setThemeMode(s.first),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Displays a settings item containing a switch.
 class _ToggleTile extends StatelessWidget {
   final IconData icon;
@@ -466,7 +540,7 @@ class _ToggleTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: EduColors.textPrimary,
@@ -475,7 +549,7 @@ class _ToggleTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
                     color: EduColors.textSecondary,
                   ),
@@ -553,7 +627,7 @@ class _ActionTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.5,
                       color: EduColors.textSecondary,
                     ),

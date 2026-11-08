@@ -49,7 +49,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                 shape: BoxShape.circle,
                 border: Border.all(color: EduColors.border),
               ),
-              child: const Icon(Icons.arrow_back_rounded,
+              child: Icon(Icons.arrow_back_rounded,
                   color: EduColors.textPrimary, size: 20),
             ),
           ),
@@ -73,7 +73,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                   widget.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: EduColors.textPrimary,
@@ -83,7 +83,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                   _totalPages > 0
                       ? '$_totalPages ${_totalPages == 1 ? 'page' : 'pages'}'
                       : 'PDF document',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: EduColors.textSecondary,
@@ -116,7 +116,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                     color: EduColors.primary, size: 34),
               ),
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 "Couldn't open this PDF",
                 style: TextStyle(
                   fontSize: 17,
@@ -125,7 +125,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'The file may be missing or damaged. Go back and try opening it again.',
                 textAlign: TextAlign.center,
                 style: TextStyle(

@@ -64,12 +64,20 @@ Future<void> deleteFile(String path) async {
   if (await f.exists()) await f.delete();
 }
 
-VideoPlayerController videoController(String source, {required bool local}) =>
+/// A video player for a saved file ([local]) or a stream.
+Future<VideoPlayerController> openVideo(String source, {required bool local}) async =>
     local
         ? VideoPlayerController.file(File(source))
         : VideoPlayerController.networkUrl(Uri.parse(source));
 
 Widget localImage(String path) => Image.file(File(path), fit: BoxFit.contain);
+
+// Saved files are shown straight from their path here.
+Future<String> playableSource(String path) async => path;
+void releaseSource(String src) {}
+
+/// Web only (embedded browser viewer); documents use PdfViewerScreen here.
+Widget documentFrame(String src) => const SizedBox.shrink();
 
 /// A stable, unique file name: the original name plus a hash of the URL
 /// (two courses can have files with the same name).

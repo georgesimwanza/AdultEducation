@@ -150,13 +150,13 @@ class _UsersScreenState extends State<UsersScreen> {
                               fontWeight: FontWeight.w800,
                               color: u.isActive ? EduColors.textPrimary : EduColors.textSecondary,
                             )),
-                        Text(u.email, style: const TextStyle(color: EduColors.textSecondary)),
+                        Text(u.email, style: TextStyle(color: EduColors.textSecondary)),
                         Text(
                           [
                             if (u.educationLevel != null) u.educationLevel!,
                             'last sign-in ${u.lastLoginAt == null ? 'never' : relativeTime(u.lastLoginAt!)}',
                           ].join(' · '),
-                          style: const TextStyle(fontSize: 12.5, color: EduColors.textSecondary),
+                          style: TextStyle(fontSize: 12.5, color: EduColors.textSecondary),
                         ),
                       ]),
                     ),

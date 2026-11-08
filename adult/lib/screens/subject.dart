@@ -122,7 +122,7 @@ class _SubjectPageState extends State<SubjectPage> {
                     shape: BoxShape.circle,
                     border: Border.all(color: EduColors.border),
                   ),
-                  child: const Icon(Icons.arrow_back_rounded,
+                  child: Icon(Icons.arrow_back_rounded,
                       color: EduColors.textPrimary, size: 20),
                 ),
               ),
@@ -150,7 +150,7 @@ class _SubjectPageState extends State<SubjectPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Subjects',
                       style: TextStyle(
                         fontSize: 24,
@@ -163,7 +163,7 @@ class _SubjectPageState extends State<SubjectPage> {
                       _isLoading
                           ? 'Loading…'
                           : '${_subjects.length} ${_subjects.length == 1 ? 'course' : 'courses'} available',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         color: EduColors.textSecondary,
                         fontWeight: FontWeight.w500,
@@ -193,21 +193,21 @@ class _SubjectPageState extends State<SubjectPage> {
         controller: _searchController,
         onChanged: (v) => setState(() => _searchQuery = v),
         cursorColor: EduColors.primary,
-        style: const TextStyle(color: EduColors.textPrimary, fontSize: 14),
+        style: TextStyle(color: EduColors.textPrimary, fontSize: 14),
         decoration: InputDecoration(
           hintText: 'What do you want to learn?',
-          hintStyle: const TextStyle(
+          hintStyle: TextStyle(
             color: EduColors.textSecondary,
             fontSize: 14,
           ),
-          prefixIcon: const Icon(
+          prefixIcon: Icon(
             Icons.search_rounded,
             color: EduColors.textSecondary,
           ),
           suffixIcon: _searchQuery.isEmpty
               ? null
               : IconButton(
-            icon: const Icon(Icons.close_rounded,
+            icon: Icon(Icons.close_rounded,
                 color: EduColors.textSecondary, size: 20),
             onPressed: () {
               _searchController.clear();
@@ -319,7 +319,7 @@ class _SubjectPageState extends State<SubjectPage> {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
               color: EduColors.textPrimary,
@@ -329,7 +329,7 @@ class _SubjectPageState extends State<SubjectPage> {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               height: 1.4,
               color: EduColors.textSecondary,
@@ -381,7 +381,7 @@ class _SubjectCardState extends State<_SubjectCard> {
     EduColors.accent,
     EduColors.success,
   ];
-  static const List<Color> _bgColors = [
+  static List<Color> get _bgColors => [
     EduColors.primarySoft,
     EduColors.accentSoft,
     EduColors.successSoft,
@@ -398,7 +398,7 @@ class _SubjectCardState extends State<_SubjectCard> {
         content: Text('Entering ${widget.subject.name}...'),
         duration: const Duration(seconds: 1),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: EduColors.textPrimary,
+        backgroundColor: EduColors.ink,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
         ),
@@ -444,7 +444,7 @@ class _SubjectCardState extends State<_SubjectCard> {
                 s.name,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                   color: EduColors.textPrimary,
@@ -465,7 +465,7 @@ class _SubjectCardState extends State<_SubjectCard> {
                       child: Text(
                         s.code,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10.5,
                           color: EduColors.textSecondary,
                           fontWeight: FontWeight.w700,

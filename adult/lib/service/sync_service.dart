@@ -217,9 +217,10 @@ class SyncService {
   /// major stage — e.g. for a loading screen to display live. Optional; if
   /// omitted, sync behaves exactly as before (debug prints only).
   ///
-  /// Anything new it finds is shown as a notification. [prefetchPages] is
-  /// off for the background check, to keep it light on data.
-  Future<void> syncOnStartup({
+  /// Anything new it finds is shown as a notification, and the number of
+  /// new items is returned. [prefetchPages] is off for the background
+  /// check, to keep it light on data.
+  Future<int> syncOnStartup({
     void Function(String stage)? onProgress,
     bool prefetchPages = true,
   }) async {
@@ -237,7 +238,7 @@ class SyncService {
       print('🔑 Token attached to sync requests');
     } else {
       print('⚠️ No token found — skipping sync');
-      return;
+      return 0;
     }
 
     final lastSync = await getLastSyncTimestamp();
@@ -285,6 +286,7 @@ class SyncService {
     // Phone: save every lesson file so it opens offline. Runs on after the
     // sync returns; the "Loading content" banner shows its progress.
     if (prefetchPages) unawaited(_saveLessonFiles());
+    return fresh.length;
   }
 
   /// Files of this student's programme (everything if it isn't known).

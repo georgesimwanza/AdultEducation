@@ -123,7 +123,7 @@ class _ProfileFormState extends State<_ProfileForm> {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(p.fullName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  Text(p.email, style: const TextStyle(color: EduColors.textSecondary)),
+                  Text(p.email, style: TextStyle(color: EduColors.textSecondary)),
                   const SizedBox(height: 4),
                   Wrap(spacing: 6, runSpacing: 4, children: [
                     StatusChip(roleLabel(p.role), color: EduColors.primary),

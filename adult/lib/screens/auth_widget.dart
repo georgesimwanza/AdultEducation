@@ -14,7 +14,7 @@ InputDecoration authInputDecoration({
 }) {
   return InputDecoration(
     hintText: hint,
-    hintStyle: const TextStyle(color: EduColors.textSecondary, fontSize: 14),
+    hintStyle: TextStyle(color: EduColors.textSecondary, fontSize: 14),
     prefixIcon: Icon(icon, color: EduColors.textSecondary, size: 20),
     suffixIcon: suffix,
     filled: true,
@@ -22,7 +22,7 @@ InputDecoration authInputDecoration({
     contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: EduColors.border),
+      borderSide: BorderSide(color: EduColors.border),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
@@ -219,7 +219,7 @@ class AuthLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w700,
           color: EduColors.textPrimary,
@@ -269,7 +269,7 @@ class _AuthFieldState extends State<AuthField> {
           textInputAction: widget.textInputAction,
           obscureText: widget.isPassword && _obscured,
           cursorColor: EduColors.primary,
-          style: const TextStyle(color: EduColors.textPrimary, fontSize: 14),
+          style: TextStyle(color: EduColors.textPrimary, fontSize: 14),
           decoration: authInputDecoration(
             hint: widget.hint,
             icon: widget.icon,
@@ -349,7 +349,7 @@ class AuthPickerField extends StatelessWidget {
                     ),
                   ),
                 ),
-                const Icon(Icons.keyboard_arrow_down_rounded,
+                Icon(Icons.keyboard_arrow_down_rounded,
                     color: EduColors.textSecondary),
               ],
             ),

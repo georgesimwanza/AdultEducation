@@ -103,7 +103,7 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
               ),
             ],
           ),
-          backgroundColor: EduColors.textPrimary,
+          backgroundColor: EduColors.ink,
           behavior: SnackBarBehavior.floating,
           shape:
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -254,7 +254,7 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                       // ── Change password ─────────────────────────────
                       _sectionLabel('Change password'),
                       const SizedBox(height: 4),
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(left: 4, bottom: 10),
                         child: Text(
                           'Leave blank to keep your current password. '
@@ -365,12 +365,12 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
                 shape: BoxShape.circle,
                 border: Border.all(color: EduColors.border),
               ),
-              child: const Icon(Icons.arrow_back_rounded,
+              child: Icon(Icons.arrow_back_rounded,
                   color: EduColors.textPrimary, size: 20),
             ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -475,7 +475,7 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
   Widget _buildSaveBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: EduColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
@@ -534,7 +534,7 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w800,
           color: EduColors.textPrimary,
@@ -543,7 +543,7 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
     );
   }
 
-  Widget _cardDivider() => const Divider(
+  Widget _cardDivider() => Divider(
     height: 1,
     thickness: 1,
     color: EduColors.border,
@@ -570,14 +570,14 @@ class _AccountDetailsPageState extends State<AccountDetailsPage> {
       validator: validator,
       onChanged: onChanged,
       cursorColor: EduColors.primary,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: EduColors.textPrimary,
       ),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(
+        labelStyle: TextStyle(
           fontSize: 13,
           color: EduColors.textSecondary,
         ),

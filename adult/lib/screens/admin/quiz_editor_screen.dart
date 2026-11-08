@@ -118,7 +118,7 @@ class QuizEditorScreen extends StatelessWidget {
   Future<QuestionType?> _pickQuestionType(BuildContext context) {
     return showAdaptiveSheet<QuestionType>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: EduColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -130,7 +130,7 @@ class QuizEditorScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Choose question type',
                   style: TextStyle(
                     fontSize: 18,
@@ -173,7 +173,7 @@ class QuizEditorScreen extends StatelessWidget {
                                 children: [
                                   Text(
                                     type.label,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 14,
                                       color: EduColors.textPrimary,
@@ -228,7 +228,7 @@ class QuizEditorScreen extends StatelessWidget {
     showAdaptiveSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: EduColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -244,7 +244,7 @@ class QuizEditorScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Quiz settings',
                 style: TextStyle(
                   fontSize: 18,
@@ -401,7 +401,7 @@ class _QuizSummaryHeader extends StatelessWidget {
               quiz.description,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: EduColors.textSecondary, fontSize: 13),
+              style: TextStyle(color: EduColors.textSecondary, fontSize: 13),
             ),
           ],
           const SizedBox(height: 16),
@@ -477,7 +477,7 @@ class _NoQuestionsState extends StatelessWidget {
           children: [
             Icon(Icons.playlist_add, size: 56, color: EduColors.border),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No questions yet',
               style: TextStyle(
                 fontSize: 16,
@@ -533,7 +533,7 @@ class _QuestionCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: EduColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: EduColors.border),
       ),
@@ -552,7 +552,7 @@ class _QuestionCard extends StatelessWidget {
               alignment: Alignment.center,
               child: Text(
                 '${index + 1}',
-                style: const TextStyle(
+                style: TextStyle(
                   color: EduColors.textPrimary,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
@@ -607,7 +607,7 @@ class _QuestionCard extends StatelessWidget {
                     question.text,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: EduColors.textPrimary,
                     ),

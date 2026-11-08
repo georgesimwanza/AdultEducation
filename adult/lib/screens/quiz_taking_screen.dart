@@ -136,7 +136,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w800,
             fontSize: 18,
             color: EduColors.textPrimary,
@@ -144,7 +144,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
         ),
         content: Text(
           message,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             height: 1.4,
             color: EduColors.textSecondary,
@@ -153,7 +153,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text(
+            child: Text(
               'Keep going',
               style: TextStyle(
                 color: EduColors.textSecondary,
@@ -408,7 +408,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: EduColors.border),
                   ),
-                  child: const Icon(Icons.close_rounded,
+                  child: Icon(Icons.close_rounded,
                       color: EduColors.textPrimary, size: 20),
                 ),
               ),
@@ -421,7 +421,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
                       widget.quiz.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                         color: EduColors.textPrimary,
@@ -429,7 +429,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
                     ),
                     Text(
                       '$total question${total == 1 ? '' : 's'}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         color: EduColors.textSecondary,
                         fontWeight: FontWeight.w500,
@@ -495,7 +495,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
               const SizedBox(width: 10),
               Text(
                 '$answered/$total answered',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: EduColors.textSecondary,
@@ -511,7 +511,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
   Widget _buildSubmitBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: EduColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
@@ -603,7 +603,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
           const SizedBox(height: 14),
           Text(
             question.text,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 15.5,
               height: 1.35,
@@ -655,7 +655,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
       ShortAnswerQuestion q => TextFormField(
         controller: _controllerFor(q.id),
         cursorColor: EduColors.primary,
-        style: const TextStyle(color: EduColors.textPrimary),
+        style: TextStyle(color: EduColors.textPrimary),
         decoration: _fieldDecoration('Your answer'),
         validator: (v) =>
         (v == null || v.trim().isEmpty) ? 'Please answer' : null,
@@ -667,7 +667,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
         controller: _controllerFor(q.id),
         maxLines: 5,
         cursorColor: EduColors.primary,
-        style: const TextStyle(color: EduColors.textPrimary),
+        style: TextStyle(color: EduColors.textPrimary),
         decoration: _fieldDecoration(
           'Your response',
           hint: 'This question is manually graded by an instructor',
@@ -691,17 +691,17 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      hintStyle: const TextStyle(
+      hintStyle: TextStyle(
         color: EduColors.textSecondary,
         fontSize: 12,
       ),
-      labelStyle: const TextStyle(color: EduColors.textSecondary),
+      labelStyle: TextStyle(color: EduColors.textSecondary),
       floatingLabelStyle: const TextStyle(color: EduColors.primary),
       filled: true,
       fillColor: EduColors.background,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: EduColors.border),
+        borderSide: BorderSide(color: EduColors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -757,7 +757,7 @@ class _QuizTakingScreenState extends State<QuizTakingScreen> {
                     size: 16, color: EduColors.onPrimary)
                     : Text(
                   letter,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                     color: EduColors.textSecondary,
@@ -900,7 +900,7 @@ class _QuizResultsScreen extends StatelessWidget {
                     const SizedBox(height: 24),
                     Text(
                       passed ? 'Congratulations!' : 'Keep Practicing!',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: EduColors.textPrimary,
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
@@ -913,7 +913,7 @@ class _QuizResultsScreen extends StatelessWidget {
                           : 'You needed $passingScorePercent% '
                           'to pass — review and try again',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: EduColors.textSecondary,
                         fontSize: 13,
                         height: 1.4,
@@ -989,7 +989,7 @@ class _QuizResultsScreen extends StatelessWidget {
                     ],
 
                     const SizedBox(height: 26),
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Question breakdown',
@@ -1012,7 +1012,7 @@ class _QuizResultsScreen extends StatelessWidget {
             // Returns the user to the first route (normally the home screen).
             Container(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: EduColors.surface,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 boxShadow: [
@@ -1083,7 +1083,7 @@ class _QuizResultsScreen extends StatelessWidget {
               children: [
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: EduColors.textPrimary,
@@ -1091,7 +1091,7 @@ class _QuizResultsScreen extends StatelessWidget {
                 ),
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     color: EduColors.textSecondary,
                   ),
@@ -1152,7 +1152,7 @@ class _QuizResultsScreen extends StatelessWidget {
               'Q${i + 1}: ${r.question.text}',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 height: 1.3,
                 fontWeight: FontWeight.w600,

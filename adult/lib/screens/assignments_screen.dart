@@ -92,8 +92,8 @@ class _AssignmentCard extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(a.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
             Text('${a.isTest ? 'Test' : 'Assignment'} · ${a.courseName}',
-                style: const TextStyle(color: EduColors.textSecondary)),
-            Text('Due ${formatDateTime(a.dueDate)}', style: const TextStyle(fontSize: 13, color: EduColors.textSecondary)),
+                style: TextStyle(color: EduColors.textSecondary)),
+            Text('Due ${formatDateTime(a.dueDate)}', style: TextStyle(fontSize: 13, color: EduColors.textSecondary)),
           ]),
         ),
         const SizedBox(width: 8),
@@ -170,7 +170,7 @@ class _AssignmentDetailScreenState extends State<AssignmentDetailScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(a.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
-              Text(a.courseName, style: const TextStyle(color: EduColors.textSecondary)),
+              Text(a.courseName, style: TextStyle(color: EduColors.textSecondary)),
               const Divider(height: 24),
               _info(Icons.event_rounded, 'Due', '${formatDateTime(a.dueDate)} (${relativeTime(a.dueDate)})'),
               _info(Icons.star_outline_rounded, 'Marks', 'Out of ${a.maxScore}'),

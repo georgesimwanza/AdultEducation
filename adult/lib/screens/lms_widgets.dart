@@ -48,7 +48,7 @@ void showError(BuildContext context, Object error) {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
         content: Text(error.toString(), style: const TextStyle(fontSize: 15)),
-        backgroundColor: EduColors.textPrimary,
+        backgroundColor: EduColors.ink,
         behavior: SnackBarBehavior.floating,
       ));
     return;
@@ -107,6 +107,7 @@ class AsyncViewState<T> extends State<AsyncView<T>> {
   late Future<T> _future;
   ConnectivityService? _connectivity;
   ConnectionStatus? _lastStatus;
+  bool _wasChecking = false;
 
   @override
   void initState() {
@@ -124,13 +125,16 @@ class AsyncViewState<T> extends State<AsyncView<T>> {
     _lastStatus = c.status;
   }
 
-  // Once a sync after reconnecting finishes, show the fresh server data.
+  // Once a sync finishes (after reconnecting, or a quiet check that found
+  // something new), show the fresh server data.
   void _onConnectionChanged() {
-    final status = _connectivity!.status;
-    if (_lastStatus == ConnectionStatus.syncing && status == ConnectionStatus.online && mounted) {
-      reload();
-    }
+    final c = _connectivity!;
+    final status = c.status;
+    final synced = _lastStatus == ConnectionStatus.syncing && status == ConnectionStatus.online;
+    final checkFoundNew = _wasChecking && !c.checkingForUpdates && (c.lastCheckNewItems ?? 0) > 0;
+    if ((synced || checkFoundNew) && mounted) reload();
     _lastStatus = status;
+    _wasChecking = c.checkingForUpdates;
   }
 
   @override
@@ -141,7 +145,9 @@ class AsyncViewState<T> extends State<AsyncView<T>> {
 
   Future<void> reload() async {
     final next = widget.load();
-    setState(() => _future = next);
+    setState(() {
+      _future = next;
+    });
     try {
       await next;
     } catch (_) {}
@@ -201,12 +207,12 @@ class EmptyState extends StatelessWidget {
         const SizedBox(height: 16),
         Text(title,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: EduColors.textPrimary)),
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: EduColors.textPrimary)),
         if (message != null) ...[
           const SizedBox(height: 8),
           Text(message!,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, color: EduColors.textSecondary)),
+              style: TextStyle(fontSize: 15, color: EduColors.textSecondary)),
         ],
         if (actionLabel != null && onAction != null) ...[
           const SizedBox(height: 20),
@@ -259,7 +265,7 @@ class SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(4, 18, 4, 8),
         child: Text(text,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: EduColors.textPrimary)),
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: EduColors.textPrimary)),
       );
 }
 
@@ -278,7 +284,7 @@ class LmsCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: EduColors.border),
+        side: BorderSide(color: EduColors.border),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -305,7 +311,7 @@ class ProgressLine extends StatelessWidget {
         Row(children: [
           Expanded(
             child: Text(label ?? 'Progress',
-                style: const TextStyle(fontSize: 13, color: EduColors.textSecondary)),
+                style: TextStyle(fontSize: 13, color: EduColors.textSecondary)),
           ),
           Text('$percent%', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
         ]),
@@ -351,7 +357,7 @@ class StatTile extends StatelessWidget {
             Text(label,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12.5, color: EduColors.textSecondary)),
+                style: TextStyle(fontSize: 12.5, color: EduColors.textSecondary)),
           ]),
         ),
       ]),
@@ -416,10 +422,10 @@ class HubTile extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800)),
             if (caption != null)
-              Text(caption!, style: const TextStyle(fontSize: 13.5, color: EduColors.textSecondary)),
+              Text(caption!, style: TextStyle(fontSize: 13.5, color: EduColors.textSecondary)),
           ]),
         ),
-        const Icon(Icons.chevron_right_rounded, color: EduColors.textSecondary),
+        Icon(Icons.chevron_right_rounded, color: EduColors.textSecondary),
       ]),
     );
   }

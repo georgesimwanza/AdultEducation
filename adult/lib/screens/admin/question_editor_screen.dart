@@ -164,7 +164,7 @@ InputDecoration _fieldDecoration(String label, {String? hint}) {
 Widget _sectionLabel(String text) {
   return Text(
     text,
-    style: const TextStyle(
+    style: TextStyle(
       fontSize: 13,
       fontWeight: FontWeight.w700,
       color: EduColors.textPrimary,

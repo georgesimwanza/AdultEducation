@@ -24,7 +24,7 @@ class ProgressReportScreen extends StatelessWidget {
             LmsCard(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(r.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                Text(r.email, style: const TextStyle(color: EduColors.textSecondary)),
+                Text(r.email, style: TextStyle(color: EduColors.textSecondary)),
                 const SizedBox(height: 6),
                 Wrap(spacing: 6, runSpacing: 4, children: [
                   if (r.programmeName != null) StatusChip(r.programmeName!, color: EduColors.primary),
@@ -32,7 +32,7 @@ class ProgressReportScreen extends StatelessWidget {
                 ]),
                 const SizedBox(height: 6),
                 Text('Report made ${formatDateTime(r.generatedAt)}',
-                    style: const TextStyle(fontSize: 12.5, color: EduColors.textSecondary)),
+                    style: TextStyle(fontSize: 12.5, color: EduColors.textSecondary)),
               ]),
             ),
             StatGrid(tiles: [
@@ -85,7 +85,7 @@ class ProgressReportScreen extends StatelessWidget {
                       child: Text(g.title, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
                     ),
                     g.score == null
-                        ? const StatusChip('Waiting for grade', color: EduColors.textSecondary)
+                        ? StatusChip('Waiting for grade', color: EduColors.textSecondary)
                         : StatusChip(
                             g.kind == 'QUIZ' ? '${g.score}%' : '${g.score}/${g.maxScore}',
                             color: (g.percent ?? 0) >= 50 ? EduColors.success : EduColors.danger,
@@ -94,7 +94,7 @@ class ProgressReportScreen extends StatelessWidget {
                   Text(
                     '${switch (g.kind) { 'QUIZ' => 'Quiz', 'TEST' => 'Test', _ => 'Assignment' }}'
                     '${g.courseName != null ? ' · ${g.courseName}' : ''} · ${formatDate(g.date)}',
-                    style: const TextStyle(fontSize: 13, color: EduColors.textSecondary),
+                    style: TextStyle(fontSize: 13, color: EduColors.textSecondary),
                   ),
                   if (g.feedback != null && g.feedback!.isNotEmpty) ...[
                     const SizedBox(height: 6),
